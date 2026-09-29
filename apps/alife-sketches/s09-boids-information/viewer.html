@@ -1,0 +1,312 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-09 群れの中を情報がどう伝わるか</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--hot:#fbbf24}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  button.go{border-color:var(--hot);color:var(--hot);font-weight:600}
+  select{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  label b{color:var(--fg);font-variant-numeric:tabular-nums;min-width:3.2em}
+  input[type=range]{width:120px}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px}
+  table{border-collapse:collapse;font-size:12px;width:100%}
+  th,td{padding:4px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  td{font-variant-numeric:tabular-nums}
+  .hot{color:var(--hot)}
+  .ok{color:#4ade80}.no{color:#f87171}
+  .legend{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.9}
+  .sw{display:inline-block;width:22px;height:9px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:940px}
+  footer b{color:var(--fg)}
+  .col{display:flex;flex-direction:column;gap:14px;flex:1;min-width:290px}
+  /* 桁が変わってもレイアウトが動かないようにする（ユーザ指定） */
+  #t{display:inline-block;min-width:6ch;text-align:right;font-variant-numeric:tabular-nums}
+  .panel table{table-layout:fixed}
+  .panel td:first-child{width:58%}
+  @media(max-width:760px){.wrap{flex-direction:column}}
+  @media(max-width:820px){.col,.panel{min-width:0}.bar label{flex-wrap:wrap;max-width:100%}select{max-width:100%}}
+</style>
+
+<header>
+  <h1>S-09 — 群れの中を、情報はどう伝わるか</h1>
+  <p class="sub">分離・整列・結合の3規則だけの群れ。<b style="color:var(--hot)">1羽の向きを 0.2 rad 変える</b>と、その擾乱はどこまで・どれだけ速く届くか。<br>
+    同じシードの2本を対にして走らせ、<b>2つの世界の差</b>を色にしている。出典: Reynolds (1987) SIGGRAPH '87</p>
+</header>
+
+<div class="bar">
+  <button id="run">停止</button>
+  <button id="reset">撒き直す</button>
+  <button id="perturb" class="go">1羽の向きを変える</button>
+  <label>近傍の引き方
+    <select id="mode">
+      <option value="local">local（半径 r 内・本物）</option>
+      <option value="none">none（相互作用なし・負①）</option>
+      <option value="drive">drive（共通の外部方向場・負②）</option>
+      <option value="shuffled">shuffled（無作為の固定結線・負③）</option>
+    </select>
+  </label>
+  <label>知覚半径 r <input type="range" id="rad" min="2" max="12" step="1" value="5"> <b id="radV">5</b></label>
+  <label>整列の重み <input type="range" id="ali" min="0" max="30" step="1" value="10"> <b id="aliV">1.0</b></label>
+  <span style="flex:1"></span>
+  <span style="color:var(--dim)">摂動からの経過 <b id="t" style="color:var(--fg)">—</b> step</span>
+</div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>群れと、擾乱の波面（色 = 対照走行との向きのずれ）</h2>
+    <canvas id="c" width="620" height="620"></canvas>
+    <div class="legend">
+      <span class="sw" style="background:#39415a"></span>まだ届いていない（対照走行とビット単位で一致）
+      <span class="sw" style="background:#f472b6;margin-left:10px"></span>届いた直後（波面）
+      <span class="sw" style="background:#fbbf24;margin-left:10px"></span>ずれが育っている
+      <span class="sw" style="background:#fef9c3;margin-left:10px"></span>もう別の世界<br>
+      <span style="color:#f87171">━</span> 実測の波面（回帰した速さ×経過）　
+      <span style="color:#475569">┄</span> 因果律の上限（(r + 2v)×経過）　
+      <span style="color:#60a5fa">◎</span> 向きを変えた1羽の、摂動時点の位置
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="panel">
+      <h2>事前登録した秩序変数</h2>
+      <table>
+        <tr><td>到達率（eps=0）</td><td id="mReach">—</td></tr>
+        <tr><td>　うち初期連結成分の中</td><td id="mReachC">—</td></tr>
+        <tr><td>参加比（実効の担い手数）</td><td id="mSpread">—</td></tr>
+        <tr><td>波面相関（距離 vs 到達時刻）</td><td id="mCorr">—</td></tr>
+        <tr><td>伝播速度 world/step</td><td id="mSpeed">—</td></tr>
+        <tr><td>　＝ 知覚半径の何倍/step</td><td id="mSpeedR">—</td></tr>
+        <tr><td>　＝ <b>飛行速度の何倍</b></td><td id="mSpeedF" class="hot">—</td></tr>
+        <tr><td>リャプノフ指数 1/step</td><td id="mLyap">—</td></tr>
+        <tr><td>整列度（古典的な群れらしさ）</td><td id="mAlign">—</td></tr>
+        <tr><td>平均近傍数</td><td id="mNb">—</td></tr>
+        <tr><td><b>連言（到達率≥0.5 かつ 相関≥0.3）</b></td><td id="mConj">—</td></tr>
+      </table>
+      <div class="legend">「参加比」は擾乱の大きさを 1000 倍しても変わらない——<br>スケールの選択を含まない測り方（method K-10）。</div>
+    </div>
+    <div class="panel">
+      <h2>到達率の時間変化（横軸 = 摂動からの step）</h2>
+      <canvas id="g" width="320" height="150"></canvas>
+      <div class="legend"><span style="color:var(--hot)">━</span> 到達率　<span style="color:#60a5fa">━</span> 差分ノルム（対数）</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p><b>見どころ</b>: <code>drive</code> に切り替えると、整列度は 1.00——<b>見た目では完璧な群れ</b>になる。
+  それでも「1羽の向きを変える」を押すと、<b>擾乱は誰にも伝わらない</b>（到達率は 1/N のまま）。
+  群れて<i>見える</i>ことと、群れの中を情報が<i>伝わる</i>ことは別の性質である。<br>
+  <code>shuffled</code> は逆で、到達率は 1.0 まで行くのに<b>波面が無い</b>——相関がほぼ 0 になる。
+  だから本スケッチは「到達率」と「波面相関」の<b>連言</b>を秩序変数として事前登録している（method K-14）。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var SIZE_BASE = 100, COUNT_BASE = 500;
+  var SIZE = SIZE_BASE, COUNT = COUNT_BASE, WARM_HINT = 200;
+  var cv = document.getElementById('c'), cx = cv.getContext('2d');
+  var gv = document.getElementById('g'), gx = gv.getContext('2d');
+  var world = null, pair = null, running = true;
+  var opts = { size: SIZE, count: COUNT, radius: 5, wAli: 1.0, mode: 'local' };
+  var origin = null, history = [];
+
+  function $(id) { return document.getElementById(id); }
+
+  function reset() {
+    pair = null; origin = null; history = [];
+    world = S09.createWorld(opts, (Date.now() & 0x7fffffff));
+    for (var t = 0; t < WARM_HINT; t++) S09.stepWorld(world);
+    $('t').textContent = '—';
+    clearMetrics();
+  }
+
+  function clearMetrics() {
+    ['mReach','mReachC','mSpread','mCorr','mSpeed','mSpeedR','mSpeedF','mLyap','mConj'].forEach(function (k) {
+      $(k).textContent = '—'; $(k).className = (k === 'mSpeedF') ? 'hot' : '';
+    });
+  }
+
+  function doPerturb() {
+    var w = pair ? pair.b : world;
+    pair = S09.pairFromWorld(w, 0, 0.2, 0);
+    world = pair.b;
+    origin = { x: pair.a.x[0], y: pair.a.y[0] };
+    history = [];
+  }
+
+  // 擾乱の大きさ（rad）を 0..1 へ。1e-16 が届いた直後、1 に近いともう別の世界。
+  function heat(d) {
+    if (!(d > 0)) return -1;
+    var u = (Math.log(d) / Math.LN10 + 16) / 16;
+    return u < 0 ? 0 : (u > 1 ? 1 : u);
+  }
+  function mix(a, b, u) { return [a[0]+(b[0]-a[0])*u, a[1]+(b[1]-a[1])*u, a[2]+(b[2]-a[2])*u]; }
+  var C_FRESH = [244,114,182], C_MID = [251,191,36], C_OLD = [254,249,195];
+  function heatColor(u) {
+    var c = u < 0.5 ? mix(C_FRESH, C_MID, u * 2) : mix(C_MID, C_OLD, (u - 0.5) * 2);
+    return 'rgb(' + (c[0]|0) + ',' + (c[1]|0) + ',' + (c[2]|0) + ')';
+  }
+
+  function draw() {
+    var w = pair ? pair.b : world;
+    var s = cv.width / SIZE;
+    cx.fillStyle = '#0b0d13';
+    cx.fillRect(0, 0, cv.width, cv.height);
+
+    // 波面の輪（トーラスなので 3x3 に敷き詰めて描く）
+    if (pair && origin && pair.t > 0) {
+      var fit = S09.frontFit(pair);
+      var rings = [
+        { r: fit.speed * pair.t, color: 'rgba(248,113,113,0.55)', dash: [] },
+        { r: (w.params.radius + 2 * w.params.speed) * pair.t, color: 'rgba(71,85,105,0.8)', dash: [5, 5] },
+      ];
+      for (var k = 0; k < rings.length; k++) {
+        if (!(rings[k].r > 0) || rings[k].r > SIZE) continue;
+        cx.strokeStyle = rings[k].color; cx.lineWidth = 1.4; cx.setLineDash(rings[k].dash);
+        for (var ox = -1; ox <= 1; ox++) for (var oy = -1; oy <= 1; oy++) {
+          cx.beginPath();
+          cx.arc((origin.x + ox * SIZE) * s, (origin.y + oy * SIZE) * s, rings[k].r * s, 0, Math.PI * 2);
+          cx.stroke();
+        }
+      }
+      cx.setLineDash([]);
+    }
+
+    // 粒子。向きを持つ短い線分で描く
+    for (var i = 0; i < w.n; i++) {
+      var u = pair ? heat(pair.div[i]) : -1;
+      var fresh = pair && pair.arrival[i] >= 0 && (pair.t - pair.arrival[i]) < 12;
+      cx.strokeStyle = (u < 0) ? '#39415a' : heatColor(u);
+      cx.lineWidth = (u < 0) ? 1.1 : 1.8;
+      var px = w.x[i] * s, py = w.y[i] * s;
+      var dx = Math.cos(w.phi[i]) * 4.0, dy = Math.sin(w.phi[i]) * 4.0;
+      if (fresh) {
+        cx.fillStyle = 'rgba(244,114,182,0.28)';
+        cx.beginPath(); cx.arc(px, py, 7, 0, Math.PI * 2); cx.fill();
+      }
+      cx.beginPath(); cx.moveTo(px - dx, py - dy); cx.lineTo(px + dx, py + dy); cx.stroke();
+    }
+
+    if (pair && origin) {
+      cx.strokeStyle = '#60a5fa'; cx.lineWidth = 1.6;
+      cx.beginPath(); cx.arc(origin.x * s, origin.y * s, 9, 0, Math.PI * 2); cx.stroke();
+    }
+  }
+
+  function drawGraph() {
+    gx.fillStyle = '#0b0d13'; gx.fillRect(0, 0, gv.width, gv.height);
+    gx.strokeStyle = '#2a2f3d'; gx.lineWidth = 1;
+    gx.beginPath(); gx.moveTo(0, gv.height - 0.5); gx.lineTo(gv.width, gv.height - 0.5); gx.stroke();
+    if (history.length < 2) return;
+    var n = history.length, H = gv.height, W = gv.width;
+    var series = [
+      { key: 'reach', color: '#fbbf24', lo: 0, hi: 1 },
+      { key: 'logd', color: '#60a5fa', lo: -16, hi: 2 },
+    ];
+    for (var k = 0; k < series.length; k++) {
+      gx.strokeStyle = series[k].color; gx.lineWidth = 1.6; gx.beginPath();
+      for (var i = 0; i < n; i++) {
+        var v = (history[i][series[k].key] - series[k].lo) / (series[k].hi - series[k].lo);
+        v = v < 0 ? 0 : (v > 1 ? 1 : v);
+        var px = (i / (n - 1)) * W, py = H - v * (H - 4) - 2;
+        if (i === 0) gx.moveTo(px, py); else gx.lineTo(px, py);
+      }
+      gx.stroke();
+    }
+  }
+
+  function refreshMetrics() {
+    if (!pair) return;
+    var m = S09.pairMetrics(pair, [1, Math.min(100, pair.t)]);
+    $('mReach').textContent = m.reachedFraction.toFixed(3) + '（' + m.reachedCount + '/' + m.n + '）';
+    $('mReachC').textContent = m.reachedWithinComponent.toFixed(3) + '（成分 ' + m.componentSize + '）';
+    $('mSpread').textContent = m.spreadCount.toFixed(1);
+    $('mCorr').textContent = m.frontCorrelation.toFixed(3);
+    $('mSpeed').textContent = m.frontSpeed.toFixed(3);
+    $('mSpeedR').textContent = m.frontSpeedInRadii.toFixed(3);
+    $('mSpeedF').textContent = m.frontSpeedRelative.toFixed(2) + ' 倍';
+    $('mLyap').textContent = (m.lyapunov === null) ? '定義できない（擾乱が消えた）' : m.lyapunov.toFixed(4);
+    $('mAlign').textContent = m.alignmentOrder.toFixed(3);
+    $('mNb').textContent = m.meanNeighbors.toFixed(1);
+    var ok = m.reachedFraction >= 0.5 && m.frontCorrelation >= 0.3;
+    $('mConj').textContent = ok ? '成立' : '不成立';
+    $('mConj').className = ok ? 'ok' : 'no';
+  }
+
+  var frame = 0;
+  function loop() {
+    if (running) {
+      var budget = performance.now() + 13;
+      do {
+        if (pair) { S09.stepPair(pair); world = pair.b; } else { S09.stepWorld(world); }
+      } while (performance.now() < budget);
+      draw();
+      if (pair) {
+        $('t').textContent = pair.t;
+        var d = S09.divergenceNorm(pair);
+        history.push({ reach: S09.reachedCount(pair) / pair.a.n, logd: d > 0 ? Math.log(d) / Math.LN10 : -16 });
+        if (history.length > 600) history.shift();
+        if (++frame % 8 === 0) { refreshMetrics(); drawGraph(); }
+      } else {
+        $('mAlign').textContent = S09.alignmentOrder(world).toFixed(3);
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+
+  $('run').onclick = function () { running = !running; this.textContent = running ? '停止' : '再開'; };
+  $('reset').onclick = reset;
+  $('perturb').onclick = doPerturb;
+  $('mode').onchange = function () { opts.mode = this.value; reset(); };
+  $('rad').oninput = function () { opts.radius = +this.value; $('radV').textContent = this.value; reset(); };
+  $('ali').oninput = function () { opts.wAli = this.value / 10; $('aliV').textContent = opts.wAli.toFixed(1); reset(); };
+
+  reset();
+  requestAnimationFrame(loop);
+
+  // --- 共通の実行UI（撮る / 広さ / 設定の保存と復元）を載せる ---
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('run').click(); },
+    id: 'S-09',
+    version: '1.0.0',
+    inputs: ['mode', 'rad', 'ali'],
+    // URLパラメータの短縮名/フル名（K-80・2026-09-15 ユーザ指定）。近傍の引き方・知覚半径・整列の重みは
+    // いずれも群れの相互作用規則そのものを決めるので物理法則
+    paramNames: {
+      mode: { category: 'p', code: 'mode', full: 'mode' },
+      rad: { category: 'p', code: 'rad', full: 'rad' },
+      ali: { category: 'p', code: 'ali', full: 'ali' },
+    },
+    canvases: ['c', 'g'],
+    // 「広さ」は領域の一辺。密度（個体数 ÷ 面積）を保つため、個体数は倍率の 2 乗で変える——
+    // そうしないと平均近傍数が動いて、伝播速度の比較が別の系のものになってしまう。
+    resize: function (scale) {
+      var side = Math.max(20, Math.round(SIZE_BASE * scale));
+      if (side === SIZE) return;
+      SIZE = side;
+      opts.size = SIZE;
+      opts.count = Math.max(2, Math.round(COUNT_BASE * scale * scale));
+      reset();
+      Harness.say('領域を ' + SIZE + '×' + SIZE + '、個体数を ' + opts.count + ' にした（密度は同じ）');
+    },
+  });
+})();
+</script>

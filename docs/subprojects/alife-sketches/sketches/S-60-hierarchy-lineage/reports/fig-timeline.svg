@@ -1,0 +1,163 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 644" width="980" height="644" font-family="system-ui, -apple-system, 'Hiragino Sans', 'Segoe UI', sans-serif" role="img" aria-labelledby="t d">
+<title id="t">小パターン→大パターンの階層シミュレーションの年表（S-60・母集団76件）</title>
+<desc id="d">横軸は最初の発表年、帯は力学の族（A3）。形と色は※軸（A1）: 丸=非※、四角=※、菱形=設計初期、破線の輪つきの丸=境界（腕SBでは非※）、白抜き=本文に届かず。灰色の線は派生の辺（本文が出発点として名指し）。</desc>
+<style>
+.bg{fill:#fcfcfb}.ink{fill:#0b0b0b}.ink2{fill:#52514e}.mut{fill:#898781}.grid{stroke:#e1e0d9;stroke-width:1}.base{stroke:#c3c2b7;stroke-width:1}.lane{fill:#f4f3ef}
+.m{stroke:#fcfcfb;stroke-width:2}.non{fill:#2a78d6}.star{fill:#eb6834}.init{fill:#1baf7a}.unk{fill:#fcfcfb;stroke:#898781;stroke-width:1.6}
+.bring{fill:none;stroke:#2a78d6;stroke-width:1.2;stroke-dasharray:2 2}.edge{stroke:#898781;stroke-width:1.2;fill:none;opacity:.8}.tag{fill:#0b0b0b;font-weight:600}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.ink{fill:#fff}.ink2{fill:#c3c2b7}.grid{stroke:#2c2c2a}.base{stroke:#383835}.lane{fill:#222220}.m{stroke:#1a1a19}.non{fill:#3987e5}.star{fill:#d95926}.init{fill:#199e70}.unk{fill:#1a1a19;stroke:#898781}.bring{stroke:#3987e5}.tag{fill:#fff}}
+</style>
+<rect class="bg" x="0" y="0" width="980" height="644"/>
+<text class="ink" x="16" y="26" font-size="16" font-weight="600">小パターン→大パターンの階層シミュレーション: 年表（母集団76件）</text>
+<text class="ink2" x="16" y="46" font-size="12">帯＝力学の族（A3・S4 が本文から符号化）｜形と色＝※軸（A1・主の6値）｜灰の線＝派生の辺｜#67〜#72＝予定の実装6本の系統</text>
+<circle class="m non" cx="22.0" cy="68.0" r="5.5"></circle><text class="ink2" x="34" y="72" font-size="12">非※（上位に※を含む）</text>
+<circle class="m non" cx="186.2" cy="68.0" r="5.5"></circle><circle class="bring" cx="186.2" cy="68.0" r="8.5"/><text class="ink2" x="198.2" y="72" font-size="12">境界（腕SBで非※）</text>
+<rect class="m star" x="332.7" y="62.5" width="11" height="11" rx="1.5"></rect><text class="ink2" x="350.2" y="72" font-size="12">※</text>
+<path class="m init" d="M380.4 61.5 L386.9 68.0 L380.4 74.5 L373.9 68.0 Z"></path><text class="ink2" x="392.4" y="72" font-size="12">設計初期</text>
+<circle class="m unk" cx="459.2" cy="68.0" r="5"></circle><text class="ink2" x="471.2" y="72" font-size="12">本文に届かず（不明）</text>
+<rect class="lane" x="192" y="92" width="766" height="61"/>
+<text class="ink2" x="186" y="126.5" font-size="12" text-anchor="end">d1 対ポテンシャル・力場</text>
+<text class="ink2" x="186" y="181" font-size="12" text-anchor="end">d2 確率的な運動と固着</text>
+<rect class="lane" x="192" y="201" width="766" height="46"/>
+<text class="ink2" x="186" y="228" font-size="12" text-anchor="end">d3 反応</text>
+<text class="ink2" x="186" y="275" font-size="12" text-anchor="end">d4 格子の局所遷移（CA）</text>
+<rect class="lane" x="192" y="295" width="766" height="46"/>
+<text class="ink2" x="186" y="322" font-size="12" text-anchor="end">d5 連続場</text>
+<text class="ink2" x="186" y="368" font-size="12" text-anchor="end">d6 記号・書き換え</text>
+<rect class="lane" x="192" y="387" width="766" height="46"/>
+<text class="ink2" x="186" y="414" font-size="12" text-anchor="end">d7 学習された局所規則</text>
+<text class="ink2" x="186" y="460" font-size="12" text-anchor="end">d8 エージェントの行動規則</text>
+<rect class="lane" x="192" y="479" width="766" height="61"/>
+<text class="ink2" x="186" y="513.5" font-size="12" text-anchor="end">d9 その他</text>
+<text class="ink2" x="186" y="568" font-size="12" text-anchor="end">本文に届かず（族は不明）</text>
+<line class="grid" x1="200.0" y1="92" x2="200.0" y2="588"/>
+<text class="mut" x="200.0" y="606" font-size="12" text-anchor="middle">1970</text>
+<line class="grid" x1="331.6" y1="92" x2="331.6" y2="588"/>
+<text class="mut" x="331.6" y="606" font-size="12" text-anchor="middle">1980</text>
+<line class="grid" x1="463.2" y1="92" x2="463.2" y2="588"/>
+<text class="mut" x="463.2" y="606" font-size="12" text-anchor="middle">1990</text>
+<line class="grid" x1="594.7" y1="92" x2="594.7" y2="588"/>
+<text class="mut" x="594.7" y="606" font-size="12" text-anchor="middle">2000</text>
+<line class="grid" x1="726.3" y1="92" x2="726.3" y2="588"/>
+<text class="mut" x="726.3" y="606" font-size="12" text-anchor="middle">2010</text>
+<line class="grid" x1="857.9" y1="92" x2="857.9" y2="588"/>
+<text class="mut" x="857.9" y="606" font-size="12" text-anchor="middle">2020</text>
+<line class="base" x1="192" y1="588" x2="958" y2="588"/>
+<text class="mut" x="950" y="626" font-size="11" text-anchor="end">横軸: 最初の発表年（A7）。同じ帯の近い年は縦にずらした</text>
+<path class="edge" d="M502.6 277.5 C528.9 277.5 528.9 277.5 555.3 277.5"><title>M10 は M09 を出発点として名指し</title></path>
+<path class="edge" d="M581.6 224.0 C634.2 224.0 634.2 122.5 686.8 122.5"><title>M21 は M08 を出発点として名指し</title></path>
+<path class="edge" d="M857.9 410.0 C890.8 410.0 890.8 509.5 923.7 509.5"><title>M23 は M13 を出発点として名指し</title></path>
+<path class="edge" d="M607.9 557.5 C680.3 557.5 680.3 509.5 752.6 509.5"><title>M29 は M66 を出発点として名指し</title></path>
+<path class="edge" d="M371.1 570.5 C450.0 570.5 450.0 183.5 528.9 183.5"><title>M37 は M06 を出発点として名指し</title></path>
+<path class="edge" d="M371.1 557.5 C450.0 557.5 450.0 183.5 528.9 183.5"><title>M37 は M07 を出発点として名指し</title></path>
+<path class="edge" d="M857.9 410.0 C871.1 410.0 871.1 410.0 884.2 410.0"><title>M40 は M13 を出発点として名指し</title></path>
+<path class="edge" d="M910.5 496.5 C910.5 496.5 910.5 509.5 910.5 509.5"><title>M52 は M53 を出発点として名指し</title></path>
+<path class="edge" d="M844.7 509.5 C877.6 509.5 877.6 509.5 910.5 509.5"><title>M52 は M22 を出発点として名指し</title></path>
+<path class="edge" d="M844.7 509.5 C877.6 509.5 877.6 496.5 910.5 496.5"><title>M53 は M22 を出発点として名指し</title></path>
+<path class="edge" d="M568.4 570.5 C640.8 570.5 640.8 277.5 713.2 277.5"><title>M68 は M03 を出発点として名指し</title></path>
+<path class="edge" d="M594.7 570.5 C653.9 570.5 653.9 277.5 713.2 277.5"><title>M68 は M47 を出発点として名指し</title></path>
+<path class="edge" d="M555.3 570.5 C634.2 570.5 634.2 277.5 713.2 277.5"><title>M68 は M57 を出発点として名指し</title></path>
+<path class="edge" d="M831.6 122.5 C851.3 122.5 851.3 122.5 871.1 122.5"><title>M72 は M04 を出発点として名指し</title></path>
+<circle class="m non" cx="660.5" cy="122.5" r="5.5"><title>M01 Millennium Simulation（2005）｜A1: 非※（上位に※）（腕SB: 非※（上位に※））｜H-strict: 満たす｜本文</title></circle>
+<circle class="m unk" cx="607.9" cy="570.5" r="5"><title>M02 Dynamical Hierarchies Ansatz（Rasmussen et al.）（2001）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m unk" cx="568.4" cy="570.5" r="5"><title>M03 Lattice Molecular Automaton (LMA)（1998）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m non" cx="831.6" cy="122.5" r="5.5"><title>M04 Patchy triblock colloids → colloidal molecules → crystals（2018）｜A1: 非※（腕SB: 非※）｜H-strict: 満たす｜本文</title></circle>
+<rect class="m star" x="786.6" y="117.0" width="11" height="11" rx="1.5"><title>M05 Design path for hierarchical self-assembly of patchy colloids（2015）｜A1: ※（腕SB: ※）｜H-strict: 満たす｜本文</title></rect>
+<circle class="m unk" cx="371.1" cy="570.5" r="5"><title>M06 DLCA（Meakin 1983）（1983）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m unk" cx="371.1" cy="557.5" r="5"><title>M07 CCA（Kolb–Botet–Jullien 1983）（1983）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<path class="m init" d="M581.6 217.5 L588.1 224.0 L581.6 230.5 L575.1 224.0 Z"><title>M08 Abstract cell model（Ono–Ikegami）（1999）｜A1: 設計初期（腕SB: 設計初期）｜H-strict: 満たす｜本文</title></path>
+<circle class="m non" cx="502.6" cy="277.5" r="5.5"><title>M09 Turbulent pattern bases for CA（Crutchfield–Hanson 1993）（1993）｜A1: 境界（腕SB: 非※）｜H-strict: 満たさない｜本文</title></circle><circle class="bring" cx="502.6" cy="277.5" r="8.5"/>
+<circle class="m non" cx="555.3" cy="277.5" r="5.5"><title>M10 Computational mechanics of CA: an example（Hanson–Crutchfield 1997）（1997）｜A1: 非※（腕SB: 非※）｜H-strict: 満たさない｜本文</title></circle>
+<circle class="m unk" cx="489.5" cy="570.5" r="5"><title>M11 Cellular Potts model（Graner–Glazier 1992）（1992）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<rect class="m star" x="668.2" y="504.0" width="11" height="11" rx="1.5"><title>M12 Multilevel selection（Traulsen–Nowak 2006）（2006）｜A1: ※（腕SB: ※）｜H-strict: 満たさない｜本文</title></rect>
+<rect class="m star" x="852.4" y="404.5" width="11" height="11" rx="1.5"><title>M13 Growing Neural Cellular Automata（2020）｜A1: ※（腕SB: ※）｜H-strict: 満たさない｜本文</title></rect>
+<rect class="m star" x="891.9" y="404.5" width="11" height="11" rx="1.5"><title>M14 Hierarchical Neural Cellular Automata（Pande–Grattarola 2023）（2023）｜A1: ※（腕SB: ※）｜H-strict: 満たさない｜本文</title></rect>
+<rect class="m star" x="905.0" y="404.5" width="11" height="11" rx="1.5"><title>M15 Evolving Hierarchical NCA（Bielawski et al. 2024）（2024）｜A1: ※（腕SB: ※）｜H-strict: 満たさない｜本文</title></rect>
+<circle class="m non" cx="713.2" cy="224.0" r="5.5"><title>M16 Multilevel selection II（Takeuchi–Hogeweg 2009）（2009）｜A1: 非※（腕SB: 非※）｜H-strict: 満たす｜本文</title></circle>
+<circle class="m non" cx="805.3" cy="456.0" r="5.5"><title>M17 Thermotaxis particle life-like system（Schmickl et al. 2016）（2016）｜A1: 非※（腕SB: 非※）｜H-strict: 満たす｜本文</title></circle>
+<circle class="m unk" cx="476.3" cy="570.5" r="5"><title>M18 Hypercycle spiral waves（Boerlijst–Hogeweg 1991）（1991）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜書誌のみ</title></circle>
+<circle class="m non" cx="515.8" cy="364.0" r="5.5"><title>M19 AlChemy（Fontana–Buss 1994）（1994）｜A1: 非※（腕SB: 非※）｜H-strict: 満たす｜本文</title></circle>
+<circle class="m non" cx="897.4" cy="318.0" r="5.5"><title>M20 Flow-Lenia（2023）｜A1: 非※（腕SB: 非※）｜H-strict: 満たす｜本文</title></circle>
+<path class="m init" d="M686.8 116.0 L693.3 122.5 L686.8 129.0 L680.3 122.5 Z"><title>M21 Minimal self-replicating nanocells（Fellermann–Solé 2007）（2007）｜A1: 設計初期（腕SB: 設計初期）｜H-strict: 満たす｜本文</title></path>
+<rect class="m star" x="839.2" y="504.0" width="11" height="11" rx="1.5"><title>M22 Hash Chemistry（Sayama 2019）（2019）｜A1: ※（腕SB: ※）｜H-strict: 満たさない｜本文</title></rect>
+<circle class="m non" cx="923.7" cy="509.5" r="5.5"><title>M23 ASAL（Kumar et al. 2024/2025）（2025）｜A1: 境界（腕SB: 非※）｜H-strict: 満たさない｜本文</title></circle><circle class="bring" cx="923.7" cy="509.5" r="8.5"/>
+<circle class="m unk" cx="384.2" cy="570.5" r="5"><title>M24 Hierarchical CCA model（1984, chemically limited）（1984）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m unk" cx="726.3" cy="570.5" r="5"><title>M25 Hierarchical self-assembly of soft disklike particles（2010）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<path class="m init" d="M831.6 103.0 L838.1 109.5 L831.6 116.0 L825.1 109.5 Z"><title>M26 Reversible superstructured peptide-DNA networks（2018）｜A1: 設計初期（腕SB: 設計初期）｜H-strict: 満たす｜本文</title></path>
+<circle class="m non" cx="910.5" cy="277.5" r="5.5"><title>M27 Outlier rule: self-replicating hierarchical CA structures（2024）｜A1: 境界（腕SB: 非※）｜H-strict: 満たす｜本文</title></circle><circle class="bring" cx="910.5" cy="277.5" r="8.5"/>
+<circle class="m non" cx="884.2" cy="456.0" r="5.5"><title>M28 Multi-scale communicating active matter（2022）｜A1: 非※（腕SB: 非※）｜H-strict: 満たさない｜本文</title></circle>
+<circle class="m unk" cx="752.6" cy="509.5" r="5"><title>M29 Hierarchically assembled active matter (microtubule bundles)（2012）｜A1: 不明（腕SB: 不明）｜H-strict: 満たさない｜本文</title></circle>
+<circle class="m unk" cx="857.9" cy="570.5" r="5"><title>M30 Hierarchical self-assembly of patchy colloidal platelets（2020）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<rect class="m star" x="773.4" y="178.0" width="11" height="11" rx="1.5"><title>M31 Yeast aggregation multicellularity model（2014）｜A1: ※（腕SB: ※）｜H-strict: 満たさない｜本文</title></rect>
+<circle class="m non" cx="897.4" cy="456.0" r="5.5"><title>M32 Real-time multicellularity with artificial gene regulation（2023）｜A1: 非※（腕SB: 非※）｜H-strict: 満たさない｜本文</title></circle>
+<rect class="m star" x="628.7" y="272.0" width="11" height="11" rx="1.5"><title>M33 Hierarchical majority-rule / hierarchical game-of-life CA tool（2003）｜A1: ※（腕SB: ※）｜H-strict: 満たす｜本文</title></rect>
+<rect class="m star" x="918.2" y="178.0" width="11" height="11" rx="1.5"><title>M34 PER-directed colloidal assembly digital twin（2025）｜A1: ※（腕SB: ※）｜H-strict: 満たす｜本文</title></rect>
+<path class="m init" d="M818.4 116.0 L824.9 122.5 L818.4 129.0 L811.9 122.5 Z"><title>M35 Local assembly hierarchical crystallization of colloidal hard hemispheres（2017）｜A1: 設計初期（腕SB: 設計初期）｜H-strict: 満たす｜本文</title></path>
+<path class="m init" d="M752.6 116.0 L759.1 122.5 L752.6 129.0 L746.1 122.5 Z"><title>M36 Telechelic star polymers molecular-to-macroscopic self-assembly（2012）｜A1: 設計初期（腕SB: 設計初期）｜H-strict: 満たす｜本文</title></path>
+<rect class="m star" x="523.4" y="178.0" width="11" height="11" rx="1.5"><title>M37 Fluctuating Bond Aggregation gel model（1995）｜A1: ※（腕SB: ※）｜H-strict: 不明｜本文</title></rect>
+<circle class="m non" cx="923.7" cy="122.5" r="5.5"><title>M38 Scale-free cluster-cluster aggregation during polymer collapse（2025）｜A1: 非※（腕SB: 非※）｜H-strict: 満たさない｜本文</title></circle>
+<rect class="m star" x="878.7" y="404.5" width="11" height="11" rx="1.5"><title>M40 Goal-Guided Neural Cellular Automata（2022）｜A1: ※（腕SB: ※）｜H-strict: 満たさない｜本文</title></rect>
+<path class="m init" d="M818.4 103.0 L824.9 109.5 L818.4 116.0 L811.9 109.5 Z"><title>M41 Star cluster structure from hierarchical star formation（2017）｜A1: 設計初期（腕SB: 設計初期）｜H-strict: 満たさない｜本文</title></path>
+<circle class="m unk" cx="765.8" cy="570.5" r="5"><title>M42 Simulation-Assisted Self-Assembly of Multicomponent Polymers into Hierarchical Assemblies（2013）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m unk" cx="818.4" cy="570.5" r="5"><title>M43 Coarse-Grained Molecular Simulation of Hierarchical Self-Assembly of π-Conjugated Optoelectronic Peptides（2017）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<path class="m init" d="M884.2 116.0 L890.7 122.5 L884.2 129.0 L877.7 122.5 Z"><title>M44 Hierarchically self-assembled homochiral helical microtoroids（2022）｜A1: 設計初期（腕SB: 設計初期）｜H-strict: 満たさない｜本文</title></path>
+<circle class="m unk" cx="384.2" cy="557.5" r="5"><title>M45 Effects of cluster trajectories on cluster-cluster aggregation (1984)（1984）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m unk" cx="713.2" cy="570.5" r="5"><title>M46 Collisional growth conditions for dust aggregates（2009）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m unk" cx="594.7" cy="570.5" r="5"><title>M47 Dynamics and simulation of micellar self-reproduction（2000）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m non" cx="621.1" cy="183.5" r="5.5"><title>M48 A cellular automaton model of gravitational clustering（2002）｜A1: 非※（腕SB: 非※）｜H-strict: 満たさない｜本文</title></circle>
+<circle class="m non" cx="713.2" cy="122.5" r="5.5"><title>M49 Self-assembly of amphiphilic peanut-shaped nanoparticles（2009）｜A1: 非※（腕SB: 非※）｜H-strict: 満たさない｜本文</title></circle>
+<rect class="m star" x="905.0" y="450.5" width="11" height="11" rx="1.5"><title>M50 Self-organizing Nervous Systems for Robot Swarms (SoNS)（2024）｜A1: ※（腕SB: ※）｜H-strict: 満たす｜本文</title></rect>
+<rect class="m star" x="905.0" y="259.0" width="11" height="11" rx="1.5"><title>M51 Coralai: embodied NCA ecosystems（2024）｜A1: ※（腕SB: ※）｜H-strict: 満たす｜本文</title></rect>
+<rect class="m star" x="905.0" y="504.0" width="11" height="11" rx="1.5"><title>M52 Structural Cellular Hash Chemistry (SCHC)（2024）｜A1: ※（腕SB: ※）｜H-strict: 満たさない｜本文</title></rect>
+<rect class="m star" x="905.0" y="491.0" width="11" height="11" rx="1.5"><title>M53 Non-Spatial Hash Chemistry（2024）｜A1: ※（腕SB: ※）｜H-strict: 満たさない｜本文</title></rect>
+<rect class="m star" x="905.0" y="517.0" width="11" height="11" rx="1.5"><title>M54 PDE Model of Cultural Multilevel Selection（2024）｜A1: ※（腕SB: ※）｜H-strict: 満たさない｜本文</title></rect>
+<rect class="m star" x="891.9" y="358.5" width="11" height="11" rx="1.5"><title>M55 DOSE: Digital Organism Simulation Environment（2023）｜A1: ※（腕SB: ※）｜H-strict: 満たす｜本文</title></rect>
+<path class="m init" d="M805.3 503.0 L811.8 509.5 L805.3 516.0 L798.8 509.5 Z"><title>M56 Hierarchical Self-Assembly of Cellulose Nanocrystals in a Confined Geometry（2016）｜A1: 設計初期（腕SB: 設計初期）｜H-strict: 満たさない｜本文</title></path>
+<circle class="m unk" cx="555.3" cy="570.5" r="5"><title>M57 Entropy-driven molecular self-assembly (lattice CA)（1997）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m non" cx="660.5" cy="109.5" r="5.5"><title>M58 Self-Assembly of Patchy Particles into Diamond Structures through Molecular Mimicry（2005）｜A1: 非※（腕SB: 非※）｜H-strict: 満たさない｜本文</title></circle>
+<rect class="m star" x="694.5" y="178.0" width="11" height="11" rx="1.5"><title>M59 The role of collective motion in coarsening and self-assembly（2008）｜A1: ※（腕SB: ※）｜H-strict: 不明｜本文</title></rect>
+<rect class="m star" x="773.4" y="117.0" width="11" height="11" rx="1.5"><title>M60 Patterns without Patches: Hierarchical Self-Assembly of Complex Structures from Simple Building Blocks（2014）｜A1: ※（腕SB: ※）｜H-strict: 満たす｜本文</title></rect>
+<circle class="m unk" cx="792.1" cy="570.5" r="5"><title>M61 Crystal-Templated Colloidal Clusters Exhibit Directional DNA Interactions（2015）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m unk" cx="805.3" cy="570.5" r="5"><title>M62 Colloidal Cluster Assembly into Ordered Superstructures via Engineered Directional Binding（2016）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m non" cx="700.0" cy="224.0" r="5.5"><title>M63 Evolution of complexity in RNA-like replicator systems（2008）｜A1: 非※（腕SB: 非※）｜H-strict: 満たす｜本文</title></circle>
+<circle class="m non" cx="621.1" cy="122.5" r="5.5"><title>M64 JohnnyVon: self-replicating machines in continuous space（2002）｜A1: 境界（腕SB: 非※）｜H-strict: 満たす｜本文</title></circle><circle class="bring" cx="621.1" cy="122.5" r="8.5"/>
+<circle class="m unk" cx="752.6" cy="570.5" r="5"><title>M65 Modeling the Self-Assembly of Peptide Amphiphiles into Fibers Using Coarse-Grained Molecular Dynamics（2012）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m unk" cx="607.9" cy="557.5" r="5"><title>M66 Physical Properties Determining Self-Organization of Motors and Microtubules（2001）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m unk" cx="436.8" cy="570.5" r="5"><title>M67 Restructuring effects on cluster geometry (DLCA/ballistic/reaction-limited)（1988）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<path class="m init" d="M713.2 271.0 L719.7 277.5 L713.2 284.0 L706.7 277.5 Z"><title>M68 Construction of Reversible Lattice Molecular Automata（2009）｜A1: 設計初期（腕SB: 設計初期）｜H-strict: 満たす｜本文</title></path>
+<circle class="m unk" cx="739.5" cy="570.5" r="5"><title>M69 Hierarchical Self-Assembly of Soft Disklike Particles under Shear Flow（2011）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m non" cx="844.7" cy="122.5" r="5.5"><title>M70 Activity-Enhanced Self-Assembly of a Colloidal Kagome Lattice（2019）｜A1: 非※（腕SB: 非※）｜H-strict: 満たさない｜本文</title></circle>
+<circle class="m unk" cx="857.9" cy="557.5" r="5"><title>M71 Archimedean Tessellation via Building Blocks and Linkers Geometry（2020）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m non" cx="871.1" cy="122.5" r="5.5"><title>M72 Self-Assembly of Patchy Colloidal Rods into Photonic Crystals（2021）｜A1: 非※（腕SB: 非※）｜H-strict: 満たす｜本文</title></circle>
+<circle class="m unk" cx="923.7" cy="570.5" r="5"><title>M73 Numerical Simulations of Colloidal Dimer Assembly into Chiral Clusters and Crystals（2025）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<circle class="m unk" cx="568.4" cy="557.5" r="5"><title>M74 Computer simulations of bilayer membranes (Goetz &amp; Lipowsky)（1998）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜要旨</title></circle>
+<path class="m init" d="M660.5 129.0 L667.0 135.5 L660.5 142.0 L654.0 135.5 Z"><title>M75 Tunable generic model for fluid bilayer membranes (Cooke, Kremer &amp; Deserno)（2005）｜A1: 設計初期（腕SB: 設計初期）｜H-strict: 満たす｜本文</title></path>
+<circle class="m unk" cx="252.6" cy="570.5" r="5"><title>M76 Autopoiesis: the organization of living systems (Varela, Maturana &amp; Uribe)（1974）｜A1: 不明（腕SB: 不明）｜H-strict: 不明｜書誌のみ</title></circle>
+<rect class="m star" x="615.6" y="165.0" width="11" height="11" rx="1.5"><title>M77 Self-Assembling Dynamical Hierarchies (Dorin &amp; McCormack, ALIFE8)（2002）｜A1: ※（腕SB: ※）｜H-strict: 満たす｜本文</title></rect>
+<text class="tag" x="669.5" y="102.5" font-size="11">#67 Millennium</text>
+<text class="tag" x="782.0" y="142.5" font-size="11">#69 C1 パッチ粒子</text>
+<text class="tag" x="773.2" y="110.5" font-size="11">#69 C2</text>
+<text class="ink2" x="843.6" y="110.5" font-size="11">棒状パッチ</text>
+<text class="tag" x="311.7" y="574.5" font-size="11">#70 DLCA</text>
+<text class="tag" x="318.0" y="561.5" font-size="11">#70 CCA</text>
+<text class="tag" x="590.6" y="228.0" font-size="11">#71 Ono–Ikegami</text>
+<text class="tag" x="455.8" y="281.5" font-size="11">#72 K1</text>
+<text class="tag" x="517.5" y="265.5" font-size="11">#72 K2 ECA54</text>
+<text class="tag" x="544.9" y="590.5" font-size="11">#68 Rasmussen Ansatz</text>
+<text class="tag" x="515.3" y="550.5" font-size="11">#68 LMA</text>
+<text class="ink2" x="445.4" y="590.5" font-size="11">Cellular Potts</text>
+<text class="ink2" x="779.6" y="414.0" font-size="11">Growing NCA</text>
+<text class="ink2" x="524.8" y="368.0" font-size="11">AlChemy</text>
+<text class="ink2" x="906.4" y="322.0" font-size="11">Flow-Lenia</text>
+<text class="ink2" x="814.3" y="460.0" font-size="11">PPS</text>
+<text class="ink2" x="722.2" y="228.0" font-size="11">Takeuchi–Hogeweg</text>
+<text class="ink2" x="621.8" y="215.0" font-size="11">RNA 様複製子</text>
+<text class="ink2" x="555.4" y="126.5" font-size="11">JohnnyVon</text>
+<text class="ink2" x="825.9" y="281.5" font-size="11">Outlier rule</text>
+<text class="ink2" x="813.2" y="497.5" font-size="11">Hash Chem.</text>
+<text class="ink2" x="203.1" y="558.5" font-size="11">オートポイエーシス</text>
+<text class="ink2" x="630.1" y="161.5" font-size="11">Dorin–McCormack</text>
+<text class="ink2" x="699.6" y="513.5" font-size="11">能動物質</text>
+<text class="ink2" x="598.7" y="513.5" font-size="11">多レベル選択</text>
+<text class="ink2" x="932.7" y="513.5" font-size="11">ASAL</text>
+</svg>

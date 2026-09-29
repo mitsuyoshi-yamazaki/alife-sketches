@@ -1,0 +1,247 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-01 自己触媒集合（RAF）の出現閾値</title>
+<style>
+  :root { color-scheme: dark; --bg:#12141a; --panel:#1a1d26; --line:#2c3140; --fg:#e6e9f0; --dim:#8a92a6;
+          --raf:#4ade80; --food:#fbbf24; --plain:#3a4152; --curve:#60a5fa; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif; }
+  header { padding:14px 20px; border-bottom:1px solid var(--line); }
+  h1 { margin:0 0 4px; font-size:16px; font-weight:600; }
+  .sub { color:var(--dim); font-size:12px; }
+  .bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:10px 20px; border-bottom:1px solid var(--line); }
+  button { background:var(--panel); color:var(--fg); border:1px solid var(--line); border-radius:6px;
+           padding:6px 14px; font:inherit; cursor:pointer; }
+  button:hover { border-color:var(--curve); }
+  button:disabled { opacity:.4; cursor:default; }
+  .stat { color:var(--dim); }
+  .stat b { color:var(--fg); font-variant-numeric:tabular-nums; }
+  .wrap { display:flex; gap:16px; padding:16px 20px; flex-wrap:wrap; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px; }
+  .panel h2 { margin:0 0 8px; font-size:12px; font-weight:600; color:var(--dim); letter-spacing:.04em; }
+  canvas { display:block; max-width:100%; }
+  .legend { display:flex; gap:14px; margin-top:8px; font-size:11px; color:var(--dim); flex-wrap:wrap; }
+  .sw { display:inline-block; width:10px; height:10px; border-radius:2px; vertical-align:-1px; margin-right:4px; }
+  input[type=range] { width:180px; vertical-align:middle; }
+  footer { padding:0 20px 24px; color:var(--dim); font-size:12px; max-width:900px; }
+</style>
+
+<header>
+  <h1>S-01 — 自己触媒集合（RAF）の出現閾値</h1>
+  <div class="sub">二値ポリマー化学の上で触媒率 <i>f</i> を掃引し、自己触媒集合が現れる点を探す。
+    系の規則には「触媒」も「生命」も無く、あるのは文字列の連結だけ。</div>
+</header>
+
+<div class="bar">
+  <button id="run">掃引を開始</button>
+  <button id="reset">やり直す</button>
+  <span class="stat">f = <b id="curF">—</b></span>
+  <span class="stat">RAF 出現率 = <b id="curP">—</b></span>
+  <span class="stat">RAF 反応数（中央値） = <b id="curM">—</b></span>
+  <span style="flex:1"></span>
+  <label class="stat">網目を見る f: <input type="range" id="pick" min="0" max="48" value="26"> <b id="pickF">3.25</b></label>
+</div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>掃引（左軸: RAF 出現率 / 点: 各レプリケートの RAF 反応数・対数）</h2>
+    <canvas id="chart" width="620" height="420"></canvas>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--curve)"></span>RAF 出現率（40 レプリケート中）</span>
+      <span><span class="sw" style="background:var(--raf)"></span>個々のレプリケートの RAF 反応数</span>
+      <span><span class="sw" style="background:#f87171"></span>事前登録した閾値 pRaf ≥ 0.5</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>反応網（1 レプリケート。RAF に残った反応だけを描く）</h2>
+    <canvas id="net" width="460" height="420"></canvas>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--food)"></span>食物分子（長さ≤2）</span>
+      <span><span class="sw" style="background:var(--raf)"></span>RAF に含まれる分子</span>
+      <span><span class="sw" style="background:var(--plain)"></span>到達しなかった分子</span>
+      <span>内側の環ほど短い分子</span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  アイデアの出典: Kauffman (1986) / Hordijk &amp; Steel (2004)。コードは参照せず定義から実装した。
+  判定基準は <code>criteria.json</code> に事前登録してあり、走らせた後に変えない。
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var SEEDS = 40, SEED_BASE = 20260911, F_STEP = 0.125, F_MAX = 6;
+  var MAX_LEN_BASE = 7;
+  var maxLen = MAX_LEN_BASE;
+  var chem = S01.buildChemistry(maxLen, 2);
+  var fValues = [];
+  for (var f = 0; f <= F_MAX + 1e-9; f += F_STEP) fValues.push(Math.round(f * 1000) / 1000);
+
+  var points = [], cursor = 0, running = false, thresholdIdx = -1;
+  var chart = document.getElementById('chart'), cx = chart.getContext('2d');
+  var net = document.getElementById('net'), nx = net.getContext('2d');
+  var css = getComputedStyle(document.documentElement);
+  var C = function (n) { return css.getPropertyValue(n).trim(); };
+
+  // --- 反応網の描画座標（長さごとの同心円） ---
+  var pos = layout();
+  function layout() { return chem.molecules.map(function (m, i) {
+    var len = m.length;
+    var sameLen = [];
+    for (var k = 0; k < chem.molecules.length; k++) if (chem.molecules[k].length === len) sameLen.push(k);
+    var at = sameLen.indexOf(i);
+    var ang = (at / sameLen.length) * Math.PI * 2 - Math.PI / 2;
+    var r = 24 + (len - 1) * 25;
+    return { x: 230 + Math.cos(ang) * r, y: 210 + Math.sin(ang) * r };
+  }); }
+
+  function drawChart() {
+    var W = chart.width, H = chart.height, L = 46, R = 14, T = 14, B = 34;
+    cx.clearRect(0, 0, W, H);
+    var px = function (fv) { return L + (fv / F_MAX) * (W - L - R); };
+    var py = function (p) { return T + (1 - p) * (H - T - B); };
+    // 対数軸（RAF 反応数 1..1284）
+    var maxR = chem.reactions.length;
+    var pyLog = function (n) { return T + (1 - Math.log(n + 1) / Math.log(maxR + 1)) * (H - T - B); };
+
+    cx.strokeStyle = C('--line'); cx.fillStyle = C('--dim'); cx.lineWidth = 1;
+    cx.font = '10px system-ui'; cx.textAlign = 'right';
+    for (var g = 0; g <= 4; g++) {
+      var y = py(g / 4);
+      cx.beginPath(); cx.moveTo(L, y); cx.lineTo(W - R, y); cx.stroke();
+      cx.fillText((g / 4).toFixed(2), L - 6, y + 3);
+    }
+    cx.textAlign = 'center';
+    for (var fv = 0; fv <= F_MAX; fv++) {
+      cx.fillText(fv, px(fv), H - 12);
+      cx.strokeStyle = 'rgba(255,255,255,.04)';
+      cx.beginPath(); cx.moveTo(px(fv), T); cx.lineTo(px(fv), H - B); cx.stroke();
+    }
+    cx.fillText('触媒率 f（1分子が触媒する反応の平均本数）', W / 2, H - 1);
+
+    // 個々のレプリケート
+    cx.fillStyle = 'rgba(74,222,128,.42)';
+    points.forEach(function (pt) {
+      pt.sizes.forEach(function (n) {
+        if (n <= 0) return;
+        cx.beginPath(); cx.arc(px(pt.f) + (Math.random() - .5) * 3, pyLog(n), 1.9, 0, 6.284); cx.fill();
+      });
+    });
+
+    // 事前登録した閾値
+    cx.strokeStyle = '#f87171'; cx.setLineDash([4, 4]);
+    cx.beginPath(); cx.moveTo(L, py(0.5)); cx.lineTo(W - R, py(0.5)); cx.stroke();
+    cx.setLineDash([]);
+    if (thresholdIdx >= 0) {
+      cx.strokeStyle = '#f87171';
+      cx.beginPath(); cx.moveTo(px(points[thresholdIdx].f), T); cx.lineTo(px(points[thresholdIdx].f), H - B); cx.stroke();
+    }
+
+    // 出現率の曲線
+    cx.strokeStyle = C('--curve'); cx.lineWidth = 2; cx.beginPath();
+    points.forEach(function (pt, i) { i ? cx.lineTo(px(pt.f), py(pt.pRaf)) : cx.moveTo(px(pt.f), py(pt.pRaf)); });
+    cx.stroke();
+  }
+
+  function drawNet(fv) {
+    var rep = S01.runReplicate(chem, fv, SEED_BASE);
+    nx.clearRect(0, 0, net.width, net.height);
+    nx.strokeStyle = 'rgba(74,222,128,.20)'; nx.lineWidth = 1;
+    var drawn = 0;
+    for (var r = 0; r < chem.reactions.length; r++) {
+      if (!rep.active[r]) continue;
+      var rx = chem.reactions[r];
+      nx.beginPath();
+      nx.moveTo(pos[rx.a].x, pos[rx.a].y);
+      nx.lineTo(pos[rx.p].x, pos[rx.p].y);
+      nx.stroke();
+      drawn++;
+    }
+    for (var m = 0; m < chem.molecules.length; m++) {
+      var isFood = chem.molecules[m].length <= 2;
+      var inRaf = rep.present[m] === 1 && rep.rafReactions > 0;
+      nx.fillStyle = isFood ? C('--food') : (inRaf ? C('--raf') : C('--plain'));
+      nx.beginPath(); nx.arc(pos[m].x, pos[m].y, isFood ? 3.6 : (inRaf ? 2.6 : 1.5), 0, 6.284); nx.fill();
+    }
+    nx.fillStyle = C('--dim'); nx.font = '11px system-ui'; nx.textAlign = 'left';
+    nx.fillText('f = ' + fv + ' / seed ' + SEED_BASE, 10, 16);
+    nx.fillText('RAF 反応 ' + rep.rafReactions + ' 本・到達分子 ' + (rep.rafReactions ? rep.rafMolecules : 0), 10, 32);
+  }
+
+  function step() {
+    if (!running) return;
+    var t0 = performance.now();
+    while (cursor < fValues.length && performance.now() - t0 < 24) {
+      var pt = S01.runPoint(chem, fValues[cursor], SEEDS, SEED_BASE);
+      points.push(pt);
+      if (thresholdIdx < 0 && pt.pRaf >= 0.5) thresholdIdx = points.length - 1;
+      document.getElementById('curF').textContent = pt.f;
+      document.getElementById('curP').textContent = pt.pRaf.toFixed(2);
+      document.getElementById('curM').textContent = pt.medianRafReactions;
+      cursor++;
+    }
+    drawChart();
+    if (cursor >= fValues.length) {
+      running = false;
+      document.getElementById('run').textContent = '掃引を開始';
+      document.getElementById('run').disabled = true;
+    }
+    requestAnimationFrame(step);
+  }
+
+  document.getElementById('run').onclick = function () {
+    running = !running;
+    this.textContent = running ? '一時停止' : '再開';
+    if (running) requestAnimationFrame(step);
+  };
+  document.getElementById('reset').onclick = function () {
+    points = []; cursor = 0; thresholdIdx = -1; running = false;
+    var b = document.getElementById('run'); b.disabled = false; b.textContent = '掃引を開始';
+    drawChart();
+  };
+  var pick = document.getElementById('pick');
+  pick.oninput = function () {
+    var fv = Math.round(this.value * F_STEP * 1000) / 1000;
+    document.getElementById('pickF').textContent = fv;
+    drawNet(fv);
+  };
+
+  drawChart();
+  drawNet(3.25);
+
+  // --- 共通の実行UI（撮る / 広さ / 設定の保存と復元）を載せる ---
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('run').click(); },
+    id: 'S-01',
+    version: '1.0.0',
+    inputs: ['pick'],
+    // URLパラメータの短縮名/フル名（K-80・2026-09-15 ユーザ指定）。pick は掃引の中から
+    // どの f のネットワークを表示するかという表示選択（系そのものを変えない）なのでソフトウェア扱い
+    paramNames: {
+      pick: { category: 's', code: 'pick', full: 'pick' },
+    },
+    canvases: ['chart', 'net'],
+    // この系に空間は無いので、「広さ」は**化学の規模**（分子の最大長）にあたる。
+    // 最大長 1 変えると分子数がほぼ倍になるので、倍率は長さの ±1 へ写す。
+    resize: function (scale) {
+      var next = MAX_LEN_BASE + (scale >= 2 ? 2 : scale >= 1.5 ? 1 : scale <= 0.5 ? -2 : 0);
+      next = Math.max(3, Math.min(9, next));
+      if (next === maxLen) return;
+      maxLen = next;
+      chem = S01.buildChemistry(maxLen, 2);
+      pos = layout();
+      points = []; cursor = 0; thresholdIdx = -1; running = false;
+      var b = document.getElementById('run'); b.disabled = false; b.textContent = '掃引を開始';
+      drawChart(); drawNet(3.25);
+      Harness.say('分子の最大長 ' + maxLen + '（' + chem.molecules.length + ' 分子 / ' + chem.reactions.length + ' 反応）');
+    },
+  });
+})();
+</script>

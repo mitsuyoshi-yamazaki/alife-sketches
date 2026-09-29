@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-28 機械とテープ — 読む側と読まれる側が同じ資源である容器</title>
+<style>
+  :root{--bg:#0e1013;--panel:#171a20;--line:#2a2f38;--fg:#d8dce3;--dim:#7d8694;
+        --copy:#4ade80;--flip:#60a5fa;--zero:#6b7280;--one:#fbbf24;--other:#fb7185;--hot:#f97316}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1080px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070a;border:1px solid var(--line);border-radius:4px;max-width:100%;height:auto}
+  aside{width:330px;min-width:290px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:11px 12px;margin-bottom:12px}
+  .box h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.06em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;flex-wrap:wrap}
+  label span.k{width:92px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  input[type=number],select{background:#0b0d11;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+      padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0;max-width:100%}
+  .val{width:62px;text-align:right;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:none;
+       font-variant-numeric:tabular-nums}
+  button{background:#20252f;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#2a3140}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;border-bottom:1px solid #1e222a;vertical-align:top}
+  table.stat td.k{color:var(--dim);width:56%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:7ch}
+  .banner{margin-top:9px;padding:8px 10px;border-radius:4px;font-size:12px;border:1px solid var(--line);
+          background:#11151b;color:var(--dim);overflow-wrap:anywhere}
+  .banner.yes{border-color:var(--hot);background:#2a1509;color:#ffd9bd}
+  .legend{display:flex;gap:11px;flex-wrap:wrap;color:var(--dim);font-size:11px;margin-top:6px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .cap{color:var(--dim);font-size:11px;margin:0 0 3px}
+  code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#a5b4fc}
+  b.hi{color:#fff}
+  @media(max-width:820px){aside{width:auto;min-width:0}.col{min-width:0}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-28 — 機械とテープ。読む側と読まれる側が同じ資源である容器で、読みの網は閉じるか</h1>
+  <p>容器に長さ L の記号列が N 本。衝突のたびに 2 本を引き、<b class="hi">片方を折り返して 2 状態の変換器にし、もう片方を読ませて</b>新しい列を作る。
+     折り返される列と読まれる列は<b class="hi">同じ資源</b>で、同じ列がどちらの役もやる。表の 1 項は
+     <code>(書き方, 次状態)</code>——書き方 0 はそのまま写し、1 は反転して写す。
+     書き方の 4 ビットだけで決まる 4 つの族がある: <b class="hi">写し</b>（積 = 読まれた列）・<b class="hi">反転</b>（補列）・
+     <b class="hi">0 詰め</b>と<b class="hi">1 詰め</b>（読まれた列に依らない）。<b class="hi">枠をクリックすると、その列が「テープとして」と「機械として」の両方で見える。</b></p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <div>
+      <p class="cap">容器（枠 = 列 1 本。色は<b class="hi">その列を折り返した機械の族</b>、明るさは列の値）。書き換わった枠が一瞬光る。</p>
+      <canvas id="vessel" width="560" height="240"></canvas>
+      <div class="legend">
+        <span><span class="sw" style="background:#4ade80"></span>写し（積 = 読まれた列）</span>
+        <span><span class="sw" style="background:#60a5fa"></span>反転（補列）</span>
+        <span><span class="sw" style="background:#6b7280"></span>0 詰め</span>
+        <span><span class="sw" style="background:#fbbf24"></span>1 詰め</span>
+        <span><span class="sw" style="background:#fb7185"></span>その他（状態で変わる）</span>
+      </div>
+    </div>
+    <div>
+      <p class="cap">組成の推移（横 = 衝突数）。<span style="color:#fb7185">相異なる型の数</span> /
+        <span style="color:#4ade80">最頻型の占有率</span> / <span style="color:#60a5fa">閉じている組の割合</span>。</p>
+      <canvas id="series" width="560" height="120"></canvas>
+    </div>
+    <div>
+      <p class="cap">直近の反応（左が新しい）。<b class="hi">機械 ⊗ テープ → 積</b>。変わったビットだけ色が付く。</p>
+      <canvas id="ticker" width="560" height="72"></canvas>
+    </div>
+    <div>
+      <p class="cap">選んだ列の二重性。左 = <b class="hi">テープとしての姿</b>（ビット列）、右 = <b class="hi">機械としての姿</b>（折り返した表と状態遷移）。</p>
+      <canvas id="dual" width="560" height="132"></canvas>
+    </div>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>規則</h2>
+      <label><span class="k">腕</span>
+        <select id="mode">
+          <option value="fold">fold（本系・単一資源）</option>
+          <option value="frame">frame（原典寄り・読み手依存の位置）</option>
+          <option value="split">split（読み手が系の外）</option>
+          <option value="relabelReader">relabelReader（参照点・読み手の対応を忘れる）</option>
+          <option value="relabelRead">relabelRead（参照点・読まれる側を忘れる）</option>
+          <option value="randomTable">randomTable（乱択表）</option>
+          <option value="noRead">noRead（読みが効かない）</option>
+          <option value="shift">shift（一方向・機械を見ない）</option>
+          <option value="elastic">elastic（作用なし）</option>
+        </select></label>
+      <label><span class="k">積の行き先</span>
+        <select id="scheme"><option value="flux">flux（一様乱択の枠へ）</option><option value="transform">transform（読まれた枠へ）</option></select></label>
+      <label><span class="k">列の長さ L</span>
+        <select id="len"><option value="8">8（|Ω|=256）</option><option value="12">12（|Ω|=4096）</option></select></label>
+      <label><span class="k">外部雑音 λ<sub>P</sub></span>
+        <input type="range" id="eps" min="0" max="100" step="1" value="0"><output class="val" id="epsv">0.000</output></label>
+      <label><span class="k">シード</span><input type="number" id="seed" value="1" min="1" max="99999"></label>
+      <div class="row">
+        <button class="primary" id="go">▶ 走らせる</button>
+        <button id="reset">初めから</button>
+        <button id="step1">1000 衝突</button>
+      </div>
+      <label><span class="k">速さ</span><input type="range" id="speed" min="1" max="120" value="30"><output class="val" id="speedv">30</output></label>
+    </div>
+
+    <div class="box">
+      <h2>観測器（型を数える・θ=1）</h2>
+      <table class="stat">
+        <tr><td class="k">衝突</td><td class="v" id="m_coll">0</td></tr>
+        <tr><td class="k">枠 N</td><td class="v" id="m_n">0</td></tr>
+        <tr><td class="k">相異なる型 k</td><td class="v" id="m_k">0</td></tr>
+        <tr><td class="k">閉じている組</td><td class="v" id="m_cl">0.000</td></tr>
+        <tr><td class="k">閉包の超過比</td><td class="v" id="m_ex">0.00</td></tr>
+        <tr><td class="k">読みが効く度</td><td class="v" id="m_rd">0.000</td></tr>
+        <tr><td class="k">機械が効く度</td><td class="v" id="m_md">0.000</td></tr>
+        <tr><td class="k">枠の書き直し</td><td class="v" id="m_rn">0.000</td></tr>
+        <tr><td class="k">λ<sub>A</sub>（書き換え率）</td><td class="v" id="m_la">0.000</td></tr>
+        <tr><td class="k">反応 / 衝突</td><td class="v" id="m_rr">0.000</td></tr>
+      </table>
+      <div class="banner" id="verdict">—</div>
+      <p class="cap" style="margin-top:8px">判定は事前登録した連言（<code>criteria.json</code> rev2）:
+        閉 ≥ 0.95 かつ 自己生産 ≥ 0.5 かつ 読み ≥ 0.5 かつ 機械 ≥ 0.5 かつ 書き直し ≥ 0.5 かつ 超過比 ≥ 2。</p>
+    </div>
+
+    <div class="box">
+      <h2>選んだ列</h2>
+      <table class="stat">
+        <tr><td class="k">値</td><td class="v" id="s_val">—</td></tr>
+        <tr><td class="k">族</td><td class="v" id="s_fam">—</td></tr>
+        <tr><td class="k">容器の中の数</td><td class="v" id="s_cnt">0</td></tr>
+      </table>
+      <p class="cap" style="margin-top:7px">容器の枠をクリックするか、下で選ぶ。</p>
+      <label><span class="k">値</span><input type="number" id="pick" value="0" min="0" max="4095"></label>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="stats.js"></script>
+<script>
+(function () {
+  'use strict';
+  var FAMCOL = { copy: '#4ade80', flip: '#60a5fa', zero: '#6b7280', one: '#fbbf24', other: '#fb7185' };
+  var THR = { closedFrac: 0.95, selfProducedFrac: 0.5, readDependence: 0.5,
+              renewalFrac: 0.5, minSize: 4, machineDependence: 0.5, closureExcess: 2 };
+  var el = function (id) { return document.getElementById(id); };
+  var vessel = el('vessel'), series = el('series'), ticker = el('ticker'), dual = el('dual');
+  var vc = vessel.getContext('2d'), sc = series.getContext('2d'), tc = ticker.getContext('2d'), dc = dual.getContext('2d');
+
+  var st = null, running = false, volScale = 1, baseN = 256, picked = 0;
+  var hist = [], recent = [], flash = null;
+
+  function N() { return Math.max(4, Math.round(baseN * volScale * volScale)); }
+  function eps() { return Math.pow(10, -4 + 3 * (+el('eps').value) / 100) * (+el('eps').value > 0 ? 1 : 0); }
+
+  function reset() {
+    st = S28.createVessel({
+      L: +el('len').value, N: N(), seed: +el('seed').value || 1, mode: el('mode').value,
+      scheme: el('scheme').value, eps: eps(), recent: Math.max(2 * N(), 64), tableSeed: 20260913,
+    });
+    hist = []; recent = []; flash = null;
+    picked = Math.min(picked, st.mask);
+    el('pick').max = st.mask;
+    draw();
+  }
+
+  function metrics() {
+    var prod = function (m, t) { return st.rule.product(m, t); };
+    var types = S28Stats.presentTypes(st, 1);
+    var m = S28Stats.potential(st, types, prod, 'countGe2');
+    m.renewalFrac = S28Stats.renewalFrac(st, 2 * st.N);
+    return m;
+  }
+
+  function advance(n) {
+    for (var i = 0; i < n; i++) {
+      var last = S28.step(st);
+      if (last.p >= 0) { recent.unshift(last); if (recent.length > 14) recent.pop(); flash = last; }
+    }
+  }
+
+  // ------------------------------------------------------------ 描画
+  function cellColor(v) {
+    var f = S28.familyOf(v, st.L), base = FAMCOL[f];
+    var lum = 0.45 + 0.55 * (v / (st.mask || 1));
+    var r = parseInt(base.slice(1, 3), 16), g = parseInt(base.slice(3, 5), 16), b = parseInt(base.slice(5, 7), 16);
+    return 'rgb(' + Math.round(r * lum) + ',' + Math.round(g * lum) + ',' + Math.round(b * lum) + ')';
+  }
+
+  function drawVessel() {
+    var W = vessel.width, H = vessel.height;
+    vc.fillStyle = '#05070a'; vc.fillRect(0, 0, W, H);
+    var n = st.N, cols = Math.ceil(Math.sqrt(n * W / H)), rows = Math.ceil(n / cols);
+    var cw = W / cols, ch = H / rows, pad = cw > 6 ? 1 : 0;
+    for (var i = 0; i < n; i++) {
+      var x = (i % cols) * cw, y = Math.floor(i / cols) * ch;
+      vc.fillStyle = cellColor(st.slots[i]);
+      vc.fillRect(x + pad, y + pad, cw - 2 * pad, ch - 2 * pad);
+      if (st.slots[i] === picked) { vc.strokeStyle = '#fff'; vc.lineWidth = 1; vc.strokeRect(x + 0.5, y + 0.5, cw - 1, ch - 1); }
+    }
+    if (flash && flash.p >= 0 && cw > 3) {
+      vc.strokeStyle = '#fff'; vc.lineWidth = 2;
+      [flash.i, flash.j].forEach(function (k) {
+        vc.strokeRect((k % cols) * cw + 1, Math.floor(k / cols) * ch + 1, cw - 2, ch - 2);
+      });
+    }
+    vc.fillStyle = 'rgba(5,7,10,0.82)'; vc.fillRect(0, H - 18, W, 18);
+    vc.fillStyle = '#7d8694'; vc.font = '11px ui-monospace,Menlo,monospace';
+    vc.fillText('N=' + n + '  L=' + st.L + '  ' + st.mode + '  衝突 ' + st.collisions, 6, H - 5);
+  }
+
+  function drawSeries() {
+    var W = series.width, H = series.height;
+    sc.fillStyle = '#05070a'; sc.fillRect(0, 0, W, H);
+    sc.strokeStyle = '#1e222a'; sc.lineWidth = 1;
+    [0.0, 0.5, 1.0].forEach(function (f) {
+      var y = H - 4 - (H - 8) * f;
+      sc.beginPath(); sc.moveTo(0, y); sc.lineTo(W, y); sc.stroke();
+      sc.fillStyle = '#3a4150'; sc.font = '9px ui-monospace,Menlo,monospace';
+      sc.fillText(f.toFixed(1), W - 22, y - 2);
+    });
+    if (hist.length < 2) {
+      sc.fillStyle = '#4a5261'; sc.font = '11px ui-monospace,Menlo,monospace';
+      sc.fillText('走らせると描かれる', 8, H / 2);
+      return;
+    }
+    var cols = [['kFrac', '#fb7185'], ['maxShare', '#4ade80'], ['closed', '#60a5fa']];
+    cols.forEach(function (c) {
+      sc.strokeStyle = c[1]; sc.lineWidth = 1.5; sc.beginPath();
+      for (var i = 0; i < hist.length; i++) {
+        var x = W * i / (hist.length - 1), y = H - 4 - (H - 8) * hist[i][c[0]];
+        if (i === 0) sc.moveTo(x, y); else sc.lineTo(x, y);
+      }
+      sc.stroke();
+    });
+    sc.fillStyle = '#7d8694'; sc.font = '10px ui-monospace,Menlo,monospace';
+    sc.fillText('衝突 ' + st.collisions, 6, 12);
+  }
+
+  function bits(v, L) { var s = ''; for (var i = 0; i < L; i++) s += (v >>> i) & 1; return s; }
+
+  function drawTicker() {
+    var W = ticker.width, H = ticker.height;
+    tc.fillStyle = '#05070a'; tc.fillRect(0, 0, W, H);
+    tc.font = '10px ui-monospace,Menlo,monospace';
+    var colW = Math.max(64, W / 8), n = Math.min(recent.length, Math.floor((W - 48) / colW));
+    for (var i = 0; i < n; i++) {
+      var r = recent[i], x = 6 + i * colW, mb = bits(r.m, st.L), tb = bits(r.t, st.L), pb = bits(r.p, st.L);
+      tc.fillStyle = FAMCOL[S28.familyOf(r.m, st.L)]; tc.fillText(mb, x, 16);
+      tc.fillStyle = '#7d8694'; tc.fillText(tb, x, 34);
+      for (var b = 0; b < st.L; b++) {
+        tc.fillStyle = pb[b] !== tb[b] ? '#f97316' : '#d8dce3';
+        tc.fillText(pb[b], x + b * 6, 52);
+      }
+    }
+    tc.fillStyle = '#3a4150';
+    ['機械', 'テープ', '積'].forEach(function (lab, r) { tc.fillText(lab, W - 42, 16 + r * 18); });
+  }
+
+  function drawDual() {
+    var W = dual.width, H = dual.height;
+    dc.fillStyle = '#05070a'; dc.fillRect(0, 0, W, H);
+    var v = picked & st.mask, mc = S28.fold(v, st.L), fam = S28.familyOf(v, st.L);
+    dc.font = '12px ui-monospace,Menlo,monospace';
+    dc.fillStyle = '#7d8694'; dc.fillText('テープとして', 12, 18);
+    var bs = bits(v, st.L), cellw = Math.min(22, (W / 2 - 30) / st.L);
+    for (var i = 0; i < st.L; i++) {
+      dc.fillStyle = bs[i] === '1' ? '#d8dce3' : '#2a2f38';
+      dc.fillRect(12 + i * cellw, 26, cellw - 2, 22);
+      dc.fillStyle = bs[i] === '1' ? '#0e1013' : '#7d8694';
+      dc.fillText(bs[i], 12 + i * cellw + cellw / 2 - 4, 42);
+    }
+    dc.fillStyle = '#7d8694'; dc.font = '11px ui-monospace,Menlo,monospace';
+    dc.fillText('値 ' + v + '（' + bs + '）', 12, 66);
+    dc.fillText('容器の中に ' + (st.counts[v] || 0) + ' 本', 12, 82);
+    if (st.L > 8) dc.fillText('折り返し → 機械符号 ' + mc, 12, 98);
+
+    var X = W / 2 + 6;
+    dc.fillStyle = '#7d8694'; dc.font = '12px ui-monospace,Menlo,monospace';
+    dc.fillText('機械として（族: ' + fam + '）', X, 18);
+    dc.font = '11px ui-monospace,Menlo,monospace';
+    var hdr = ['状態', '入力', '出力', '次'];
+    hdr.forEach(function (h, c) { dc.fillStyle = '#4a5261'; dc.fillText(h, X + c * 54, 34); });
+    for (var e = 0; e < 4; e++) {
+      var q = e >> 1, a = e & 1, w = (mc >>> (e * 2)) & 1, nq = (mc >>> (e * 2 + 1)) & 1, o = a ^ w;
+      var y = 50 + e * 17;
+      dc.fillStyle = '#7d8694'; dc.fillText('q' + q, X, y);
+      dc.fillText(String(a), X + 54, y);
+      dc.fillStyle = o === a ? '#4ade80' : '#f97316'; dc.fillText(String(o), X + 108, y);
+      dc.fillStyle = '#7d8694'; dc.fillText('q' + nq, X + 162, y);
+      dc.fillStyle = '#3a4150'; dc.fillText(w ? '反転' : 'そのまま', X + 205, y);
+    }
+  }
+
+  function draw() {
+    var m = metrics();
+    hist.push({ kFrac: Math.min(1, m.k / Math.min(st.N, st.size)), maxShare: topShare(), closed: m.closedFrac });
+    if (hist.length > 560) hist.shift();
+    drawVessel(); drawSeries(); drawTicker(); drawDual();
+    Harness.num('m_coll', st.collisions, 8);
+    Harness.num('m_n', st.N, 8);
+    Harness.num('m_k', m.k, 8);
+    Harness.num('m_cl', m.closedFrac.toFixed(3), 8);
+    Harness.num('m_ex', m.closureExcess.toFixed(2), 8);
+    Harness.num('m_rd', m.readDependence.toFixed(3), 8);
+    Harness.num('m_md', m.machineDependence.toFixed(3), 8);
+    Harness.num('m_rn', m.renewalFrac.toFixed(3), 8);
+    Harness.num('m_la', (st.bitsChanged / Math.max(1, st.reactions) / st.L).toFixed(3), 8);
+    Harness.num('m_rr', (st.reactions / Math.max(1, st.collisions)).toFixed(3), 8);
+    var d = S28Stats.decide(m, THR), vb = el('verdict');
+    vb.className = 'banner' + (d.MAIN ? ' yes' : '');
+    vb.textContent = d.MAIN
+      ? '読みの網が閉じている（k=' + m.k + '・超過比 ' + m.closureExcess.toFixed(0) + '）'
+      : '未成立: ' + [!d.closed && '閉', !d.selfProduced && '自己生産', !d.readDependent && '読み',
+                     !d.machineDependent && '機械', !d.renewed && '書き直し', !d.nontrivial && '非自明']
+                     .filter(Boolean).join('・');
+    Harness.num('s_val', picked, 8);
+    el('s_fam').textContent = S28.familyOf(picked & st.mask, st.L);
+    Harness.num('s_cnt', st.counts[picked & st.mask] || 0, 8);
+  }
+  function topShare() { var mx = 0; for (var v = 0; v < st.size; v++) if (st.counts[v] > mx) mx = st.counts[v]; return mx / st.N; }
+
+  function loop() {
+    if (!running) return;
+    advance(+el('speed').value * 20);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // ------------------------------------------------------------ つまみ
+  ['mode', 'scheme', 'len', 'seed'].forEach(function (id) { el(id).onchange = reset; });
+  el('eps').oninput = function () { el('epsv').textContent = eps().toFixed(3); if (st) st.eps = eps(); };
+  el('speed').oninput = function () { el('speedv').textContent = el('speed').value; };
+  el('pick').oninput = function () { picked = Math.max(0, Math.min(st.mask, +el('pick').value || 0)); draw(); };
+  el('go').onclick = function () { running = !running; el('go').textContent = running ? '⏸ 止める' : '▶ 走らせる'; if (running) loop(); };
+  el('reset').onclick = function () { running = false; el('go').textContent = '▶ 走らせる'; reset(); };
+  el('step1').onclick = function () { advance(1000); draw(); };
+  vessel.onclick = function (ev) {
+    var r = vessel.getBoundingClientRect();
+    var W = vessel.width, H = vessel.height, n = st.N;
+    var cols = Math.ceil(Math.sqrt(n * W / H)), rows = Math.ceil(n / cols);
+    var cx = Math.floor((ev.clientX - r.left) / r.width * cols);
+    var cy = Math.floor((ev.clientY - r.top) / r.height * rows);
+    var idx = cy * cols + cx;
+    if (idx >= 0 && idx < n) { picked = st.slots[idx]; el('pick').value = picked; draw(); }
+  };
+
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('go').click(); },
+    id: 'S-28', version: '1.0.0',
+    inputs: ['mode', 'scheme', 'len', 'eps', 'seed', 'speed', 'pick'],
+    // pick は表示する枠を選ぶだけ（描画専用）で s にした（判断に迷った点として報告済み）
+    paramNames: {
+      mode: { category: 'p', code: 'mode', full: 'read_mode' },
+      scheme: { category: 'p', code: 'scheme', full: 'product_scheme' },
+      len: { category: 's', code: 'len', full: 'tape_length' },
+      eps: { category: 'p', code: 'eps', full: 'external_noise' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+      pick: { category: 's', code: 'pick', full: 'pick_value' },
+    },
+    canvases: ['vessel', 'series', 'ticker', 'dual'],
+    // この系に空間は無い。「広さ」は**容器の容量 N（列の総数の上限）**にあたる。
+    // 縦横 scale 倍 → 枠の数は scale² 倍。列の長さ L は「広さ」ではないので動かさない。
+    resize: function (scale) {
+      volScale = scale;
+      reset();
+      Harness.say('容器を ' + st.N + ' 枠にした（縦横 ' + scale + ' 倍 → 枠 ' + (scale * scale) + ' 倍）');
+    },
+    onRestore: reset,
+  });
+
+  el('epsv').textContent = '0.000';
+  reset();
+  // 開いた時点から進行が見えるようにする（止めるのはボタン 1 つ）
+  running = true; el('go').textContent = '⏸ 止める'; loop();
+})();
+</script>
+</body>
+</html>

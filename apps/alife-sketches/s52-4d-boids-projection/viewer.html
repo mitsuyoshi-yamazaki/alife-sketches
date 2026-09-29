@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-52 4次元 boid の写し方</title>
+<style>
+  body { background:#1c1a16; color:#e8e2d6; font:14px/1.5 -apple-system,system-ui,sans-serif; margin:0; }
+  .wrap { display:flex; flex-wrap:wrap; gap:16px; padding:12px 16px; }
+  .panel { background:#221f1a; border:1px solid #3a342b; border-radius:8px; padding:10px 12px; }
+  canvas { background:#000; border:1px solid #3a342b; image-rendering:pixelated; max-width:100%; }
+  label { display:flex; align-items:center; gap:6px; margin:4px 0; font-size:13px; }
+  select, input[type=number] { font:inherit; background:#2c2823; color:#e8e2d6; border:1px solid #4a4238; border-radius:4px; padding:3px 6px; }
+  button.pp { font:inherit; padding:5px 10px; border-radius:6px; border:1px solid #4a4238; background:#2c2823; color:#e8e2d6; cursor:pointer; }
+  .statgrid { display:grid; grid-template-columns:auto auto; gap:2px 10px; font-size:13px; }
+  .statgrid b { color:#a3be8c; }
+  .legend { font-size:12px; color:#a89f8e; margin-top:6px; }
+  .legend .true { color:#88c0d0; } .legend .dec { color:#d08770; }
+  h1 { font-size:16px; margin:12px 16px 0; }
+  .armgrid { display:grid; grid-template-columns:repeat(4,1fr); gap:3px; margin-top:6px; }
+  .armgrid button { font:12px monospace; padding:4px 2px; border-radius:4px; border:1px solid #4a4238; background:#2c2823; color:#e8e2d6; cursor:pointer; }
+  .armgrid button.sel { background:#5e8d87; color:#101010; font-weight:600; }
+</style>
+</head>
+<body>
+<h1>S-52 — 4次元 boid を2次元へどう写すか（16腕）</h1>
+<div class="wrap">
+  <div class="panel">
+    <canvas id="mainCanvas" width="256" height="256"></canvas>
+    <div class="legend"><span class="true">● 青緑=真の位置(u,v)</span> ／ <span class="dec">✕ 橙=復号された位置</span></div>
+    <div style="margin-top:8px;">
+      <button class="pp" id="ppBtn">⏸ 一時停止</button>
+      <label style="display:inline-flex;margin-left:12px;">seed <input type="number" id="seedInput" value="1" style="width:5em"></label>
+    </div>
+  </div>
+  <div class="panel" style="min-width:220px;">
+    <div><b>腕</b>（A: 4→3 ／ B: 3→2）</div>
+    <label>A <select id="armASel">
+      <option value="orth">A1 正射影(w捨)</option><option value="persp">A2 透視(w)</option>
+      <option value="slice">A3 断面(w)</option><option value="chan">A4 チャネル(w)</option>
+    </select></label>
+    <label>B <select id="armBSel">
+      <option value="orth">B1 正射影(z捨)</option><option value="persp">B2 透視(z)</option>
+      <option value="slice">B3 断面(z)</option><option value="chan">B4 チャネル(z)</option>
+    </select></label>
+    <div style="font-size:12px;color:#a89f8e;margin-top:4px;">または16腕を直接クリック:</div>
+    <div class="armgrid" id="armGrid"></div>
+  </div>
+  <div class="panel">
+    <div><b>その場の観測量</b>（毎フレーム再計算。登録の τ=0.05L・k=6）</div>
+    <div class="statgrid">
+      <span>O1 位置復元率 R(τ)</span><b id="statO1">-</b>
+      <span>O2 近傍保存 J_6</span><b id="statO2">-</b>
+      <span>O3 検出率</span><b id="statO3">-</b>
+      <span>O4 ρ_z / ρ_w</span><b id="statO4">-</b>
+      <span>O6 参与次元 D_p（記述量）</span><b id="statO6">-</b>
+      <span>ステップ</span><b id="statStep">-</b>
+    </div>
+  </div>
+</div>
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="observer.js"></script>
+<script>
+(function () {
+  'use strict';
+  var S = window.S52, O = window.S52O;
+  var N = 96, L = 1.0;
+  var PARAMS = { rSep: 0.05, wSep: 1.5, rAli: 0.12, wAli: 1.0, rCoh: 0.12, wCoh: 0.8, speedMin: 0.004, speedMax: 0.012, gain: 0.1 };
+  var CV = Object.assign({}, O.DEFAULTS, { L: L });
+
+  var canvas = document.getElementById('mainCanvas'), ctx = canvas.getContext('2d');
+  var seedInput = document.getElementById('seedInput'), armASel = document.getElementById('armASel'), armBSel = document.getElementById('armBSel');
+  var ppBtn = document.getElementById('ppBtn'), armGrid = document.getElementById('armGrid');
+  var statEl = { O1: document.getElementById('statO1'), O2: document.getElementById('statO2'), O3: document.getElementById('statO3'), O4: document.getElementById('statO4'), O6: document.getElementById('statO6'), step: document.getElementById('statStep') };
+
+  var st = { seed: 1, armA: 'orth', armB: 'orth', running: true, step: 0, canvasSize: 256 };
+  var state = null;
+
+  function makeArmButtons() {
+    armGrid.innerHTML = '';
+    O.ARMS.forEach(function (arm) {
+      var b = document.createElement('button');
+      b.textContent = arm.key; b.title = arm.A + '×' + arm.B;
+      b.onclick = function () { st.armA = arm.A; st.armB = arm.B; armASel.value = arm.A; armBSel.value = arm.B; markSelected(); };
+      b.dataset.a = arm.A; b.dataset.b = arm.B;
+      armGrid.appendChild(b);
+    });
+    markSelected();
+  }
+  function markSelected() {
+    Array.prototype.forEach.call(armGrid.children, function (b) {
+      b.classList.toggle('sel', b.dataset.a === st.armA && b.dataset.b === st.armB);
+    });
+  }
+
+  function resetSim(seed) {
+    state = S.makeState(seed, N, L, 4, [PARAMS.speedMin, PARAMS.speedMax]);
+    st.step = 0;
+  }
+
+  function tick() {
+    if (st.running) { S.step(state, PARAMS); st.step++; }
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  /** 1フレーム描く: ラスタ→ImageData、真の位置(青緑)・復号位置(橙)を重ねる。統計も更新する。 */
+  function render() {
+    var cw = S.circularMean(state.pos[3], L), cz = S.circularMean(state.pos[2], L);
+    var cfg = Object.assign({}, CV, { A: st.armA, B: st.armB, cw: cw, cz: cz, canvas: st.canvasSize });
+    var res = O.runArmFrame(state.pos, N, cfg, {});
+    var img = ctx.createImageData(cfg.canvas, cfg.canvas);
+    for (var p = 0; p < res.buf.length; p++) {
+      var v = res.buf[p];
+      img.data[p * 4] = v; img.data[p * 4 + 1] = v; img.data[p * 4 + 2] = v; img.data[p * 4 + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+
+    var idxAll = []; for (var i = 0; i < N; i++) idxAll.push(i);
+    ctx.lineWidth = 1;
+    idxAll.forEach(function (i) {
+      var pr = res.projected[i];
+      if (pr.visible && !pr.offCanvas) {
+        var px = pr.u / L * cfg.canvas, py = pr.v / L * cfg.canvas;
+        ctx.strokeStyle = '#88c0d0'; ctx.beginPath(); ctx.arc(px, py, 2, 0, 7); ctx.stroke();
+      }
+      var d = res.decoded[i];
+      if (d.detected) {
+        var dx = d.p[0] / L * cfg.canvas, dy = d.p[1] / L * cfg.canvas;
+        ctx.strokeStyle = '#d08770';
+        ctx.beginPath(); ctx.moveTo(dx - 3, dy); ctx.lineTo(dx + 3, dy); ctx.moveTo(dx, dy - 3); ctx.lineTo(dx, dy + 3); ctx.stroke();
+      }
+    });
+
+    var o1 = O.o1Recovery(state.pos, res.decoded, idxAll, L, [0.05])[0.05];
+    var trueNN = O.trueKNN(state.pos, N, L, 6), decNN = O.decodedKNN(res.decoded, idxAll, L, 6);
+    var jacc = O.median(idxAll.map(function (i) { return res.decoded[i].detected ? O.jaccard(trueNN[i], decNN[i] || []) : 0; }));
+    var o3 = O.o3DetectionRate(res.projected, res.match, idxAll);
+    var rhoZ = O.o4AxisSpearman(state.pos, res.decoded, idxAll, 2), rhoW = O.o4AxisSpearman(state.pos, res.decoded, idxAll, 3);
+    var dp = S.participationDimension(state);
+    Harness.num(statEl.O1, o1.toFixed(3), 6);
+    Harness.num(statEl.O2, (jacc || 0).toFixed(3), 6);
+    Harness.num(statEl.O3, (o3 || 0).toFixed(3), 6);
+    Harness.num(statEl.O4, rhoZ.toFixed(2) + ' / ' + rhoW.toFixed(2), 12);
+    Harness.num(statEl.O6, dp.toFixed(2), 6);
+    Harness.num(statEl.step, String(st.step), 8);
+  }
+
+  armASel.onchange = function () { st.armA = armASel.value; markSelected(); };
+  armBSel.onchange = function () { st.armB = armBSel.value; markSelected(); };
+  seedInput.onchange = function () { st.seed = parseInt(seedInput.value, 10) || 1; resetSim(st.seed); };
+  ppBtn.onclick = function () { st.running = !st.running; ppBtn.textContent = st.running ? '⏸ 一時停止' : '▶ 再生'; };
+
+  makeArmButtons();
+  resetSim(st.seed);
+
+  // ---------------------------------------------------------------- K-80: getParams/setParams
+  // 乱数(seed)が決めるのは初期配置だが、時間発展した「今の状態」自体が見ている対象のパターンなので、
+  // シードではなく**生成された値そのもの(現在の位置・速度)**をexportする（K-80の登録どおり）。
+  function serializeState() {
+    return { pos: state.pos.map(function (a) { return Array.from(a); }), vel: state.vel.map(function (a) { return Array.from(a); }), step: st.step };
+  }
+  function deserializeState(s) {
+    state = {
+      pos: s.pos.map(function (a) { return Float64Array.from(a); }),
+      vel: s.vel.map(function (a) { return Float64Array.from(a); }),
+      count: N, dims: 4, L: L,
+    };
+    st.step = s.step || 0;
+  }
+
+  Harness.mount({
+    id: 'S-52', version: '1.0.0',
+    canvases: ['mainCanvas'],
+    getParams: function () {
+      return { seed: st.seed, armA: st.armA, armB: st.armB, canvasSize: st.canvasSize, state: serializeState() };
+    },
+    setParams: function (v) {
+      if (v.seed != null) { st.seed = v.seed; seedInput.value = v.seed; }
+      if (v.armA) { st.armA = v.armA; armASel.value = v.armA; }
+      if (v.armB) { st.armB = v.armB; armBSel.value = v.armB; }
+      if (v.canvasSize) { st.canvasSize = v.canvasSize; canvas.width = v.canvasSize; canvas.height = v.canvasSize; }
+      if (v.state && v.state.pos) deserializeState(v.state);
+      else resetSim(st.seed);
+      markSelected();
+    },
+    onRestore: function () { render(); },
+    pause: function () { st.running = false; ppBtn.textContent = '▶ 再生'; },
+    resize: function (scale) {
+      st.canvasSize = Math.max(64, Math.min(1024, Math.round(256 * scale)));
+      canvas.width = st.canvasSize; canvas.height = st.canvasSize;
+      render();
+    },
+    paramNames: {
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      armA: { category: 's', code: 'aa', full: 'arm_a' },
+      armB: { category: 's', code: 'ab', full: 'arm_b' },
+      canvasSize: { category: 's', code: 'cs', full: 'canvas_size' },
+      state: { category: 'd', code: 'st', full: 'state' },
+    },
+  });
+
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>両親媒性分子の自己集合 — 膜を作らずに膜が出るか — 人工生命スケッチ</title><link rel="stylesheet" href="../../assets/style.css"></head><body class="sketchpage"><nav class="crumbs"><a href="../../index.html">人工生命スケッチ</a><span class="sep">›</span><span aria-current="page">S-15 両親媒性分子の自己集合 — 膜を作らずに膜が出るか</span></nav><header class="shead"><div class="sline"><span class="cid">S-15</span><h1>両親媒性分子の自己集合 — 膜を作らずに膜が出るか</h1><span class="ver">v1.0.0</span></div><div class="tags"><span class="tag">自己集合</span><span class="tag">膜</span><span class="tag">参照点</span><span class="tag">粒子系</span></div><div class="sacts"><button class="btn ovopen" data-go="r-main">📄 両親媒性分子の自己集合 — 膜を作らずに膜が出るか</button><button class="btn ovopen" data-go="comments">💬 コメント（0）</button></div></header><div class="stagewrap"><iframe class="stage" title="実行窓" data-run="main" src="../../apps/alife-sketches/s15-amphiphile-assembly/viewer.html"></iframe><div class="overlay" id="overlay" hidden data-open=""><div class="ovbar"><span class="ovwho" title="両親媒性分子の自己集合 — 膜を作らずに膜が出るか">S-15</span><div class="ovtabs"><button class="ovtab" data-go="r-main">両親媒性分子の自己集合 — 膜を作らずに膜が出るか</button><button class="ovtab" data-go="comments">💬 コメント（0）</button></div><button class="ovclose" id="ovclose" title="閉じて実行に戻る">✕</button></div><div class="ovbody"><section class="pane" data-pane="r-main" hidden><div class="rmeta"><span class="angle">主レポート（最初の切り口）</span></div><details class="rtoc"><summary>目次</summary><a href="#一行で言うと">一行で言うと</a><a href="#何をやったか">何をやったか</a><a href="#結果-事前登録した解析">結果（事前登録した解析）</a><a href="#事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</a><a href="#本家サブプロジェクトへの含意-候補として挙げるだけ-要件化しない">本家サブプロジェクトへの含意（<strong>候補として挙げるだけ。要件化しない</strong>）</a><a href="#限界-この実験が言えないこと">限界（この実験が言えないこと）</a></details><article class="md"><h1 id="s-15-両親媒性分子の自己集合-膜を作らずに膜が出るか">S-15: 両親媒性分子の自己集合 — 膜を作らずに膜が出るか</h1>
+<ul><li><strong>実施日</strong>: 2026-09-11</li><li><strong>アプリ</strong>: <span class="deadlink">apps/alife-sketches/s15-amphiphile-assembly/</span></li><li><strong>可視化</strong>: <code>viewer.html</code>（左に粒子の場・右に向きの相関の曲線と 2 つの参照点。<strong>疎水性のつまみを動かすと撒き直さずに育ち方が変わる</strong>）</li><li><strong>生ログ</strong>: <span class="deadlink">raw/replicates.jsonl</span>（72 レプリケート）・<span class="deadlink">raw/sweep.jsonl</span>・<span class="deadlink">raw/curves.jsonl</span>（77 本の曲線と包絡線）・<span class="deadlink">raw/controls.jsonl</span>・<span class="deadlink">raw/calibration.jsonl</span>・<span class="deadlink">raw/knob.jsonl</span>・<span class="deadlink">raw/trace.jsonl</span>・<span class="deadlink">raw/summary.json</span></li><li><strong>所要</strong>: 妥当性検査 30 秒（26 項目）＋ 本番 330.7 秒</li><li><strong>判定基準</strong>: <code>criteria.json</code> rev2 / sha256 <code>ceaf5eed08484c1e</code>（<code>summary.json</code> に刻んである）</li></ul>
+<p><strong>出典</strong>（アイデアのみ。<strong>コードは参照せず定義から実装した</strong>）:</p>
+<ul><li>Israelachvili, J.N., Mitchell, D.J. &amp; Ninham, B.W. (1976) *J. Chem. Soc. Faraday Trans. 2* 72, 1525-1568（充填パラメータ——頭の大きさが粒状か面状かを決める）</li><li>Goetz, R. &amp; Lipowsky, R. (1998) *J. Chem. Phys.* 108, 7397-7409（溶媒を明示せず尾どうしの引力だけで自己集合させる系統）</li><li>Cooke, I.R., Kremer, K. &amp; Deserno, M. (2005) *Phys. Rev. E* 72, 011506（溶媒を一切置かない 3 粒子の粗視化両親媒性分子）</li><li>Baddeley, A.J. &amp; Silverman, B.W. (1984) *Biometrics* 40, 1089-1093 ／ Myllymäki, M. et al. (2017) *J. R. Statist. Soc. B* 79, 381-404（参照点と曲線の大域検定）</li></ul>
+<h2 id="一行で言うと">一行で言うと</h2>
+<p><strong>膜オブジェクトを一切作らず、非零の相互作用を「尾どうしの引力」1 つだけにして、層構造は出た</strong>—— 手組みの理想的な二重層の <strong>0.72〜0.77 倍</strong>の強さで、w ≥ 2.0 の 6 格子点が全シードで連言を通った。 だが本スケッチが持ち帰る主要な結果は自己集合の側ではなく<strong>参照点の側</strong>にある: <strong>「同じ塊を持つが向きを忘れた系」を参照点に取ると、塊に属する割合は参照点でも 0.48〜0.92 を返して完全に無力化される</strong>。 そのうえで参照点を「重なりを許す」から「<strong>排除体積を守る</strong>」へ替えるだけで、 <strong>負コントロール（一様に引き合う・かさ有り）の超過が +0.215 から −0.082 へ符号ごと反転した</strong>（3 シードとも）。 <strong>S-13 が「参照点の取り替えが効く」と言ったことの、最も安い形での再現である</strong>—— 取り替えたのは帰無過程ではなく、同じ配置を読む「忘れ方」だけだった。</p>
+<h2 id="何をやったか">何をやったか</h2>
+<h3 id="題材">題材</h3>
+<p>本家サブプロジェクト<span class="deadlink">人工生命</span>の <strong>REQ-4</strong> は 「<strong>区画は自己集合から生じる。『膜オブジェクト』を作らない</strong>」と定める。S-15 はそれを最小の形で試した。</p>
+<p>2 次元トーラス（一辺 50）に、3 個の粒子が間隔 1.0 で一直線に固定された剛体鎖を撒く。並びは <code>[A, B, B]</code>。</p>
+<pre><code>E = Σ_{接触対} eps[k1][k2]        距離 &lt; 排除半径の和 なら E = +∞
+eps[B][B] = -w                    ← 制御変数（尾の疎水性の強さ。kT 単位なので温度はここに吸収されている）
+eps[A][A] = eps[A][B] = 0         ← **既定では非零の相互作用はこの 1 つだけ**</code></pre>
+<p>1 スイープ = 鎖の数だけ提案する。提案は平行移動か回転で、<code>exp(-ΔE)</code> の Metropolis で受容する。 <strong>分子動力学ではない</strong>。力も速度も時間刻みも無い。溶媒粒子も置いていない—— 頭は「他を引かないかさ」であることによってのみ溶媒好きを表す。</p>
+<p><strong>分子の形の選択（向きを持つ 1 粒子ではなく連結した 3 粒子にした理由）</strong>: 層構造を測るには 「頭がどちら側か」という向きが要る。1 粒子にすると<strong>その向きを観測器が新たに定義する</strong>ことになり、 観測器の自由度が 1 つ増える。3 粒子にすれば鎖の幾何が向きを与えるので、<strong>粒度を系から借りられる</strong> （<span class="deadlink">K-10</span>）。同じ理由で、層構造を測る近傍の広さも「鎖の半長 + rc = 2.6」という 系の量だけで決まる値に固定し、連結判定には<strong>相互作用が使う rc = 1.6 をそのまま流用した</strong> （S-02 が踏んだ「連結半径という第二の自由度」を持ち込まないため）。</p>
+<p>制御変数は 2 つ取った。<strong>w</strong>（尾の疎水性の強さ）と <strong>headRadius</strong>（種A の排除半径＝かさの大きさ。 Israelachvili らの充填パラメータにあたる）。濃度は副次の腕として別に振った。</p>
+<h3 id="観測器">観測器</h3>
+<p><span class="deadlink">K-24</span>（S-13）が示したのは「<strong>ただのクラスタ過程が F・G・K・J を全部通る</strong>」ことだった。 したがって「塊ができた」では膜と区別できない。そこで:</p>
+<div class="tw"><table><thead><tr><th>秩序変数</th><th>中身</th><th>帰無値</th></tr></thead><tbody><tr><td><code>largeFraction</code></td><td>大きさ 6 以上の集合体に属する鎖の割合</td><td>— （<strong>塊の有無しか言わない量。K-24 の実演としてあえて連言の第1項に残した</strong>）</td></tr><tr><td><strong><code>stratification</code></strong></td><td>鎖の軸 u_i（頭→尾）と、周囲の「尾の多い向き」ĝ_i の内積の平均</td><td><strong>厳密に 0</strong>（2 次元の一様な向き）</td></tr><tr><td><code>tailToTail</code></td><td>尾端どうしが接し、頭どうしはそれより遠く、軸が反平行な接触対の割合</td><td>—</td></tr><tr><td><code>anisotropy</code></td><td>集合体の慣性テンソル固有値比の中央値</td><td>1（充填した円）</td></tr><tr><td><strong>P(d)</strong></td><td>向きの極性相関 ⟨u_i·u_j⟩ を重心間距離の関数にした<strong>曲線</strong></td><td><strong>全ての d で厳密に 0</strong></td></tr><tr><td>S(d)</td><td>向きのネマティック相関 ⟨2(u·u)²−1⟩</td><td>同上（<strong>rev2 で判定から外した。下記</strong>）</td></tr></tbody></table></div>
+<p><strong>参照点は 2 つ登録した</strong>（<span class="deadlink">K-17</span>）。どちらも<strong>ポアソン配置ではない</strong>—— <strong>同じ重心を持ち、向きの情報だけが無い系</strong>である:</p>
+<ul><li><strong>弱い参照点</strong>: 重心をそのままに角度だけ一様乱数で引き直す。<strong>実際の系では起きない重なった配置が混ざる</strong></li><li><strong>強い参照点</strong>: eps を全て 0 にした系（残るのは排除半径だけ）で、重心を固定したまま回転だけの Metropolis を回す。</li></ul>
+<p><strong>排除体積を守ったまま向きだけを忘れた系</strong></p>
+<p>事前登録した連言 <code>layered</code> は <strong>L1: largeFraction ≥ 0.5 / L2: 弱い参照点 99 本すべてを上回る / L3: 強い参照点 99 本すべてを上回る / L4: stratification ≥ 0.492（手組みの二重層の半分） / L5: P(d) の大域検定が強い参照点に対して p ≤ 0.05</strong>。 <strong>閾値を手組みの対照の値に比例して定めた</strong>ので、発火の報告に規模が構造的に付く（<span class="deadlink">K-6</span>）。</p>
+<h3 id="妥当性検査-node-selftest-js-26-項目すべて通過">妥当性検査（<code>node selftest.js</code> — 26 項目すべて通過）</h3>
+<ul><li><strong>恒等式による正コントロール</strong>（<span class="deadlink">K-18</span>）: 増分エネルギー = 総当たりの全エネルギー（厳密一致）／</li></ul>
+<p>一様な向きで E[u·u] = 0、E[2(u·u)²−1] = 0（40 万標本・4SE 以内）／鎖の剛体性（ずれ 6.0e-15）</p>
+<ul><li><strong>近道の検算</strong>（<span class="deadlink">K-12</span>）: セル索引による接触対 = 総当たり（275 件で不一致 0）</li><li><strong>生存の検算</strong>: 観測器が数える鎖の総数 = 系が持つ鎖の数（250/250）</li><li><strong>弱い参照点が理論値を返す</strong>: stratification −0.0053、S(d) 0.0101（検出器と帰無モデルの同時検証）</li><li><strong><span class="deadlink">K-15</span></strong>: <strong>本番の判定規則そのもの</strong>が手組みの二重層（planar）と放射状の環（granular）を拾う</li><li><strong>負コントロール 4 種</strong>（<span class="deadlink">K-14</span>）: 引力なし／一様な引力・かさ無し／一様な引力・かさ有り／強い参照点そのもの。</li></ul>
+<p>うち後 2 者は「<strong>構造はあるが目当てのものではない系</strong>」で、どちらも塊割合 0.94〜0.98 を出す（対照として成立している）</p>
+<ul><li><strong><span class="deadlink">K-5</span></strong>: <code>viewer.html</code> が呼ぶ API 20 箇所の実在確認／ES module でないこと／</li></ul>
+<p><strong><code>core.js</code> のコード行に「膜・ミセル・小胞・二重層・親水・疎水」が現れない</strong>ことの機械検査</p>
+<h3 id="本番の前に判定基準を-rev2-へ改めた-k-17-の適用-s-07-と同じ形">本番の前に判定基準を rev2 へ改めた（K-17 の適用・S-07 と同じ形）</h3>
+<p>初版の L5 は <strong>S(d)（ネマティック相関）</strong> の曲線検定だった。本番を一度も走らせる前の検査で、 <strong>強い参照点が S(d) をほぼ完全に再現してしまう</strong>ことが分かった:</p>
+<div class="tw"><table><thead><tr><th></th><th>データ</th><th>強い参照点</th></tr></thead><tbody><tr><td>S(d) at d=1.125（本系 w=2.5・かさ無し）</td><td>0.944</td><td><strong>0.949</strong></td></tr><tr><td>S(d) at d=1.125（負コントロール NC2）</td><td>0.983</td><td>0.972</td></tr><tr><td>P(d) at d=1.125（本系 w=2.5・かさ無し）</td><td><strong>0.725</strong></td><td>0.027</td></tr></tbody></table></div>
+<p><strong>詰まった集合体の中では、排除体積だけで棒は向きを揃える。</strong> その結果 S(d) の大域検定は <strong>負コントロール NC2 を p=0.02 で通し、本系を p=0.29 で落とす</strong>という逆向きの挙動を示した。 <span class="deadlink">K-17</span>（負コントロールが連言を通ったら、まず設計を疑う）と <span class="deadlink">K-27</span>（感度比が高いときにまず疑うのは検出器の特異性）に従い、 <strong>本番前に L5 を P(d)（極性相関）へ差し替えた</strong>。P(d) は頭と尾の区別を要するので、 向きを忘れた参照点には再現できない。S(d) は判定から外したが登録は残し、全レプリケートで両方を報告している。</p>
+<blockquote><strong>この改定の前に見た系</strong>（正直に記す）: 手組みの PC1・PC2、負コントロール NC1〜NC3、および 本番の腕のうち seed 7 の 6 点（w=1.0/2.5 × headRadius=0.45/0.60/0.75）。 本番の掃引（seed 基底 20260911・3 シード・63 レプリケート）は一度も走らせていない。 経緯の全文は <code>criteria.json</code> の <code>revisionReason</code> に入っている。</blockquote>
+<h2 id="結果-事前登録した解析">結果（事前登録した解析）</h2>
+<h3 id="1-層は出た-規模は手組みの理想の-0-72-0-77-倍">1. 層は出た。規模は手組みの理想の 0.72〜0.77 倍</h3>
+<p>21 格子点 × 3 シード = 63 レプリケート。<strong>6 格子点が全シードで連言を通った</strong>（26/63 レプリケート）。</p>
+<div class="tw"><table><thead><tr><th>かさ</th><th>全シード通過の最小 w</th><th>そこでの stratification</th><th><strong>手組みの二重層に対する比</strong></th></tr></thead><tbody><tr><td>headRadius 0.45</td><td><strong>w = 2.0</strong></td><td>0.724</td><td><strong>0.74</strong></td></tr><tr><td>headRadius 0.60</td><td><strong>w = 2.0</strong></td><td>0.712</td><td><strong>0.72</strong></td></tr><tr><td>headRadius 0.75</td><td>到達せず（w=2.0 と 2.5 で 2/3）</td><td>0.755</td><td>0.77</td></tr></tbody></table></div>
+<p>w を 0 から 3 へ上げると stratification は <strong>0.051 → 0.72</strong> へ単調に上がり、 <code>tailToTail</code> も <strong>0.117 → 0.285</strong> へ上がる。集合体の異方性は 3.4〜4.8 で、 <strong>手組みの二重層（14.8）と手組みの放射状の環（1.0）の中間</strong>に落ち着いた—— 形の分類は planar と mixed が混ざり、granular は 1 件も出ていない。 <strong>2 次元で自発的に出たものは、理想的な二重層でも理想的な環でもない中間物である。</strong></p>
+<p>濃度を振ると（w=2.0・かさ無し）ρ=0.05 で 1/3、ρ=0.10 で 3/3、ρ=0.15 で 3/3 が通る。 <strong>濃度は「層が出るか」ではなく「塊が繋がるか」を動かしている</strong>（塊割合 0.69 → 0.95 → 0.99）。</p>
+<h3 id="2-塊ができた-は何も言っていない-k-24-の実演">2. 「塊ができた」は何も言っていない（K-24 の実演）</h3>
+<p>参照点が<strong>重心を保存する</strong>ので、<code>largeFraction</code> は参照点でもほぼ同じ値を返す。 較正 50 本（＝構造の無い系）で、<strong>連言の第1項 L1 は 50/50 で通った</strong>。引力を 0 にした系でも 0.46〜0.57 を返す。</p>
+<p><strong>連言の 5 項のうち、構造の無い系を落としたのは L2〜L4（stratification）で、L1 は 1 件も落としていない。</strong> L5（P 曲線）単独の偽陽性率は 2/50 = 0.04 で、公称の 0.05 とよく合った。 <strong>連言全体の偽陽性は 0/50。</strong></p>
+<h3 id="3-参照点を替えると負コントロールの答えが符号ごと反転する-本スケッチの主要な結果">3. 参照点を替えると負コントロールの答えが符号ごと反転する（本スケッチの主要な結果）</h3>
+<p>「一様に引き合う・かさ有り」（NC3）は、引力に種の区別が無い——<strong>尾の疎水性という規則を持たない系</strong>である。 それでも塊割合 0.94〜0.98 の塊を作る。この系の stratification の超過を、2 つの参照点で測ると:</p>
+<div class="tw"><table><thead><tr><th>シード</th><th>弱い参照点に対する超過</th><th><strong>強い参照点に対する超過</strong></th></tr></thead><tbody><tr><td>1</td><td><strong>+0.215</strong></td><td><strong>−0.082</strong></td></tr><tr><td>2</td><td><strong>+0.142</strong></td><td><strong>−0.097</strong></td></tr><tr><td>3</td><td><strong>+0.264</strong></td><td><strong>−0.114</strong></td></tr></tbody></table></div>
+<p><strong>3 シードとも符号が反転する。</strong> 弱い参照点は「かさの大きい鎖が詰まると、引力なしでも向きが揃う」ことを 再現できない（角度を無作為に引き直すと重なった配置になり、その配置では向きが揃わない）。 <strong>排除体積を守った参照点だけが、その分を吸収する。</strong></p>
+<p>同じことは本系の側にも起きる。w=2.0 での超過を並べると:</p>
+<div class="tw"><table><thead><tr><th>かさ</th><th>弱い参照点に対する超過</th><th>強い参照点に対する超過</th><th><strong>比</strong></th></tr></thead><tbody><tr><td>0.45</td><td>0.724</td><td>0.721</td><td>1.00</td></tr><tr><td>0.60</td><td>0.710</td><td>0.409</td><td>1.74</td></tr><tr><td>0.75</td><td>0.756</td><td>0.202</td><td><strong>3.74</strong></td></tr></tbody></table></div>
+<p><strong>弱い参照点で読むと「かさを変えても信号は同じ」、強い参照点で読むと「かさが大きいほど信号は 3.7 分の 1 に縮む」。</strong> どちらの参照点を選ぶかが、報告する結論を決めている。</p>
+<p>なお <strong>stratification のスカラー検定（L3）自体は headRadius 0.75 でも全点 p=0.01 で通っている</strong> （0.72 対 0.58 など、参照点の散らばりが小さいため）。かさの大きい側で全シード通過に届かなかったのは <strong>L5（P 曲線）が落ちたから</strong>で、12 レプリケート中 5 本しか p ≤ 0.05 に達していない。</p>
+<h3 id="4-s-d-と-p-d-rev2-の差し替えは本番でも正しかった">4. S(d) と P(d)：rev2 の差し替えは本番でも正しかった</h3>
+<p>63 レプリケートを通して:</p>
+<div class="tw"><table><thead><tr><th></th><th>P(d)（判定に使用）</th><th>S(d)（報告のみ）</th></tr></thead><tbody><tr><td>連言を通った 26 本の平均 p</td><td><strong>0.015</strong></td><td>0.173</td></tr><tr><td>通らなかった 37 本の平均 p</td><td>0.393</td><td>0.424</td></tr><tr><td>強い参照点に対して p ≤ 0.05 の本数</td><td>31 / 63</td><td>19 / 63</td></tr></tbody></table></div>
+<p><strong>S(d) は層が出た側でも半分以上の本数で棄却できない。</strong> 排除体積だけで再現されるためである。</p>
+<h3 id="5-ノブ感度-s-10-の-r_knob-r_control-と-k-19">5. ノブ感度（S-10 の R_knob/R_control）と K-19</h3>
+<p><strong>曲線を走査していない</strong>（<span class="deadlink">K-23</span>）ので、残るノブは「集合体の最小の大きさ m₀」と 「曲線の上限 dMax」の 2 つだけである。w=2.0 に固定して 9 通り振った:</p>
+<pre><code>R_knob   = 0.0158   （m₀ = 4 / 6 / 12 × dMax = 3 / 6 / 9）
+R_control = 0.3181  （制御変数 w = 1.0 / 2.0 / 3.0）
+感度比 R_knob / R_control = 0.050   （1 を超えたら観測器の性質）</code></pre>
+<p><strong>dMax は stratification を 1 桁も動かさない</strong>（9 通りのうち dMax 違いは完全に同値）。 動いたのは m₀ だけで、それも 0.016 である。</p>
+<p><strong><span class="deadlink">K-19</span>（同じノブを帰無過程へ）</strong>: 同じ 9 通りを NC2（一様な引力）へ振ると R_knob(帰無) = <strong>0.0178</strong>。実系/帰無 = <strong>0.88</strong>。 K-19 の字義どおりに読むと「帰無でも同じだけ動く＝観測器の恣意性」になるが、 <strong>動いている量が制御変数の振れ幅の 5% しかない</strong>ので、結論はそこで決まっていない。 → この食い違いは<a href="#事後解析事前登録していない">事後解析の節</a>で扱う。</p>
+<h3 id="6-上限に張り付いていないか-k-26">6. 上限に張り付いていないか（K-26）</h3>
+<div class="tw"><table><thead><tr><th>検査</th><th>結果</th></tr></thead><tbody><tr><td>P 曲線の MAD が最終ビン（d=5.875）に当たった本数</td><td><strong>2 / 63</strong> — 分布は 24 ビンに広く散っている</td></tr><tr><td>トーラスを一周した集合体（ほどけない集合体）</td><td><strong>0 件</strong>（主掃引）</td></tr><tr><td>最大の集合体 / 全鎖 の最大値</td><td><strong>0.340</strong>（主掃引）</td></tr></tbody></table></div>
+<p><strong>主掃引では上限に触れていない。</strong> ただし<strong>濃度の腕の ρ=0.15 は触れている</strong>—— 1 レプリケートで最大集合体が全鎖の <strong>0.955</strong>、別の 1 本で周回する集合体が 1 件出た。 <strong>濃度の腕の最高濃度の結論は、世界の大きさが決めている可能性がある。</strong></p>
+<h2 id="事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</h2>
+<h3 id="a-ノブ感度の集約に欠陥があり-生ログから計算し直した">A. ノブ感度の集約に欠陥があり、生ログから計算し直した</h3>
+<p>本番の <code>run.js</code> はノブ感度の表を <code>(過程, ノブ)</code> を鍵にして作っていたため、 <strong>制御変数 w ごとの行が互いを上書きし</strong>、集約の対象が空配列になって <code>R_knob</code> が <code>-Infinity</code> になった。 <code>summary.json</code> と <code>knob-summary.json</code> にはその壊れた値が入ったままである（<strong>書き換えていない</strong>）。</p>
+<p><strong>生ログ <code>knob.jsonl</code> は 54 行すべて揃っていた</strong>ので、シミュレーションを回し直さずに <span class="deadlink"><code>posthoc-knob.js</code></span> で計算し直し、 <span class="deadlink">raw/knob-summary-recomputed.json</span> に置いた。 上の §5 の数値はこの再計算のものである。<code>run.js</code> の鍵の欠陥はその場で直した（次に走らせれば正しく出る）。</p>
+<p><strong>これは <span class="deadlink">K-3</span> が効いた例にあたる</strong>——要約統計量だけを残していたら、この解析は失われていた。</p>
+<h3 id="b-k-19-の判定は-r_knob-が十分大きいときにしか意味を持たない">B. K-19 の判定は、R_knob が十分大きいときにしか意味を持たない</h3>
+<p>§5 で、S-10 の感度比（0.050 →「系の性質」）と K-19 の比（0.88 →「観測器の恣意性」）が <strong>逆の判定を返した</strong>。両立させる読み方は 1 つしかない:</p>
+<blockquote><strong>K-19 は「ノブが答えを動かしたとき、その動きが構造由来か恣意性由来か」を分ける検査であって、 「ノブが答えを動かしたかどうか」を判定する検査ではない。</strong> R_knob がそもそも制御変数の振れ幅の 5% しかないなら、その 5% の内訳を問う意味は薄い。</blockquote>
+<p>実務上は <strong>R_knob/R_control を先に見て、1 に近いか超えたときにだけ K-19 を当てる</strong>のが順序として正しい。 S-11 では R_knob が大きかったので（実系 4.933）K-19 が決め手になったが、本スケッチでは前段で落ちている。</p>
+<h3 id="c-集合体はまだ育ちきっていない">C. 集合体はまだ育ちきっていない</h3>
+<p><span class="deadlink">raw/trace.jsonl</span>（w=2.5・かさ無しの 1 本を 200 スイープごとに測った）:</p>
+<div class="tw"><table><thead><tr><th>スイープ</th><th>stratification</th><th>塊の数</th><th>最大の塊</th><th>1 鎖あたりのエネルギー</th></tr></thead><tbody><tr><td>200</td><td>0.442</td><td>16</td><td>15</td><td>−5.34</td></tr><tr><td>2,600</td><td>0.686</td><td>15</td><td>32</td><td>−8.01</td></tr><tr><td>6,000</td><td><strong>0.731</strong></td><td>12</td><td><strong>53</strong></td><td><strong>−9.06</strong></td></tr></tbody></table></div>
+<p><strong>stratification は 2,600 スイープ付近で頭打ちになるが、エネルギーと最大の塊は最後まで動き続けている。</strong> つまり<strong>層構造の確立は速く、集合体の粗大化は遅い</strong>。6,000 スイープの時点で粗大化は終わっていない。</p>
+<h3 id="d-引力なし-が負の層構造を返した">D. 「引力なし」が負の層構造を返した</h3>
+<p>NC1（引力なし）の 3 シードのうち 2 本が stratification <strong>−0.181 / −0.153</strong> を返した（帰無値は 0）。 排除体積だけの系では、<strong>頭が尾の側を向く</strong>ほうがわずかに詰まりやすいらしい。 本スケッチの判定は片側（正の側）でしか切っていないので結論には影響しないが、 <strong>「帰無値 0 の量が 0 の周りに対称に散るとは限らない」</strong>ことの実例である。</p>
+<h2 id="本家サブプロジェクトへの含意-候補として挙げるだけ-要件化しない">本家サブプロジェクトへの含意（<strong>候補として挙げるだけ。要件化しない</strong>）</h2>
+<ol><li>**REQ-4「膜オブジェクトを作らない」は、2 次元・接触エネルギー・Monte Carlo という最小の道具立てで</li></ol>
+<p>実際に成立する。<strong> 非零の相互作用 1 つ（尾どうしの引力）で、手組みの理想の 0.72〜0.77 倍の層構造が出た。 </strong>溶媒粒子を置く必要も、力や時間刻みを持つ必要も無かった。**</p>
+<ol><li><strong>ただし「区画ができた」ことを検出する側は、模型より難しい。</strong> 本家が「区画が生じた」と言うときには、</li></ol>
+<p><strong>参照点をどう取ったかを併記しないと主張が定まらない</strong>——本スケッチでは参照点の取り替えだけで 負コントロールの答えが符号ごと反転した。候補として提案できる形は 「<strong>同じ配置を持ち、問題にしている自由度だけを忘れた系</strong>を参照点にする」こと。</p>
+<ol><li><strong>区画の判定に「塊ができたか」を使わない。</strong> その量は構造の無い系で 50/50 通る。</li><li><strong>2 次元では、粒状（ミセル的）と面状（二重層的）が連続的につながる。</strong> 本スケッチで</li></ol>
+<p>granular に分類されたレプリケートは 1 件も無く、全て planar か mixed だった。 <strong>本家が「区画」に閉じた内外を要求するなら、2 次元は足りない可能性がある</strong>（下記の限界も参照）。</p>
+<h2 id="限界-この実験が言えないこと">限界（この実験が言えないこと）</h2>
+<ul><li><strong>原典に到達していない。</strong> Israelachvili (1976)・Goetz &amp; Lipowsky (1998)・Cooke et al. (2005) は</li></ul>
+<p>いずれも<strong>題名と一般に流布している考え方だけを頼りに</strong>設計した。定数も分子の形も原典と突き合わせていない。 <strong>本スケッチは既存模型の再現ではなく、同じ考えから独立に起こした別の模型である。</strong> とくに Cooke らの模型は 3 次元で、引力の<strong>到達距離</strong>を可変にすることが要点だが、本スケッチは 2 次元で距離を固定した接触エネルギーにしている。</p>
+<ul><li><strong>2 次元である。</strong> 2 次元では「小胞」は「環」と同じものになり、**閉じた内外を持つ区画は</li></ul>
+<p>本質的に環でしか作れない**。本家の REQ-4 が意図する「区画」——内側に別の化学を抱える容器——が 出るかどうかは、この実験では何も言えない。</p>
+<ul><li><strong>平衡に達していない。</strong> 6,000 スイープの時点で粗大化は続いている（事後解析 C）。</li></ul>
+<p>報告した値は「6,000 スイープ後の値」であって定常値ではない。<strong>層構造は頭打ちだが、 集合体の大きさと形（anisotropy・tailToTail）は動き続けている可能性が高い。</strong></p>
+<ul><li><strong>判定基準を rev2 へ改める前に、本番の腕の 6 点（seed 7）を見ている。</strong> 本番の掃引は</li></ul>
+<p>一度も走らせていないが、<strong>完全な事前登録ではない</strong>。緩和として全レプリケートで S(d) と P(d) の 両方を生ログに残してあるので、初版の規則で読み直すことは読み手の側でできる。</p>
+<ul><li><strong>特異性は証明できていない</strong>（<span class="deadlink">K-20</span>・Campbell &amp; Fiske 1959）。</li></ul>
+<p>示せたのは「試した 4 つの負コントロールに対して連言が落ちる」ことだけで、 <strong>5 つ目の偽物が通らない保証は無い</strong>。とくに本スケッチは「棒が詰まる」以外の偽物を試していない。</p>
+<ul><li><strong>世界の大きさを 1 通りしか試していない</strong>（一辺 50・<span class="deadlink">K-20</span> が挙げた未検査の次元「走行長」の空間版）。</li></ul>
+<p>濃度の腕の ρ=0.15 は最大集合体が全鎖の 0.955 に達しており、<strong>そこの結論は世界の大きさが決めている可能性がある</strong>。</p>
+<ul><li><strong><code>summary.json</code> のノブ感度の欄には壊れた値（<code>-Infinity</code> 由来の <code>null</code>）が入っている。</strong></li></ul>
+<p>正しい値は <span class="deadlink">raw/knob-summary-recomputed.json</span> にあり、 生ログから再計算したものである（事後解析 A）。原本は改変していない。</p></article><p class="src">原典: <code>docs/subprojects/alife-sketches/sketches/S-15-amphiphile-assembly/reports/main.md</code></p></section><section class="pane" data-pane="comments" hidden><div class="comments" data-slug="S-15-amphiphile-assembly" data-run="main" data-readonly><div id="clist" class="clist">読み込み中…</div><script type="application/json" id="cdata">{"version":1,"sketch":"S-15-amphiphile-assembly","comments":[]}</script></div></section></div></div></div><button class="fab" id="fab" title="メニュー" aria-label="メニュー">☰</button><div class="menu" id="menu" hidden><div class="menuhead">人工生命スケッチ</div><a href="../../index.html">🏠 ホーム（スケッチ一覧）</a><a href="../../reports/index.html">📄 レポート一覧</a></div><script src="../../assets/menu.js"></script><script src="../../assets/overlay.js"></script><script src="../../assets/comments-ui.js"></script></body></html>

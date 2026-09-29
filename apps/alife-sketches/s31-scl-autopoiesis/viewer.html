@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-31 最小の自己生成系（SCL）— 規則の集合の差</title>
+<style>
+  :root{--bg:#0d1014;--panel:#161a21;--line:#282e38;--fg:#d9dee6;--dim:#79828f;
+        --sub:#3d4652;--cat:#ff9d3c;--link:#4aa8ff;--free:#2a5c8a;--in:#12321f;--warn:#f2555a}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1000px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070a;border:1px solid var(--line);border-radius:4px;
+         max-width:100%;height:auto}
+  aside{width:320px;min-width:280px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:11px 12px;margin-bottom:12px}
+  .box h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.06em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;flex-wrap:wrap}
+  label span.k{width:104px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  input[type=number],select{background:#0a0d11;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;
+      flex:1;min-width:0;max-width:100%}
+  .val{width:66px;text-align:right;flex:none;
+       font:12px ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+  button{background:#1f242e;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#29313d}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;border-bottom:1px solid #1c212a;vertical-align:top}
+  table.stat td.k{color:var(--dim);width:56%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:8ch}
+  .banner{margin-top:9px;padding:8px 10px;border-radius:4px;font-size:12px;border:1px solid var(--line);
+          background:#10141a;color:var(--dim);overflow-wrap:anywhere}
+  .banner.hit{border-color:#2f7a4a;background:#0f2318;color:#8fe3ac}
+  .legend{font-size:11px;color:var(--dim);display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;
+            vertical-align:-1px}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-31 最小の自己生成系（SCL）— 論文の規則の集合と、動く系に要る規則の集合の差</h1>
+  <p>核が知っているのは「種A・種B・種C」「近傍」「つなぎ」だけ。<b>膜も区画も生命も核の語彙には無い</b>。
+     種B の近傍で種A 2 個が種C 1 個になり、種C どうしがつながり、種C は確率で種A 2 個へ戻る。
+     種A はつながった種C を<b>通り抜けられる</b>が種B は通れない——だから鎖が閉じると種B は出られなくなる。
+     緑に塗った領域が「種B が出られない範囲」。<b>任意規則 X1/X2/X3 を切り替えて、囲いの出方がどう変わるかを見る。</b></p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <canvas id="field" width="480" height="480"></canvas>
+    <div class="legend">
+      <span><i style="background:#ff9d3c"></i>種B（生成をうながす）</span>
+      <span><i style="background:#4aa8ff"></i>種C（つながっている）</span>
+      <span><i style="background:#2a5c8a"></i>種C（自由）</span>
+      <span><i style="background:#3d4652"></i>種A</span>
+      <span><i style="background:#05070a;border:1px solid #282e38"></i>空き</span>
+      <span><i style="background:#12321f"></i>囲われた範囲</span>
+    </div>
+    <canvas id="series" width="480" height="150"></canvas>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>規則の集合（制御変数）</h2>
+      <label><span class="k">X1 splice</span>
+        <input type="checkbox" id="x1"><span style="color:var(--dim);font-size:11px">
+        自由な種C が既存のつなぎ 1 本を切って割り込む（鎖の結合の組み替え）</span></label>
+      <label><span class="k">X2 angle</span>
+        <input type="checkbox" id="x2"><span style="color:var(--dim);font-size:11px">
+        1 個の種C に付く 2 本のつなぎは 90 度以上</span></label>
+      <label><span class="k">X3 tear</span>
+        <input type="checkbox" id="x3"><span style="color:var(--dim);font-size:11px">
+        入れ替えでつなぎが伸びきるとき、拒まずに切れる</span></label>
+      <label><span class="k">透過</span>
+        <select id="perm"><option value="1">種A は鎖を通る（骨）</option>
+        <option value="0">誰も通れない（NC4）</option></select></label>
+      <label><span class="k">生成の置かれ方</span>
+        <select id="cmode"><option value="local">種B の近傍（本系）</option>
+        <option value="uniform">格子の一様な場所（NC2）</option>
+        <option value="off">生成なし（NC1）</option></select></label>
+      <label><span class="k">手で環を置く</span>
+        <select id="ring"><option value="0">置かない</option>
+        <option value="3">半径 3 の環（正コントロール）</option></select></label>
+    </div>
+
+    <div class="box">
+      <h2>速さと規則の率</h2>
+      <label><span class="k">pCombine</span><input type="range" id="pc" min="0" max="6" step="0.1" value="3">
+        <output class="val num" id="pcv">3.0</output></label>
+      <label><span class="k">pSplit</span><input type="range" id="ps" min="0" max="0.06" step="0.002" value="0.012">
+        <output class="val num" id="psv">0.012</output></label>
+      <label><span class="k">pJoin</span><input type="range" id="pj" min="0.02" max="1" step="0.02" value="0.6">
+        <output class="val num" id="pjv">0.60</output></label>
+      <label><span class="k">シード</span><input type="number" id="seed" value="20260913"></label>
+      <label><span class="k">1 コマの sweep</span><input type="range" id="speed" min="1" max="20" step="1" value="3">
+        <output class="val num" id="spv">3</output></label>
+      <div class="row">
+        <button class="primary" id="go">停止</button>
+        <button id="reset">初めから</button>
+        <button id="punch">壁に穴をあける</button>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>観測器（ここだけが上位概念の語彙を持つ）</h2>
+      <table class="stat">
+        <tr><td class="k">sweep</td><td class="v" id="o_t">0</td></tr>
+        <tr><td class="k">種C（つながり/自由）</td><td class="v" id="o_c">0 / 0</td></tr>
+        <tr><td class="k">囲われているか（E2 到達）</td><td class="v" id="o_e">いいえ</td></tr>
+        <tr><td class="k">巻き数による判定（E1）</td><td class="v" id="o_w">いいえ</td></tr>
+        <tr><td class="k">囲いの大きさ / 壁の長さ</td><td class="v" id="o_sz">- / -</td></tr>
+        <tr><td class="k">duty（直近 400 sweep）</td><td class="v" id="o_duty">0.000</td></tr>
+        <tr><td class="k">参照点 RP-a（一様な種B）</td><td class="v" id="o_null">0.0000</td></tr>
+        <tr><td class="k">超過 duty - RP-a</td><td class="v" id="o_exc">0.000</td></tr>
+        <tr><td class="k">壁の作り直し（窓 400）</td><td class="v" id="o_turn">-</td></tr>
+        <tr><td class="k">透過の成功率</td><td class="v" id="o_pass">-</td></tr>
+        <tr><td class="k">穴あけ → 再閉鎖</td><td class="v" id="o_recl">0 / 0</td></tr>
+      </table>
+      <div class="banner" id="banner">走らせると、鎖ができ、壊れ、作り直される様子が見える。</div>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="observe.js"></script>
+<script>
+(function () {
+  'use strict';
+  var el = function (id) { return document.getElementById(id); };
+  var fieldC = el('field'), fx = fieldC.getContext('2d');
+  var serC = el('series'), sx = serC.getContext('2d');
+
+  var SIDE = 24, scale = 1, f = null, running = true, timer = null;
+  var hist = [], dutyBuf = [], punches = [], reclosed = 0, watch = null;
+
+  function opts() {
+    return {
+      w: Math.round(SIDE * scale), h: Math.round(SIDE * scale), nB: 1,
+      seed: parseInt(el('seed').value, 10) || 1,
+      holeFrac: 0.12,
+      pCombine: parseFloat(el('pc').value),
+      pSplit: parseFloat(el('ps').value),
+      pJoin: parseFloat(el('pj').value),
+      moveAttempts: 1.0,
+      rSplice: el('x1').checked, rAngle: el('x2').checked, rTear: el('x3').checked,
+      permeableA: el('perm').value === '1',
+      combineMode: el('cmode').value,
+    };
+  }
+
+  function ringSites(g, cx, cy, r) {
+    var out = [], x, y;
+    for (x = -r; x < r; x++) out.push(S31.site(g, cx + x, cy - r));
+    for (y = -r; y < r; y++) out.push(S31.site(g, cx + r, cy + y));
+    for (x = r; x > -r; x--) out.push(S31.site(g, cx + x, cy + r));
+    for (y = r; y > -r; y--) out.push(S31.site(g, cx - r, cy + y));
+    return out;
+  }
+
+  function reset() {
+    f = S31.create(opts());
+    var r = parseInt(el('ring').value, 10);
+    if (r > 0) {
+      var bs = S31.locate(f, f.bPids)[f.bPids[0]];
+      var sites = ringSites(f, bs % f.w, (bs / f.w) | 0, r), i;
+      for (i = 0; i < sites.length; i++) {
+        S31.dropAllJoins(f, sites[i]);
+        f.sp[sites[i]] = S31.C; f.pid[sites[i]] = S31.newPid(f);
+        f.j0[sites[i]] = -1; f.j1[sites[i]] = -1;
+      }
+      for (i = 0; i < sites.length; i++) S31.linkRaw(f, sites[i], sites[(i + 1) % sites.length]);
+    }
+    hist = []; dutyBuf = []; punches = []; reclosed = 0; watch = null;
+    passAcc = { p: 0, t: 0 };
+    draw();
+  }
+
+  var passAcc = { p: 0, t: 0 };
+
+  function tick() {
+    var n = parseInt(el('speed').value, 10);
+    for (var i = 0; i < n; i++) {
+      S31.step(f);
+      passAcc.p += f.ev.pass; passAcc.t += f.ev.passTry;
+      var ob = S31obs.observe(f, {});
+      dutyBuf.push(ob.marks[0].enclosed);
+      if (dutyBuf.length > 400) dutyBuf.shift();
+      if (watch) {
+        var dt = f.t - watch.t;
+        if (dt === 1) { watch.opened = ob.marks[0].enclosed ? 0 : 1; if (!watch.opened) watch = null; }
+        else if (dt <= 400 && ob.marks[0].enclosed) { reclosed++; watch = null; }
+        else if (dt > 400) watch = null;
+      }
+      if (f.t % 5 === 0) {
+        hist.push([ob.enclosedFrac, ob.siteNullFrac, S31obs.chainStats(f).wallSites]);
+        if (hist.length > 480) hist.shift();
+      }
+    }
+    draw();
+  }
+
+  // ---------------------------------------------------------------- 描画
+
+  function draw() {
+    var cell = Math.max(3, Math.floor(480 / f.w));
+    var px = f.w * cell;
+    if (fieldC.width !== px) { fieldC.width = px; fieldC.height = f.h * cell; }
+    fx.fillStyle = '#05070a'; fx.fillRect(0, 0, fieldC.width, fieldC.height);
+
+    var ob = S31obs.observe(f, { winding: true, wall: true, since: f.t - 400 });
+    var m = ob.marks[0];
+
+    // 囲われた範囲を塗る（成分が有界なものだけ）
+    var s, x, y;
+    for (s = 0; s < f.n; s++) {
+      if (ob.wall[s]) continue;
+      var lab = ob.cc.label[s];
+      if (lab < 0 || ob.cc.wraps[lab]) continue;
+      x = (s % f.w) * cell; y = ((s / f.w) | 0) * cell;
+      fx.fillStyle = (m.comp === lab) ? '#12321f' : '#141a18';
+      fx.fillRect(x, y, cell, cell);
+    }
+
+    // 粒子
+    for (s = 0; s < f.n; s++) {
+      var sp = f.sp[s];
+      if (sp === S31.EMPTY) continue;
+      x = (s % f.w) * cell; y = ((s / f.w) | 0) * cell;
+      if (sp === S31.A) {
+        fx.fillStyle = '#3d4652';
+        fx.fillRect(x + cell * 0.35, y + cell * 0.35, Math.max(1, cell * 0.3), Math.max(1, cell * 0.3));
+      } else if (sp === S31.B) {
+        fx.fillStyle = '#ff9d3c';
+        fx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
+      } else {
+        var d = S31.deg(f, s);
+        fx.fillStyle = d > 0 ? '#4aa8ff' : '#2a5c8a';
+        var pad = d > 0 ? cell * 0.16 : cell * 0.28;
+        fx.fillRect(x + pad, y + pad, cell - 2 * pad, cell - 2 * pad);
+      }
+    }
+
+    // つなぎ
+    fx.strokeStyle = 'rgba(120,190,255,.75)';
+    fx.lineWidth = Math.max(1, cell * 0.14);
+    fx.beginPath();
+    for (s = 0; s < f.n; s++) {
+      if (f.sp[s] !== S31.C) continue;
+      [f.j0[s], f.j1[s]].forEach(function (p) {
+        if (p < 0 || p < s) return;
+        var ax = (s % f.w) * cell + cell / 2, ay = ((s / f.w) | 0) * cell + cell / 2;
+        var bx = ax + S31.dx(f, s, p) * cell, by = ay + S31.dy(f, s, p) * cell;
+        fx.moveTo(ax, ay); fx.lineTo(bx, by);
+      });
+    }
+    fx.stroke();
+
+    // --- 時系列
+    sx.fillStyle = '#05070a'; sx.fillRect(0, 0, serC.width, serC.height);
+    sx.strokeStyle = '#282e38'; sx.beginPath();
+    sx.moveTo(0, serC.height - 20.5); sx.lineTo(serC.width, serC.height - 20.5); sx.stroke();
+    var H = serC.height - 26, W = serC.width;
+    function line(idx, color, maxv) {
+      sx.strokeStyle = color; sx.beginPath();
+      for (var i = 0; i < hist.length; i++) {
+        var vx = W * i / Math.max(1, hist.length - 1);
+        var vy = 3 + H * (1 - Math.min(1, hist[i][idx] / maxv));
+        if (i === 0) sx.moveTo(vx, vy); else sx.lineTo(vx, vy);
+      }
+      sx.stroke();
+    }
+    var maxWall = 1;
+    for (var i = 0; i < hist.length; i++) if (hist[i][2] > maxWall) maxWall = hist[i][2];
+    line(2, '#2f5d86', maxWall);
+    line(1, '#f2555a', 1);
+    line(0, '#4ade80', 1);
+    sx.fillStyle = '#79828f'; sx.font = '11px ui-monospace,monospace';
+    sx.fillText('緑: 囲われている(0/1)  赤: 参照点 RP-a  青: つながった種C の数（最大 ' + maxWall + '）',
+                6, serC.height - 6);
+
+    // --- 読み出し
+    var cs = S31obs.chainStats(f);
+    el('o_t').textContent = f.t;
+    el('o_c').textContent = cs.wallSites + ' / ' + cs.free;
+    el('o_e').textContent = m.enclosed ? 'はい' : 'いいえ';
+    el('o_w').textContent = m.wound ? 'はい' : 'いいえ';
+    el('o_sz').textContent = (m.enclosed ? m.compSize : '-') + ' / ' + (m.wallLen === undefined ? '-' : m.wallLen);
+    var duty = dutyBuf.length ? dutyBuf.reduce(function (a, b) { return a + b; }, 0) / dutyBuf.length : 0;
+    // 桁が変わってもレイアウトが動かないよう、**必ず固定桁へ丸めてから**幅を予約する
+    Harness.num(el('o_duty'), duty.toFixed(3), 6);
+    Harness.num(el('o_null'), ob.siteNullFrac.toFixed(4), 7);
+    Harness.num(el('o_exc'), (duty - ob.siteNullFrac).toFixed(3), 7);
+    el('o_turn').textContent = m.turnover === undefined ? '-' : m.turnover.toFixed(3);
+    el('o_pass').textContent = passAcc.t ? (passAcc.p / passAcc.t).toFixed(3) : '-';
+    el('o_recl').textContent = reclosed + ' / ' + punches.filter(function (p) { return p.opened; }).length;
+
+    var b = el('banner');
+    if (m.enclosed) {
+      b.className = 'banner hit';
+      b.textContent = '種B は出られない（到達できる範囲は ' + m.compSize +
+        ' マス・壁 ' + m.wallLen + ' 個）。E1 とE2 は' + (m.enclosed === m.wound ? '一致' : '不一致') + '。';
+    } else {
+      b.className = 'banner';
+      b.textContent = '種B は外へ出られる。つながった種C は ' + cs.wallSites +
+        ' 個、うち閉路に入っているのは ' + cs.inCycle + ' 個。';
+    }
+  }
+
+  // ---------------------------------------------------------------- 操作
+
+  ['pc', 'ps', 'pj', 'speed'].forEach(function (id) {
+    var o = { pc: 'pcv', ps: 'psv', pj: 'pjv', speed: 'spv' }[id];
+    el(id).addEventListener('input', function () {
+      var v = parseFloat(el(id).value);
+      el(o).textContent = id === 'ps' ? v.toFixed(3) : (id === 'speed' ? String(v) : v.toFixed(2));
+      if (f) { f.opt.pCombine = parseFloat(el('pc').value);
+               f.opt.pSplit = parseFloat(el('ps').value);
+               f.opt.pJoin = parseFloat(el('pj').value); }
+    });
+  });
+  ['x1', 'x2', 'x3', 'perm', 'cmode'].forEach(function (id) {
+    el(id).addEventListener('change', function () {
+      if (!f) return;
+      f.opt.rSplice = el('x1').checked; f.opt.rAngle = el('x2').checked;
+      f.opt.rTear = el('x3').checked; f.opt.permeableA = el('perm').value === '1';
+      f.opt.combineMode = el('cmode').value;
+      Harness.say('規則の集合を変えた（走行は続く。初めから見るなら「初めから」）');
+    });
+  });
+  el('ring').addEventListener('change', reset);
+  el('seed').addEventListener('change', reset);
+  el('reset').addEventListener('click', reset);
+  el('go').addEventListener('click', function () {
+    running = !running;
+    el('go').textContent = running ? '停止' : '進める';
+  });
+  el('punch').addEventListener('click', function () {
+    var ob = S31obs.observe(f, { wall: true });
+    var m = ob.marks[0];
+    if (!m.enclosed || !m.wallSites || !m.wallSites.length) {
+      Harness.say('いま囲いが無いので、あけられる穴が無い'); return;
+    }
+    var rng = new S31.Rng((f.t * 2654435761) >>> 0);
+    var s = S31obs.puncture(f, m.wallSites, rng);
+    punches.push({ t: f.t, opened: 1 });
+    watch = { t: f.t, opened: 1 };
+    Harness.say('壁の種C を 1 個取り除いた（マス ' + s + '）。作り直されるか見る');
+    draw();
+  });
+
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('go').click(); },
+    id: 'S-31', version: '1.0.0',
+    inputs: ['x1', 'x2', 'x3', 'perm', 'cmode', 'ring', 'pc', 'ps', 'pj', 'seed', 'speed'],
+    paramNames: {
+      x1: { category: 'p', code: 'x1', full: 'splice_enabled' },
+      x2: { category: 'p', code: 'x2', full: 'angle_enabled' },
+      x3: { category: 'p', code: 'x3', full: 'tear_enabled' },
+      perm: { category: 'p', code: 'perm', full: 'permeability' },
+      cmode: { category: 'p', code: 'cmode', full: 'generation_placement' },
+      ring: { category: 'p', code: 'ring', full: 'manual_ring' },
+      pc: { category: 'p', code: 'pc', full: 'p_combine' },
+      ps: { category: 'p', code: 'ps', full: 'p_split' },
+      pj: { category: 'p', code: 'pj', full: 'p_join' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+    },
+    canvases: ['field', 'series'],
+    // この系の「広さ」は**格子の大きさ**。縦横 scale 倍 -> マス数は scale^2 倍。
+    resize: function (sc) {
+      scale = sc; reset();
+      Harness.say('格子を ' + f.w + '×' + f.h + ' にした（縦横 ' + sc + ' 倍）');
+    },
+    onRestore: reset,
+  });
+
+  reset();
+  timer = setInterval(function () { if (running) tick(); }, 60);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lenia（連続セルオートマトン）の自己維持パターン — 人工生命スケッチ</title><link rel="stylesheet" href="../../../../assets/style.css"></head><body class="sketchpage"><nav class="crumbs"><a href="../../../../index.html">人工生命スケッチ</a><span class="sep">›</span><span aria-current="page">S-03 Lenia（連続セルオートマトン）の自己維持パターン</span></nav><header class="shead"><div class="sline"><span class="cid">S-03</span><h1>Lenia（連続セルオートマトン）の自己維持パターン</h1><span class="ver">v1.0.0</span></div><div class="tags"><span class="tag">連続セルオートマトン</span><span class="tag">再実装</span><span class="tag">原典到達</span><span class="tag">空間構造</span></div><div class="sacts"><button class="btn ovopen" data-go="r-main">📄 Lenia（連続セルオートマトン）の自己維持パターン</button><button class="btn ovopen" data-go="comments">💬 コメント（0）</button></div></header><div class="stagewrap"><iframe class="stage" title="実行窓" data-run="main" src="../../../../apps/alife-sketches/s03-lenia/viewer.html"></iframe><div class="overlay" id="overlay" data-open="r-main"><div class="ovbar"><span class="ovwho" title="Lenia（連続セルオートマトン）の自己維持パターン">S-03</span><div class="ovtabs"><button class="ovtab" data-go="r-main">Lenia（連続セルオートマトン）の自己維持パターン</button><button class="ovtab" data-go="comments">💬 コメント（0）</button></div><button class="ovclose" id="ovclose" title="閉じて実行に戻る">✕</button></div><div class="ovbody"><section class="pane" data-pane="r-main" hidden><div class="rmeta"><span class="angle">主レポート（最初の切り口）</span></div><details class="rtoc"><summary>目次</summary><a href="#一行で言うと">一行で言うと</a><a href="#何をやったか">何をやったか</a><a href="#結果-事前登録した解析">結果（事前登録した解析）</a><a href="#事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</a><a href="#本家への含意-候補として挙げるだけ-要件化しない">本家への含意（<strong>候補として挙げるだけ。要件化しない</strong>）</a><a href="#限界-この実験が言えないこと">限界（この実験が言えないこと）</a></details><article class="md"><h1 id="s-03-lenia-連続セルオートマトン-の自己維持パターン">S-03: Lenia（連続セルオートマトン）の自己維持パターン</h1>
+<ul><li><strong>実施日</strong>: 2026-09-11</li><li><strong>アプリ</strong>: <span class="deadlink">apps/alife-sketches/s03-lenia/</span></li><li><strong>可視化</strong>: <code>viewer.html</code>（場のヒートマップ。μ と σ のスライダ、核と成長写像の形、時系列）</li><li><strong>生ログ</strong>: <span class="deadlink">raw/sweep.jsonl</span>（63 点）・<span class="deadlink">raw/replicates.jsonl</span>（<strong>257 レプリケート</strong>）・<span class="deadlink">raw/trace.jsonl</span>（時系列 648 点）・<span class="deadlink">raw/nullmodel.jsonl</span>（帰無分布 200 標本）・<span class="deadlink">raw/posthoc-soup-yield.jsonl</span>（222 行）・<span class="deadlink">raw/summary.json</span>・<span class="deadlink">raw/posthoc-summary.json</span></li><li><strong>所要</strong>: 掃引 340 秒 ＋ 事後解析 334 秒（妥当性検査 24 項目は別途 約 40 秒）</li><li><strong>判定基準</strong>: <code>sha256:c6b31d7235c674c9</code>（事前登録 2026-09-11 rev2）</li></ul>
+<p><strong>出典</strong>（アイデアと定数のみ。<strong>コードは参照せず定義から実装した</strong>）: Bert Wang-Chak Chan (2019) "Lenia — Biology of Artificial Life", *Complex Systems* <strong>28</strong>(3), 251–286 （<a href="https://arxiv.org/abs/1812.05433">arXiv:1812.05433</a>）。<strong>原典の本文に到達できた</strong>——arXiv の HTML 版（ar5iv）で 核コア（式 10 の指数型・α=4）・環の重ね方（式 11）・正規化（式 12）・成長写像（式 13）・更新（式 9）を確認した。 公称パラメータと 20×20 の初期パターンは同著者の模様集 <code>animals.json</code> のレコード <strong>O2u "Orbium unicaudatus"</strong> （<code>R=13 / T=10 / μ=0.15 / σ=0.015 / b=[1]</code>）。</p>
+<h2 id="一行で言うと">一行で言うと</h2>
+<p><strong>S-02 で結論を反転させた「スケールの自由度」を、今度は事前に 9 通り登録して掃引した——そして 9 通りすべてが同じ境界を返した。</strong> 時間窓を 200 にしても 1000 にしても、生存帯を [0.8,1.25] にしても [0.2,5.0] にしても、μ の自己維持帯は <code>0.130〜0.155</code> で動かない。 105 レプリケートの質量比が <strong>0 ちょうど（50 件）／0.90〜0.94（30 件）／8 倍超（25 件）の三つの塊に分かれ、その間に 1 件も無い</strong>からである。 代わりに<strong>秩序変数そのものの選択</strong>が効いた: スケールを含まない主の量（kernelExcess）だけで見ると帯は <code>0.100〜0.155</code> へ倍近く広がる。 さらに事後解析では、「自己維持」の二通りの定義が同じ 1500 本のスープから <strong>13 件と 131 件、重なり 0 件</strong>という<strong>互いに素な</strong>答えを返した。</p>
+<h2 id="何をやったか">何をやったか</h2>
+<h3 id="題材">題材</h3>
+<p>Lenia は、ライフゲームを<strong>空間・時間・状態のすべてについて連続化</strong>した系である。状態は 0/1 ではなく <code>[0,1]</code> の実数、 近傍は 8 セルではなく半径 R の同心環との畳み込み、更新は 1 ステップではなく <code>dt = 1/T</code> の連続時間:</p>
+<pre><code>U    = K * A                                   （トーラス上の畳み込み。ΣK = 1）
+G(u) = 2 exp(−(u−μ)² / (2σ²)) − 1              （範囲 [−1, 1]）
+A    ← clip(A + (1/T)·G(U), 0, 1)
+
+K(r) = b[⌊B·r⌋] · Kc(frac(B·r)) / ΣK,  Kc(q) = exp(α − α/(4q(1−q))),  r = ‖n‖/R</code></pre>
+<p>この規則から、<strong>形を保ったまま場を渡っていく局在した模様</strong>（Orbium）が現れる。S-01（静的な組合せ論）・ S-02（連続空間の粒子）と系統が被らない、格子上の場の系として選んだ。</p>
+<p>核の側には「細胞」「生命」「生存」という語も概念も無い。あるのは場・核・ポテンシャル・成長写像だけで、 生物学の語は観測器の側にしかない。</p>
+<h3 id="観測器-スケールの選択を含まない量を最初から主に据えた-k-10-を実地に">観測器: スケールの選択を含まない量を最初から主に据えた（<span class="deadlink">K-10</span> を実地に）</h3>
+<p><span class="deadlink">status</span> の次の一手その2「K-10 を実地で試す」がそのまま今回の設計にあたる。主の秩序変数:</p>
+<pre><code>kernelExcess = Var(K*A) / (Var(A) · ΣK²)</code></pre>
+<p>**空間相関を持たない場（各格子点が独立同分布）では <code>E[Var(K*A)] = Var(A)·ΣK²</code> が成り立つので、帰無値はちょうど 1.0。<strong> 測る幅は</strong>核 K そのもの**——モデルの定義に含まれており、解析側が選ぶ自由なスケールではない。 S-02 の「連結半径をいくつにするか」にあたる自由度が、ここには無い。</p>
+<p>副の秩序変数は2つ。どちらも <code>criteria.json</code> にスケールを明記した:</p>
+<div class="tw"><table><thead><tr><th>秩序変数</th><th>定義</th><th>スケール</th><th>参照値</th></tr></thead><tbody><tr><td><strong>kernelExcess</strong>（主）</td><td>上記</td><td><strong>核 K</strong>（モデルの一部）</td><td><strong>理論値 1.0</strong></td></tr><tr><td>massRatio</td><td><code>m(t)/m(0)</code></td><td>時間窓 ∈ {200, 500, 1000} × 生存帯 ∈ {[0.8,1.25], [0.5,2.0], [0.2,5.0]}。<strong>自由度があるので 9 通り全部を事前登録して全部記録する</strong></td><td>—</td></tr><tr><td>growthBalance</td><td>`\</td><td>Σ dA\</td><td>/ Σ\</td><td>dA\</td><td>`（dA は切り詰め後の実効変化量）</td><td>最後の 50 ステップ</td><td>符号一定なら <strong>1.0</strong></td></tr></tbody></table></div>
+<p>判定は <code>massRatio が帯に入る かつ kernelExcess ≥ 2.0</code>。制御変数は μ（21 点）と σ（13 点）。</p>
+<h3 id="妥当性検査は-24-項目すべて通過した-node-selftest-js">妥当性検査は 24 項目すべて通過した（<code>node selftest.js</code>）</h3>
+<p>本番を1回も走らせる前に済む検査で、<strong>本番前に2つの欠陥が出た</strong>:</p>
+<div class="tw"><table><thead><tr><th>検査</th><th>出たこと</th><th>対処</th></tr></thead><tbody><tr><td>正コントロール（Orbium の balance）</td><td>自己維持している模様でも <strong>0.96</strong> を返した</td><td><code>growthBalance</code> を生の <code>G(U)</code> で測っていた。局在した模様のまわりの空の領域は <code>U=0</code> で <code>G(0)≈−1</code> だが、<code>A</code> は既に 0 に張り付いていて<strong>何も起きない</strong>。この背景が総和を支配していた。<strong>切り詰め後の実効変化量 dA</strong> で定義し直したら 0.0099 になった</td></tr><tr><td>負コントロール（独立同分布の場）</td><td>1 標本あたり 0.61〜1.49 と大きく揺れた</td><td>64×64 の世界に半径 13 の核では独立な窓が <code>(64/27)² ≈ 6</code> 個しか取れない。<strong>帰無値 1.0 は期待値であって 1 標本の値ではない</strong>。検査を「200 シードの平均」に変え、帰無分布そのものを記録することにした</td></tr></tbody></table></div>
+<p>どちらも <code>criteria.json</code> を rev2 へ改めて記録してある（<strong>掃引を一度も走らせる前の修正</strong>であり、結果を見てからの変更ではない）。</p>
+<p>通った検査のうち効いたもの:</p>
+<ul><li><strong>畳み込みの検算</strong>: 周期パディング＋オフセット表の高速経路が、剰余演算の素朴な二重ループと<strong>差 0</strong>で一致</li><li><strong>正規化と巻き込みの同時検算</strong>: 一様な場に対して <code>U</code> が場の値と一致（差 <code>2.2e-16</code>）。<code>ΣK=1</code> とトーラスの巻き込みを1つの検査で押さえられる</li><li><strong>帰無分布</strong>: 200 標本の平均 <strong>0.9531</strong>（理論値 1.0）、97.5% 点 <strong>1.49</strong> &lt; 判定の閾値 2.0</li><li><strong>負コントロール3種</strong>: 成長写像を定数にすると kernelExcess が動かない（0.850 → 0.921）／原典の模様を空間シャッフルすると 50 ステップで絶滅／純粋な減衰で balance が<strong>厳密に 1.0</strong></li><li><strong>独立な再発見</strong>: 原典の模様を見る前に自前の探索で得た模様が、原典の Orbium と<strong>同じ不変量</strong>に落ちた（質量 71.04 対 70.84 で差 0.3%、支持 206 対 206、kernelExcess 55.7 対 55.5）</li></ul>
+<p>この最後の1つが、再実装の忠実性のいちばん強い裏付けになった。<strong>原典の 20×20 の配列と、粗いスープから 400 ステップ緩和して 得た配列という、出所の異なる2つの初期条件が同じ引力子へ落ちている。</strong></p>
+<h2 id="結果-事前登録した解析">結果（事前登録した解析）</h2>
+<h3 id="自己維持する-の帯は狭く-公称値はその端にある">自己維持する μ の帯は狭く、公称値はその端にある</h3>
+<div class="tw"><table><thead><tr><th>μ</th><th>質量比</th><th>kernelExcess</th><th>balance</th><th>速さ</th><th>判定</th></tr></thead><tbody><tr><td>0.100 – 0.120</td><td>7.7 – 8.8</td><td>3.4 – 3.9</td><td>0.08 – 0.12</td><td>2.1 – 2.7</td><td>膨れて場を埋める</td></tr><tr><td><strong>0.125</strong></td><td>0</td><td>場が一様</td><td>—</td><td>—</td><td><strong>50〜110 ステップで絶滅</strong></td></tr><tr><td>0.130 – 0.155</td><td>0.90 – 0.93</td><td>50.5 – 55.9</td><td>0.008 – 0.013</td><td>5.8 – 6.8</td><td><strong>自己維持（5/5 シード）</strong></td></tr><tr><td>0.160 以上</td><td>0</td><td>場が一様</td><td>—</td><td>—</td><td>50 ステップで絶滅</td></tr></tbody></table></div>
+<p><strong>公称値 μ=0.15 は帯の上端から 1 格子内側</strong>にある（0.155 は維持、0.160 は絶滅）。σ の掃引でも同じで、 <strong>公称値 σ=0.015 は帯の下端そのもの</strong>（0.014 は絶滅、帯は 0.015〜0.020）。 つまり<strong>公称パラメータは可視領域の中央ではなく角にある</strong>。</p>
+<p>膨れる側と維持する側の間に <strong>μ=0.125 という絶滅の隙間</strong>がある。5 シードとも 50〜110 ステップで消えた。</p>
+<h3 id="規模-k-6">規模（<span class="deadlink">K-6</span>）</h3>
+<p>判定が真になった点で保たれていたものの大きさ:</p>
+<ul><li>質量 <strong>70.8</strong>（場全体 4096 格子点の 1.7%）、支持 <strong>206 格子点</strong>（5.0%）</li><li>kernelExcess <strong>55.5</strong> — 帰無値 1.0 の 55 倍、帰無分布の 97.5% 点（1.49）の 37 倍</li><li>balance <strong>0.0099</strong> — 毎ステップ作られる量と壊される量が 1% 以内で釣り合っている。<strong>質量は保存量ではない</strong></li><li>速さ <strong>6.15 格子／時間単位</strong>、直進度 <strong>1.000</strong>（40 ステップの道のりと正味変位が小数点以下まで一致）。</li></ul>
+<p>差し渡し約 26 格子（= 2R）の体が、4.2 時間単位で自分の体長ぶん進む</p>
+<h3 id="スケールの自由度は-今回は噛まなかった">スケールの自由度は、今回は噛まなかった</h3>
+<p>事前登録した 9 通り（時間窓 3 × 生存帯 3）の境界:</p>
+<div class="tw"><table><thead><tr><th></th><th>w=200</th><th>w=500</th><th>w=1000</th></tr></thead><tbody><tr><td>帯 [0.8, 1.25]</td><td>0.130–0.155</td><td>0.130–0.155</td><td>0.130–0.155</td></tr><tr><td>帯 [0.5, 2.0]</td><td>0.130–0.155</td><td>0.130–0.155</td><td>0.130–0.155</td></tr><tr><td>帯 [0.2, 5.0]</td><td>0.130–0.155</td><td>0.130–0.155</td><td>0.130–0.155</td></tr></tbody></table></div>
+<p><strong>9 通りすべて同一。</strong> 理由はレプリケート単位の生ログが示している（<span class="deadlink">K-3</span>）—— mu-orbium の 105 レプリケートの質量比は</p>
+<pre><code>ちょうど 0      50 件
+0.90 〜 0.94    30 件
+8.5 〜 9.1      25 件
+その間          0 件</code></pre>
+<p><strong>三つの塊に完全に分かれ、間に 1 件も無い。</strong> 帯の端をどこへ置いても、0.2〜5.0 の範囲なら同じ集合を切り出す。 S-02 で連結半径 2.0 対 2.5 が結論を反転させたのとは対照的で、<strong>スケールの自由度は登録しておいたが噛まなかった</strong>。</p>
+<h3 id="代わりに-秩序変数の選択が境界を動かした">代わりに、秩序変数の選択が境界を動かした</h3>
+<div class="tw"><table><thead><tr><th>測り方</th><th>μ の帯</th><th>幅</th></tr></thead><tbody><tr><td>事前登録した判定（massRatio ∧ kernelExcess）</td><td>0.130 – 0.155</td><td><strong>6 点</strong></td></tr><tr><td><strong>kernelExcess 単独</strong>（スケールを含まない主の量）</td><td>0.100 – 0.155</td><td><strong>11 点</strong></td></tr></tbody></table></div>
+<p>膨れて場を埋めた状態（μ ≤ 0.120）でも kernelExcess は 3.4〜3.9 あり、帰無分布の 97.5% 点（1.49）を はっきり超えている。<strong>「核のスケールに構造がある」ことは正しく検出しているが、それは「自己維持している」ことではない。</strong> σ の掃引でも同じで、帯は 4 点（0.015–0.020）対 7 点（0.015–0.040）に広がる。</p>
+<p><strong>スケールを含まない量を主に据えても、秩序変数そのものの選択という自由度は残る</strong>——S-01 が出した穴のほうは塞がっていない。</p>
+<h3 id="初期パターンを替えると境界が-1-格子ずれる">初期パターンを替えると境界が 1 格子ずれる</h3>
+<p>同じ引力子へ落ちる2つの初期パターンで、帯が違った:</p>
+<div class="tw"><table><thead><tr><th>初期パターン</th><th>μ の帯</th></tr></thead><tbody><tr><td>原典の Orbium（20×20。置いた直後の質量 76.9）</td><td>0.130 – 0.155</td></tr><tr><td>自前の探索で得た模様（21×20。既に緩和済み、質量 70.8）</td><td><strong>0.125 – 0.160</strong></td></tr></tbody></table></div>
+<p>両端とも 1 格子ぶん広い。原典の配列は引力子の<strong>上</strong>ではなく近傍にあり（置くと 76.9 → 70.8 へ落ちる）、 その過渡のぶんだけ脆い。<strong>「この規則は自己維持を許すか」への答えが、初期条件の過渡の長さに依存している。</strong></p>
+<h3 id="スープからは何も出なかった-3-シードでは">スープからは何も出なかった（3 シードでは）</h3>
+<p>一様でない粗いスープを置いた腕では、公称値 μ=0.15 で 3 シードとも 400 ステップ以内に絶滅した。 μ を下げると生き残るが、kernelExcess は 1.9〜3.3 で、局在した模様ではなく広がった場である。</p>
+<h2 id="事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</h2>
+<p>上の「3 シードで絶滅」は、<strong>拾えないのか、まれなのか</strong>を区別しない。1500 シードに増やして測った（<code>posthoc.js</code>）。 判定は二通り並べた。<strong>この二通りを並べること自体が、この事後解析の主題になった</strong>:</p>
+<div class="tw"><table><thead><tr><th>測り方</th><th>問い</th><th>当たり</th><th>質量の中央値</th><th>kernelExcess</th><th>balance</th></tr></thead><tbody><tr><td><strong>registered</strong>（事前登録した判定をそのまま）</td><td>置いた配置が保たれたか</td><td><strong>13 / 1500（0.87%）</strong></td><td>871</td><td>5.75</td><td>0.062</td></tr><tr><td><strong>emergent</strong>（終盤の定常性。窓・帯は<strong>ここで決めた</strong>）</td><td>自己維持するものが出てきたか</td><td><strong>131 / 1500（8.73%）</strong></td><td><strong>71.08</strong></td><td>55.5</td><td>0.0100</td></tr></tbody></table></div>
+<p><strong>両方に当てはまったものは 0 件。二つの集合は互いに素である。</strong></p>
+<p>理由は定義に書いてある。<code>massRatio</code> は<strong>初期の質量に対する比</strong>なので、「スープが保たれたか」を問うている。 局在した模様が出てきたレプリケートでは質量比が 0.145〜0.490——<strong>事前登録した帯の下端 0.5 の下に全部入る</strong>。 逆に registered が拾った 13 件は、支持が場の 23.5% に広がった大きな状態で、局在した模様ではない。</p>
+<p>emergent 側の 131 件のうち <strong>129 件が質量 69〜73</strong>——本番の正コントロールと同じ Orbium の不変量である （残り 2 件はその約 2 倍で、模様が 2 つ）。<strong>1500 本のスープのうち 8.7% が、同じ一つの引力子へ落ちた。</strong> 残りは 1278 件が絶滅、78 件がどちらの判定にも当たらない状態である。</p>
+<p>この節は <span class="deadlink">K-11</span> に従って分けてある。事前登録した結論（帯は 0.130〜0.155）は書き換えていない。</p>
+<h2 id="本家への含意-候補として挙げるだけ-要件化しない">本家への含意（<strong>候補として挙げるだけ。要件化しない</strong>）</h2>
+<p><span class="deadlink">人工生命</span>の観測器の設計に対して、候補を3つ:</p>
+<ol><li><strong>「理論的な帰無値を持つ量」は、期待値としての帰無値と、系の大きさで決まる帰無分布を区別して扱う必要がある。</strong></li></ol>
+<p>kernelExcess の帰無値は 1.0 ちょうどだが、64×64 に半径 13 の核では 1 標本が 0.66〜1.49 に散る。 <strong>帰無値だけを書いて閾値を決めると、系を小さくした途端に誤判定する。</strong> 帰無分布を測って記録する段を観測器の定義に含める</p>
+<ol><li><strong>「自己維持」には、参照点をどこに置くかという自由度がある</strong>——初期状態に対する比なのか、直近の過去に対する比なのか。</li></ol>
+<p>これは閾値でもスケールでもなく<strong>問いの向きの違い</strong>で、今回は同じデータから互いに素な集合を切り出した。 「保存」と「出現」は別の観測器を要する</p>
+<ol><li><strong>秩序変数がスケールを含まなくても、秩序変数の選択そのものは自由度として残る。</strong></li></ol>
+<p>S-02 の教訓（スケールを登録せよ）を満たしても、S-01 の教訓（どの秩序変数か）は独立に効く</p>
+<h2 id="限界-この実験が言えないこと">限界（この実験が言えないこと）</h2>
+<ul><li><strong>σ の公称値には一次資料どうしの食い違いがある。</strong> 原典の論文本文（図 6・7 の説明）は <code>σ = 0.016</code>、</li></ul>
+<p>同著者の <code>animals.json</code> の O2u は <code>σ = 0.015</code>、<code>O2b</code>（bicaudatus）は <code>0.014</code>。本スケッチは 0.015 を採り、 掃引に 0.014・0.015・0.016 を全部含めた。<strong>なお本スケッチの着手時に与えられた <code>σ = 0.017</code> は、 どの一次資料にも見つからなかった</strong>（<code>animals.json</code> で <code>s=0.017</code> を持つのは別属の多環種のみ）</p>
+<ul><li><strong>原典の PDF は読めていない。</strong> 本文は arXiv の HTML 版（ar5iv）から取った。数式と図の説明は一致を確認したが、</li></ul>
+<p>PDF にしか無い記述があれば見落としている</p>
+<ul><li><strong>「自己維持」の判定は、本スケッチが決めた合成判定である。</strong> 原典は自己維持を数値で定義していない。</li></ul>
+<p>ここで出た帯 <code>0.130〜0.155</code> は、原典の主張との突き合わせではなく、本スケッチの定義に対する答えである</p>
+<ul><li><strong>境界は掃引の格子（0.005 刻み）より細かくは決まらない。</strong> 「0.155 は維持、0.160 は絶滅」と言えるだけで、</li></ul>
+<p>真の境界がその間のどこかは測っていない</p>
+<ul><li><strong>μ と σ の帯は、互いに相手を公称値に固定した1次元の切り口である。</strong> 「公称値が角にある」という所見は</li></ul>
+<p>2 つの切り口から言っており、(μ,σ) 平面の可視領域の形そのものは測っていない</p>
+<ul><li><strong>世界は 64×64 の1つの大きさしか試していない。</strong> 有限の大きさは帰無分布の広がりに直接効く（上記）ほか、</li></ul>
+<p>膨れた状態は世界の大きさで頭打ちになる。<strong>大きさを掃引していないので、膨れる側の量は世界の大きさの関数かもしれない</strong></p>
+<ul><li><strong>時間は 1000 ステップ（100 時間単位）まで。</strong> それ以上の時間で崩れる模様があっても分からない</li><li><strong>絵が意味を成しているかは確認できていない</strong>（<span class="deadlink">method §3</span> の残る弱点）。</li></ul>
+<p><code>viewer.html</code> が呼ぶ API の実在は機械検査で押さえてあるが、見え方はユーザが開いたときに初めて分かる</p></article><p class="src">原典: <code>docs/subprojects/alife-sketches/sketches/S-03-lenia/reports/main.md</code></p></section><section class="pane" data-pane="comments" hidden><div class="comments" data-slug="S-03-lenia" data-run="main" data-readonly><div id="clist" class="clist">読み込み中…</div><script type="application/json" id="cdata">{"version":1,"sketch":"S-03-lenia","comments":[]}</script></div></section></div></div></div><button class="fab" id="fab" title="メニュー" aria-label="メニュー">☰</button><div class="menu" id="menu" hidden><div class="menuhead">人工生命スケッチ</div><a href="../../../../index.html">🏠 ホーム（スケッチ一覧）</a><a href="../../../../reports/index.html">📄 レポート一覧</a></div><script src="../../../../assets/menu.js"></script><script src="../../../../assets/overlay.js"></script><script src="../../../../assets/comments-ui.js"></script></body></html>

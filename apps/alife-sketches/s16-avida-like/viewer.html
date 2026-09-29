@@ -1,0 +1,362 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-16 環境からの報酬を足すと何が変わるか（Avida 風）</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  button.on{border-color:var(--acc);color:var(--acc)}
+  select{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  label b{color:var(--fg);font-variant-numeric:tabular-nums;min-width:4.2em}
+  input[type=range]{width:120px}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;image-rendering:pixelated}
+  table{border-collapse:collapse;font-size:12px;min-width:250px}
+  th,td{padding:3px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left}
+  td{font-variant-numeric:tabular-nums}
+  .legend{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.9}
+  .sw{display:inline-block;width:22px;height:9px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+  .task{display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:5px;font-size:12px;opacity:.28;transition:opacity .2s}
+  .task.lit{opacity:1;background:#ffffff0d}
+  .task .dot{width:13px;height:13px;border-radius:3px;flex:0 0 auto;font:9px/13px monospace;text-align:center;color:#000;font-weight:700}
+  .task .nm{width:3.4em;font-weight:600}
+  .task .ct{margin-left:auto;color:var(--dim);font-variant-numeric:tabular-nums;min-width:3ch;text-align:right}
+  .task .rw{font-size:10px;color:var(--dim)}
+  .task.rewarded .rw{color:#e3b341}
+  footer{padding:0 18px 24px;color:var(--dim);font-size:12px;max-width:940px}
+  footer b{color:var(--fg)}
+  @media(max-width:760px){.wrap{flex-direction:column}}
+</style>
+
+<header>
+  <h1>S-16 — 共有メモリの機械語プログラムに<b>環境からの報酬</b>を足す</h1>
+  <p class="sub">仮想機械は <b>S-05（Tierra 風）と同じ骨格</b>。足したのは2本の線だけ——<code>io</code> 命令が値を出し入れし、
+    出した値が入力に対する論理関数と一致すればそのプロセスの取り分（CPU 時間）が増える。<br>
+    論理演算の命令は <code>nand</code> <b>1つだけ</b>。他の関数は nand の組み合わせでしか作れない。
+    <b>報酬を「なし」にすると S-05 と厳密に同じ配分に戻る</b>。／ 出典: Ofria &amp; Wilke (2004), Lenski et al. (2003)</p>
+</header>
+
+<div class="bar">
+  <button id="run">停止</button>
+  <button id="reset">最初から</button>
+  <label>報酬
+    <select id="reward">
+      <option value="none">なし（S-05 と同じ）</option>
+      <option value="all" selected>全9種</option>
+      <option value="equOnly">EQU だけ</option>
+      <option value="simpleOnly">単純な6種だけ</option>
+    </select>
+  </label>
+  <label>複写の誤り率 <input type="range" id="rate" min="0" max="40" value="20"> <b id="rateV">0.0100</b></label>
+  <label>速さ <input type="range" id="speed" min="1" max="40" value="16"> <b id="speedV">160k</b></label>
+  <label>出力
+    <select id="omode">
+      <option value="normal" selected>ax（通常）</option>
+      <option value="random">乱数（帰無過程）</option>
+      <option value="rotate">入力の1ビット回転</option>
+    </select>
+  </label>
+  <button id="injectEqu">EQU を計算する個体を注入</button>
+  <span style="flex:1"></span>
+  <span style="color:var(--dim)">実行命令数 <b id="instr" class="num" style="color:var(--fg);min-width:8ch">0</b></span>
+</div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>共有メモリ（1画素 = 1セル・左上から順に）</h2>
+    <canvas id="soup" width="600" height="500"></canvas>
+    <div class="legend">
+      <span class="sw" style="background:#10131a"></span>空き
+      <span class="sw" style="background:#2f7a45;margin-left:10px"></span>プロセスのブロック（暗い緑＝論理演算を1つもしていない）
+      <span class="sw" style="background:#e3b341;margin-left:10px"></span><b>直前の生成周期に論理演算を記録した</b>ブロック（明るいほど rank が高い）
+      <span class="sw" style="background:#f778ba;margin-left:10px"></span><code>nand</code> の命令語（メモリ内容そのもの）
+      <br>明るい帯は<b>書き込み中の確保領域</b>（＝いま作られつつある複写）。
+    </div>
+  </div>
+
+  <div class="panel" style="min-width:250px">
+    <h2>獲得された論理演算（相異なるプロセス数）</h2>
+    <div id="tasks"></div>
+    <div class="legend" style="margin-top:10px">
+      色の付いた記号が点灯 = <b>3 体以上</b>が記録した演算。<br>
+      黄色の倍率は<b>いま報酬が付いている</b>ことを示す。<br>
+      報酬を「なし」に切り替えると、点灯が上の rank まで伸びなくなる。
+    </div>
+  </div>
+
+  <div class="panel" style="min-width:250px">
+    <h2>個体群</h2>
+    <table>
+      <tr><th>個体数</th><td><span id="pop" class="num" style="min-width:5ch">0</span></td></tr>
+      <tr><th>獲得した演算の種類</th><td><span id="types" class="num" style="min-width:5ch">0</span></td></tr>
+      <tr><th>到達した rank</th><td><span id="rank" class="num" style="min-width:5ch">0</span></td></tr>
+      <tr><th>倍率 merit の最大</th><td><span id="merit" class="num" style="min-width:7ch">1</span></td></tr>
+      <tr><th>rank4 以上を出す個体の割合</th><td><span id="cfrac" class="num" style="min-width:4ch">0.00</span></td></tr>
+      <tr><th><code>nand</code> を持つ個体の割合</th><td><span id="nandf" class="num" style="min-width:4ch">0.00</span></td></tr>
+      <tr><th>長さの中央値</th><td><span id="len" class="num" style="min-width:5ch">0</span></td></tr>
+      <tr><th>系統数（ブロック内容の異なり）</th><td><span id="geno" class="num" style="min-width:5ch">0</span></td></tr>
+      <tr><th>系統の深さの最大</th><td><span id="depth" class="num" style="min-width:5ch">0</span></td></tr>
+      <tr><th>出力回数 / うち素通し</th><td><span id="io" class="num" style="min-width:13ch">0</span></td></tr>
+    </table>
+    <h2 style="margin-top:12px">個体ごとの獲得（1行 = 1個体）</h2>
+    <canvas id="strip" width="270" height="150"></canvas>
+    <div class="legend">横 9 列が 9 種の演算。点いていれば<b>直前の生成周期に記録した</b>。</div>
+  </div>
+
+  <div class="panel" style="min-width:300px">
+    <h2>時系列（獲得した種類数と到達 rank）</h2>
+    <canvas id="chart" width="330" height="170"></canvas>
+    <div class="legend">
+      <span class="sw" style="background:#60a5fa"></span>種類数（0..9）
+      <span class="sw" style="background:#e3b341;margin-left:10px"></span>到達 rank（0..5）
+      <br>報酬を途中で切り替えると、ここから先の伸び方が変わる。
+    </div>
+  </div>
+</div>
+
+<footer>
+  <b>この画面で見えること。</b> 祖先は入力を素通しして出すだけで、論理演算を1つも計算していない
+  （<code>nand</code> を1つも持っていない）。複写の誤りで <code>nand</code> が1つ入ると
+  <b>NOT か NAND が1点変異で成立する</b>。報酬があるとそこから <b>rank の階段を上へ</b>伸びていき、
+  報酬を切ると下の段でとどまる。<br>
+  <b>核の語彙について。</b> 仮想機械の側には「適応度」「複雑さ」「進化した」という語も概念も無い。
+  あるのはメモリ・プロセス・確保記録・命令語・待ち行列・入力・出力・報酬倍率だけで、
+  「EQU が進化した」は<b>この観測器の側の言い方</b>にあたる。
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var MEM0 = 24000, MEM = MEM0;   // 共有メモリの容量。既定は 24000 語のまま
+  var TASKS = S16.TASKS;
+  var COLORS = ['#79c0ff', '#58a6ff', '#3fb950', '#56d364', '#d29922', '#e3b341', '#db6d28', '#f0883e', '#f778ba'];
+  var GLYPH = ['¬', '⊼', '∧', '⊃', '∨', '⊅', '⊽', '⊕', '='];
+
+  var el = function (id) { return document.getElementById(id); };
+  var soup = el('soup'), sctx = soup.getContext('2d');
+  var strip = el('strip'), tctx = strip.getContext('2d');
+  var chart = el('chart'), cctx = chart.getContext('2d');
+  var img = sctx.createImageData(soup.width, soup.height);
+
+  var taskRows = [];
+  (function buildTaskPanel() {
+    var host = el('tasks');
+    for (var i = 0; i < TASKS.length; i++) {
+      var d = document.createElement('div');
+      d.className = 'task';
+      d.innerHTML = '<span class="dot" style="background:' + COLORS[i] + '">' + GLYPH[i] + '</span>' +
+        '<span class="nm">' + TASKS[i].name + '</span>' +
+        '<span class="rw">rank ' + TASKS[i].rank + ' / ×' + TASKS[i].bonus + '</span>' +
+        '<span class="ct">0</span>';
+      host.appendChild(d);
+      taskRows.push(d);
+    }
+  })();
+
+  var vm = null, running = true, series = [];
+
+  function params() {
+    return {
+      memSize: MEM,
+      copyErrorRate: +el('rate').value / 2000,
+      rewardSet: el('reward').value,
+      outputMode: el('omode').value,
+      reapAttempts: 2
+    };
+  }
+
+  function reset() {
+    vm = S16.seedWorld(params(), 20260916);
+    series = [];
+    draw();
+  }
+
+  function applyLive() {
+    if (!vm) return;
+    vm.params.copyErrorRate = +el('rate').value / 2000;
+    vm.params.rewardSet = el('reward').value;
+    vm.params.outputMode = el('omode').value;
+    vm.rewardMult = S16.resolveRewards(vm.params);
+  }
+
+  function rankColor(rank) {
+    return ['#2f7a45', '#4a8f3f', '#8a8f2e', '#c39a1f', '#e3b341', '#ffd166'][rank] || '#2f7a45';
+  }
+
+  function drawSoup() {
+    var d = img.data, n = soup.width * soup.height;
+    for (var i = 0; i < n; i++) {
+      var a = i < MEM ? i : -1;
+      var o = i * 4;
+      var r = 16, g = 19, b = 26;
+      if (a >= 0) {
+        if (vm.owner[a] !== 0) { r = 26; g = 48; b = 34; }
+        if (vm.mem[a] === S16.OP_NAND && vm.owner[a] !== 0) { r = 247; g = 120; b = 186; }
+        else if (vm.mem[a] === S16.OP_IO && vm.owner[a] !== 0) { r = 96; g = 165; b = 250; }
+      }
+      d[o] = r; d[o + 1] = g; d[o + 2] = b; d[o + 3] = 255;
+    }
+    // プロセスごとに、直前の生成周期で記録した演算の rank で塗り重ねる
+    for (var k = 0; k < vm.procs.length; k++) {
+      var p = vm.procs[k];
+      var mask = p.recentMask | p.gestMask;
+      var best = 0;
+      for (var t = 0; t < TASKS.length; t++) if (mask & (1 << t)) best = Math.max(best, TASKS[t].rank);
+      if (best === 0) continue;
+      var col = rankColor(best);
+      var cr = parseInt(col.slice(1, 3), 16), cg = parseInt(col.slice(3, 5), 16), cb = parseInt(col.slice(5, 7), 16);
+      for (var j = 0; j < p.len; j++) {
+        var ad = (p.start + j) % vm.memSize;
+        if (ad >= MEM) continue;
+        var q = ad * 4;
+        if (vm.mem[ad] === S16.OP_NAND) continue;
+        d[q] = cr; d[q + 1] = cg; d[q + 2] = cb;
+      }
+    }
+    // 書き込み中の確保領域を明るく
+    for (var k2 = 0; k2 < vm.procs.length; k2++) {
+      var p2 = vm.procs[k2];
+      if (p2.dlen <= 0) continue;
+      for (var j2 = 0; j2 < p2.dwritten && j2 < p2.dlen; j2++) {
+        var ad2 = (p2.dstart + j2) % vm.memSize;
+        if (ad2 >= MEM) continue;
+        var q2 = ad2 * 4;
+        d[q2] = Math.min(255, d[q2] + 90); d[q2 + 1] = Math.min(255, d[q2 + 1] + 90); d[q2 + 2] = Math.min(255, d[q2 + 2] + 90);
+      }
+    }
+    sctx.putImageData(img, 0, 0);
+  }
+
+  function drawStrip(m) {
+    tctx.fillStyle = '#10131a';
+    tctx.fillRect(0, 0, strip.width, strip.height);
+    var rows = Math.min(vm.procs.length, strip.height);
+    var cw = Math.floor(strip.width / 9);
+    for (var i = 0; i < rows; i++) {
+      var p = vm.procs[i];
+      var mask = p.recentMask | p.gestMask;
+      for (var t = 0; t < 9; t++) {
+        tctx.fillStyle = (mask & (1 << t)) ? COLORS[t] : '#1b1f2a';
+        tctx.fillRect(t * cw, i, cw - 1, 1);
+      }
+    }
+  }
+
+  function drawChart() {
+    var W = chart.width, H = chart.height;
+    cctx.fillStyle = '#10131a'; cctx.fillRect(0, 0, W, H);
+    cctx.strokeStyle = '#2a2f3d'; cctx.lineWidth = 1;
+    for (var g = 0; g <= 9; g += 3) {
+      var y = H - 10 - (H - 20) * g / 9;
+      cctx.beginPath(); cctx.moveTo(0, y); cctx.lineTo(W, y); cctx.stroke();
+    }
+    if (series.length < 2) return;
+    var n = series.length;
+    function line(get, max, color) {
+      cctx.strokeStyle = color; cctx.lineWidth = 1.6; cctx.beginPath();
+      for (var i = 0; i < n; i++) {
+        var x = W * i / (n - 1);
+        var y = H - 10 - (H - 20) * get(series[i]) / max;
+        if (i === 0) cctx.moveTo(x, y); else cctx.lineTo(x, y);
+      }
+      cctx.stroke();
+    }
+    line(function (s) { return s.types; }, 9, '#60a5fa');
+    line(function (s) { return s.rank; }, 5, '#e3b341');
+  }
+
+  function draw() {
+    var m = S16.measure(vm, [3]);
+    var k = m.byKnob[3];
+    drawSoup();
+    drawStrip(m);
+    el('instr').textContent = (vm.instr / 1e6).toFixed(2) + 'M';
+    el('pop').textContent = m.population;
+    el('types').textContent = k.taskTypesCredited + ' / 9';
+    el('rank').textContent = k.maxRankCredited + ' / 5';
+    el('merit').textContent = m.maxMeritSeen.toFixed(0);
+    el('cfrac').textContent = m.complexFraction.toFixed(2);
+    el('nandf').textContent = m.nandCarrierFraction.toFixed(2);
+    el('len').textContent = m.medianLength;
+    el('geno').textContent = m.genotypeCount;
+    el('depth').textContent = m.maxDepth;
+    el('io').textContent = m.outputs + ' / ' + m.echoEvents;
+    var rewarded = S16.REWARD_SETS[vm.params.rewardSet] || [];
+    for (var i = 0; i < TASKS.length; i++) {
+      var c = m.perTask[TASKS[i].name].procs;
+      taskRows[i].classList.toggle('lit', c >= 3);
+      taskRows[i].classList.toggle('rewarded', rewarded.indexOf(TASKS[i].name) >= 0);
+      taskRows[i].querySelector('.ct').textContent = c;
+    }
+    series.push({ types: k.taskTypesCredited, rank: k.maxRankCredited });
+    if (series.length > 400) series.shift();
+    drawChart();
+  }
+
+  function tick() {
+    if (running && vm && vm.procs.length > 0) {
+      S16.runInstructions(vm, +el('speed').value * 10000);
+      draw();
+    }
+    requestAnimationFrame(tick);
+  }
+
+  el('run').onclick = function () { running = !running; this.textContent = running ? '停止' : '再開'; this.classList.toggle('on', !running); };
+  el('reset').onclick = reset;
+  el('reward').onchange = applyLive;
+  el('omode').onchange = applyLive;
+  el('rate').oninput = function () { el('rateV').textContent = (+this.value / 2000).toFixed(4); applyLive(); };
+  el('speed').oninput = function () { el('speedV').textContent = (+this.value * 10) + 'k'; };
+  el('injectEqu').onclick = function () {
+    if (!vm) return;
+    var code = S16.assemble(S16.SOURCE.EQU);
+    for (var a = 0; a + code.length < vm.memSize; a += code.length) {
+      var free = true;
+      for (var j = 0; j < code.length; j++) if (vm.owner[a + j] !== 0) { free = false; break; }
+      if (free) { S16.inject(vm, code, a); draw(); return; }
+    }
+  };
+
+  el('rateV').textContent = (+el('rate').value / 2000).toFixed(4);
+  el('speedV').textContent = (+el('speed').value * 10) + 'k';
+  reset();
+  tick();
+
+  // --- 共通の実行UI（撮る / 広さ / 設定の保存と復元）を載せる ---
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('run').click(); },
+    id: 'S-16',
+    version: '1.0.0',
+    inputs: ['reward', 'rate', 'speed', 'omode'],
+    paramNames: {
+      reward: { category: 'p', code: 'reward', full: 'reward_set' },
+      rate: { category: 'p', code: 'rate', full: 'copy_error_rate' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+      omode: { category: 'p', code: 'omode', full: 'output_mode' },
+    },
+    canvases: ['soup', 'strip', 'chart'],
+    // この系に平面は無い。「広さ」にあたるのは**共有メモリの容量**で、
+    // ここが個体数の上限（＝選択の強さ）を決めている。倍率はそのまま容量に掛ける。
+    resize: function (scale) {
+      MEM = Math.round(MEM0 * scale);
+      reset();
+      Harness.say('共有メモリ ' + MEM + ' 語にした（祖先から撒き直す）');
+    },
+  });
+})();
+</script>

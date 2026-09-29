@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-57 向きを持つ粒子 — 双極子の異方的な引力/斥力</title>
+<style>
+  :root{ --bg:#0c0f14; --panel:#151a22; --line:#262d39; --fg:#d8dee9; --dim:#78829a; --good:#4ade80; --warn:#fbbf24; --bad:#f87171; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1000px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:10px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070b;border:1px solid var(--line);border-radius:4px;max-width:100%;height:auto}
+  aside{width:340px;min-width:280px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:11px 12px;margin-bottom:11px}
+  .box h2{margin:0 0 8px;font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.07em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:110px;color:var(--dim);flex:none}
+  select,input[type=number]{background:#0a0d13;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  input[type=range]{flex:1;min-width:0}
+  input[type=checkbox]{flex:none}
+  button{background:#1d2430;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#27303e}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #1d2430}
+  table.stat td.k{color:var(--dim);width:56%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:8ch}
+  .banner{margin-top:8px;padding:7px 9px;border-radius:4px;font-size:12px;border:1px solid var(--line);background:#10141b;color:var(--dim)}
+  .legend{display:flex;flex-wrap:wrap;gap:9px;margin-top:8px;font-size:11px;color:var(--dim)}
+  .legend .sw{display:inline-flex;align-items:center;gap:5px}
+  .legend .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .note{color:var(--dim);font-size:11px;margin-top:7px}
+  #ledgerCv{width:100%;height:70px}
+  @media(max-width:860px){aside{width:auto;min-width:0}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-57 向きを持つ粒子 — 頭尾で引き、横並びで押す点双極子の閉じた力学系</h1>
+  <p>1種類の円板が平面内の向き（矢印。<b>明るい先端=頭</b>）を持ち、対の相互作用
+     μ²[(u_i·u_j)−3(u_i·r̂)(u_j·r̂)]/r³ の符号が相対配置で入れ替わる（頭尾は引き、平行に横並びは押す）。
+     周期境界・摩擦なし・全エネルギーと全運動量を保存する NVE。<b>ここで見ているのは瞬間の接触</b>を
+     色分けしたもので、判定に使う「持続する結合」（直近3スナップショット連続）とは別——このページは探索の窓であり、
+     主張は事前登録に基づく本番走行（run.js）だけが行う。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <canvas id="world" width="560" height="560"></canvas>
+    <canvas id="ledgerCv" width="560" height="70"></canvas>
+    <div class="legend">
+      <span class="sw"><span class="dot" style="background:#5fb4e8"></span> 型 C 鎖</span>
+      <span class="sw"><span class="dot" style="background:#f4a259"></span> 型 R 環</span>
+      <span class="sw"><span class="dot" style="background:#e07be0"></span> 型 Y 枝</span>
+      <span class="sw"><span class="dot" style="background:#f75f5f"></span> 型 N 網目</span>
+      <span class="sw"><span class="dot" style="background:#9d9d9d"></span> 型 K 密</span>
+      <span class="sw"><span class="dot" style="background:#3a4150"></span> パターン未満（単体・小片）</span>
+    </div>
+    <div class="banner" id="phase">「初期化」→「走らせる」で始まる</div>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>条件（登録の腕をすぐ呼べる）</h2>
+      <label><span class="k">腕プリセット</span>
+        <select id="preset">
+          <option value="">（カスタム）</option>
+          <option value="M-cold-0.05">M-cold T=0.12 ρ=0.05</option>
+          <option value="M-cold-0.15">M-cold T=0.12 ρ=0.15</option>
+          <option value="M-cold-0.30">M-cold T=0.12 ρ=0.30</option>
+          <option value="M-cold-0.50">M-cold T=0.12 ρ=0.50</option>
+          <option value="M-mid-0.05">M-mid T=0.20 ρ=0.05</option>
+          <option value="M-mid-0.15" selected>M-mid T=0.20 ρ=0.15</option>
+          <option value="M-mid-0.30">M-mid T=0.20 ρ=0.30</option>
+          <option value="M-mid-0.50">M-mid T=0.20 ρ=0.50</option>
+          <option value="M-warm-0.05">M-warm T=0.35 ρ=0.05</option>
+          <option value="M-warm-0.15">M-warm T=0.35 ρ=0.15</option>
+          <option value="M-warm-0.30">M-warm T=0.35 ρ=0.30</option>
+          <option value="M-warm-0.50">M-warm T=0.35 ρ=0.50</option>
+          <option value="A-chain">A-chain（n=32 直鎖1本）</option>
+          <option value="NC1">NC1（双極子なし）</option>
+          <option value="NC2">NC2（等方的な引力）</option>
+        </select></label>
+      <label><span class="k">密度 ρσ²</span><input type="number" id="rho" step="0.01" min="0.02" max="0.6" value="0.15"></label>
+      <label><span class="k">広さ L（σ）</span><input type="number" id="L" step="1" min="10" max="80" value="40"></label>
+      <label><span class="k">名目温度 T_q</span><input type="number" id="Tq" step="0.01" min="0.05" max="2" value="0.20"></label>
+      <label><span class="k">種</span><input type="number" id="seed" value="5701"></label>
+      <label><span class="k">準備段(τ)</span><input type="number" id="prepTau" step="5" min="0" max="80" value="20"></label>
+      <div class="row">
+        <button class="primary" id="init">初期化（準備段→NVE）</button>
+        <button id="run">走らせる</button>
+        <button id="one">1歩</button>
+      </div>
+      <label><span class="k">速さ(歩/フレーム)</span><input type="range" id="speed" min="1" max="60" value="15"><output class="num" id="speedOut" style="min-width:3ch">15</output></label>
+    </div>
+
+    <div class="box">
+      <h2>見せ方</h2>
+      <label><input type="checkbox" id="showBonds" checked><span>瞬間の接触を線で結ぶ（探索用。判定には使わない）</span></label>
+      <label><input type="checkbox" id="colorByType" checked><span>塊の型（C/R/Y/N/K）で色分け</span></label>
+      <label><input type="checkbox" id="showArrows" checked><span>向きの矢印（明るい先端=頭）</span></label>
+    </div>
+
+    <div class="box">
+      <h2>台帳（エネルギー・運動量の実況）</h2>
+      <table class="stat">
+        <tr><td class="k">相 / t</td><td class="v" id="stPhase">-</td></tr>
+        <tr><td class="k">K_並進</td><td class="v num" id="stKt">-</td></tr>
+        <tr><td class="k">K_回転</td><td class="v num" id="stKr">-</td></tr>
+        <tr><td class="k">U</td><td class="v num" id="stU">-</td></tr>
+        <tr><td class="k">E（全エネルギー）</td><td class="v num" id="stE">-</td></tr>
+        <tr><td class="k">|E(t)-E(0)|/⟨K⟩</td><td class="v num" id="stDrift">-</td></tr>
+        <tr><td class="k">|P|（全運動量）</td><td class="v num" id="stP">-</td></tr>
+        <tr><td class="k">塊（型≥4・瞬間接触）</td><td class="v num" id="stClusters">-</td></tr>
+      </table>
+      <p class="note">判定（①〜⑤・向きが形の源か）はこの画面では下さない——本番の decisionRule は
+        run.js が criteria.json の閾値で機械的に適用する。ここは目で確かめるための道具。</p>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="tracking.js"></script>
+<script>
+(function () {
+  'use strict';
+  var cv = document.getElementById('world'), ctx = cv.getContext('2d');
+  var lc = document.getElementById('ledgerCv'), lctx = lc.getContext('2d');
+  var W = cv.width, H = cv.height;
+  var RC = 6, RS = 5, DT = 0.002, RB = 1.3;
+
+  function els(ids) { var o = {}; ids.forEach(function (id) { o[id] = document.getElementById(id); }); return o; }
+  var E = els(['preset', 'rho', 'L', 'Tq', 'seed', 'prepTau', 'speed', 'speedOut',
+    'showBonds', 'colorByType', 'showArrows',
+    'stPhase', 'stKt', 'stKr', 'stU', 'stE', 'stDrift', 'stP', 'stClusters', 'phase']);
+
+  var TYPE_COLOR = { C: '#5fb4e8', R: '#f4a259', Y: '#e07be0', N: '#f75f5f', K: '#9d9d9d' };
+  var PRESETS = {
+    'M-cold-0.05': { rho: 0.05, Tq: 0.12 }, 'M-cold-0.15': { rho: 0.15, Tq: 0.12 },
+    'M-cold-0.30': { rho: 0.30, Tq: 0.12 }, 'M-cold-0.50': { rho: 0.50, Tq: 0.12 },
+    'M-mid-0.05': { rho: 0.05, Tq: 0.20 }, 'M-mid-0.15': { rho: 0.15, Tq: 0.20 },
+    'M-mid-0.30': { rho: 0.30, Tq: 0.20 }, 'M-mid-0.50': { rho: 0.50, Tq: 0.20 },
+    'M-warm-0.05': { rho: 0.05, Tq: 0.35 }, 'M-warm-0.15': { rho: 0.15, Tq: 0.35 },
+    'M-warm-0.30': { rho: 0.30, Tq: 0.35 }, 'M-warm-0.50': { rho: 0.50, Tq: 0.35 },
+  };
+
+  var st = null, integ = null, sourceSeedInfo = null, t = 0, phase = 'prep', running = false, timer = null;
+  var params = { rc: RC, rs: RS };
+  var E0 = null, kMeanEma = null;
+  var ledgerHistory = []; // {t, rel}
+
+  function L() { return parseFloat(E.L.value) || 40; }
+  function rho() { return parseFloat(E.rho.value) || 0.15; }
+  function Tq() { return parseFloat(E.Tq.value) || 0.20; }
+  function seed() { return parseInt(E.seed.value, 10) || 1; }
+  function prepTau() { return Math.max(0, parseFloat(E.prepTau.value) || 0); }
+
+  function worldToPx(x, y, boxL) { return { x: (x / boxL) * W, y: (y / boxL) * H }; }
+
+  function buildInitial() {
+    var isChain = E.preset.value === 'A-chain';
+    var isNC1 = E.preset.value === 'NC1';
+    var isNC2 = E.preset.value === 'NC2';
+    var box = L();
+    var n = isChain ? 32 : Math.max(4, Math.round(rho() * box * box));
+    var s = S57.createSystem(n, box);
+    var posRng = S57.subStream(seed(), 0), oriRng = S57.subStream(seed(), 1);
+    var velRng = S57.subStream(seed(), 2), angVelRng = S57.subStream(seed(), 3);
+    if (isChain) {
+      var d = 1.073200299348557, cx = box / 2 - (n - 1) * d / 2, cy = box / 2;
+      for (var i = 0; i < n; i++) { s.x[i] = S57.wrap(cx + i * d, box); s.y[i] = cy; s.phi[i] = 0; }
+    } else {
+      var fill = S57.sequentialRandomFill(n, box, 0.9, posRng);
+      s.x.set(fill.x); s.y.set(fill.y);
+      s.phi.set(S57.uniformOrientations(n, oriRng));
+    }
+    var mv = S57.maxwellVelocities(n, Tq(), velRng);
+    s.vx.set(mv.vx); s.vy.set(mv.vy);
+    s.omega.set(S57.maxwellAngularVelocities(n, Tq(), angVelRng));
+    S57.zeroMomentum(s);
+    params = { rc: isNC2 ? 3 : RC, rs: isNC2 ? 2.5 : RS, isotropicLJ: !!isNC2 };
+    if (isNC1) { params.rc = 0; params.rs = 0; }
+    return s;
+  }
+
+  function currentEnergy() {
+    var k = S57.kineticEnergy(st), f = S57.computeForcesTorques(st, params, 'normal', false);
+    return { Ktrans: k.Ktrans, Krot: k.Krot, U: f.U, E: k.Ktrans + k.Krot + f.U };
+  }
+
+  function init() {
+    if (timer) { clearInterval(timer); timer = null; running = false; }
+    st = buildInitial();
+    t = 0; phase = prepTau() > 0 ? 'prep' : 'nve';
+    integ = new S57.VerletIntegrator(st, params, 'normal');
+    E0 = currentEnergy();
+    kMeanEma = E0.Ktrans + E0.Krot;
+    ledgerHistory = [];
+    E.phase.textContent = '初期化した（N=' + st.N + '・' + phase + '）';
+    draw();
+  }
+
+  function stepOnce() {
+    integ.step(DT);
+    t += DT;
+    if (phase === 'prep') {
+      S57.thermostatRescale(st, Tq());
+      if (t >= prepTau() - 1e-9) { phase = 'nve'; S57.zeroMomentum(st); E0 = currentEnergy(); t = 0; }
+    }
+    var en = currentEnergy();
+    kMeanEma = 0.98 * kMeanEma + 0.02 * (en.Ktrans + en.Krot);
+    var rel = Math.abs(en.E - E0.E) / Math.max(kMeanEma, 1e-9);
+    ledgerHistory.push(rel); if (ledgerHistory.length > 400) ledgerHistory.shift();
+    return en;
+  }
+
+  function classify() {
+    if (!S57Track) return null;
+    var edges = S57Track.contactEdges(st, RB);
+    var cc = S57Track.connectedComponents(st.N, edges);
+    var byParticle = new Array(st.N).fill(null);
+    var clusterCount = 0;
+    cc.components.forEach(function (c) {
+      if (c.size < 4) return;
+      clusterCount++;
+      var cls = S57Track.topologyClass(c.members, c.edgeCount, cc.adj);
+      c.members.forEach(function (m) { byParticle[m] = cls; });
+    });
+    return { edges: edges, byParticle: byParticle, clusterCount: clusterCount };
+  }
+
+  function drawLedger() {
+    lctx.clearRect(0, 0, lc.width, lc.height);
+    lctx.fillStyle = '#05070b'; lctx.fillRect(0, 0, lc.width, lc.height);
+    if (ledgerHistory.length < 2) return;
+    var maxV = Math.max(1e-6, Math.max.apply(null, ledgerHistory));
+    lctx.strokeStyle = '#7dd3fc'; lctx.lineWidth = 1.5; lctx.beginPath();
+    ledgerHistory.forEach(function (v, i) {
+      var x = (i / (ledgerHistory.length - 1)) * lc.width, y = lc.height - (v / maxV) * (lc.height - 6) - 3;
+      if (i === 0) lctx.moveTo(x, y); else lctx.lineTo(x, y);
+    });
+    lctx.stroke();
+    lctx.fillStyle = '#78829a'; lctx.font = '10px ui-monospace,Menlo,monospace';
+    lctx.fillText('|E(t)-E(0)|/⟨K⟩  最大=' + maxV.toExponential(2), 4, 12);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#05070b'; ctx.fillRect(0, 0, W, H);
+    if (!st) return;
+    var box = L();
+    var info = E.colorByType.checked ? classify() : null;
+
+    if (E.showBonds.checked && info) {
+      ctx.strokeStyle = 'rgba(125,211,252,0.35)'; ctx.lineWidth = 1;
+      info.edges.forEach(function (e) {
+        var i = e[0], j = e[1];
+        var dx = S57.minImage(st.x[i] - st.x[j], box), dy = S57.minImage(st.y[i] - st.y[j], box);
+        if (Math.abs(dx) > box / 2 || Math.abs(dy) > box / 2) return; // 周期境界をまたぐ辺は描かない（簡略）
+        var pi = worldToPx(st.x[i], st.y[i], box), pj = worldToPx(st.x[i] - dx, st.y[i] - dy, box);
+        ctx.beginPath(); ctx.moveTo(pi.x, pi.y); ctx.lineTo(pj.x, pj.y); ctx.stroke();
+      });
+    }
+
+    var scale = W / box;
+    for (var i = 0; i < st.N; i++) {
+      var p = worldToPx(st.x[i], st.y[i], box);
+      var cls = info && info.byParticle[i];
+      var color = cls ? TYPE_COLOR[cls] : '#3a4150';
+      var r = Math.max(2, 0.5 * scale * 0.5);
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill();
+      if (E.showArrows.checked) {
+        var ux = Math.cos(st.phi[i]), uy = Math.sin(st.phi[i]);
+        var hx = p.x + ux * r * 2.2, hy = p.y - uy * r * 2.2;
+        ctx.strokeStyle = color; ctx.lineWidth = 1.3;
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(hx, hy); ctx.stroke();
+        ctx.beginPath(); ctx.arc(hx, hy, Math.max(1, r * 0.45), 0, Math.PI * 2); ctx.fillStyle = '#f4f4f4'; ctx.fill();
+      }
+    }
+    if (info) E.stClusters.textContent = info.clusterCount;
+    drawLedger();
+  }
+
+  function updateStats(en) {
+    E.stPhase.textContent = phase + ' / ' + t.toFixed(2) + 'τ';
+    E.stKt.textContent = en.Ktrans.toFixed(4);
+    E.stKr.textContent = en.Krot.toFixed(4);
+    E.stU.textContent = en.U.toFixed(4);
+    E.stE.textContent = en.E.toFixed(4);
+    var rel = Math.abs(en.E - E0.E) / Math.max(kMeanEma, 1e-9);
+    E.stDrift.textContent = rel.toExponential(3);
+    var p = S57.totalMomentum(st);
+    E.stP.textContent = Math.hypot(p.px, p.py).toExponential(3);
+  }
+
+  document.getElementById('init').addEventListener('click', init);
+  document.getElementById('one').addEventListener('click', function () { var en = stepOnce(); draw(); updateStats(en); });
+  document.getElementById('run').addEventListener('click', function () {
+    if (timer) { clearInterval(timer); timer = null; E.phase.textContent = '停止中'; return; }
+    E.phase.textContent = '走行中';
+    timer = setInterval(function () {
+      var n = parseInt(E.speed.value, 10) || 1, en = null;
+      for (var i = 0; i < n; i++) en = stepOnce();
+      draw(); if (en) updateStats(en);
+    }, 30);
+  });
+  E.speed.addEventListener('input', function () { E.speedOut.textContent = E.speed.value; });
+  ['showBonds', 'colorByType', 'showArrows'].forEach(function (id) { E[id].addEventListener('change', draw); });
+  E.preset.addEventListener('change', function () {
+    var p = PRESETS[E.preset.value];
+    if (p) { E.rho.value = p.rho; E.Tq.value = p.Tq; }
+    init();
+  });
+
+  function pause() { if (timer) document.getElementById('run').click(); }
+
+  // K-80: rho/L/N/Tq/seed が構造（パターン）を決める。実装依存を避けるため、
+  // 生成後の初期配置・向き・速度・角速度そのものも export する（シードだけに頼らない）。
+  function getParams() {
+    var v = { preset: E.preset.value, rho: E.rho.value, L: E.L.value, Tq: E.Tq.value, seed: E.seed.value, prepTau: E.prepTau.value,
+      speed: E.speed.value, showBonds: E.showBonds.checked, colorByType: E.colorByType.checked, showArrows: E.showArrows.checked };
+    if (st) {
+      v.initX = Array.from(st.x); v.initY = Array.from(st.y); v.initPhi = Array.from(st.phi);
+      v.initVx = Array.from(st.vx); v.initVy = Array.from(st.vy); v.initOmega = Array.from(st.omega);
+    }
+    return v;
+  }
+  function setParams(v) {
+    if (v.preset != null) E.preset.value = v.preset;
+    if (v.rho != null) E.rho.value = v.rho;
+    if (v.L != null) E.L.value = v.L;
+    if (v.Tq != null) E.Tq.value = v.Tq;
+    if (v.seed != null) E.seed.value = v.seed;
+    if (v.prepTau != null) E.prepTau.value = v.prepTau;
+    if (v.speed != null) { E.speed.value = v.speed; E.speedOut.textContent = v.speed; }
+    if (v.showBonds != null) E.showBonds.checked = !!v.showBonds;
+    if (v.colorByType != null) E.colorByType.checked = !!v.colorByType;
+    if (v.showArrows != null) E.showArrows.checked = !!v.showArrows;
+    init();
+    if (v.initX && st && v.initX.length === st.N) {
+      for (var i = 0; i < st.N; i++) {
+        st.x[i] = v.initX[i]; st.y[i] = v.initY[i]; st.phi[i] = v.initPhi[i];
+        st.vx[i] = v.initVx[i]; st.vy[i] = v.initVy[i]; st.omega[i] = v.initOmega[i];
+      }
+      integ = new S57.VerletIntegrator(st, params, 'normal');
+      E0 = currentEnergy(); kMeanEma = E0.Ktrans + E0.Krot; ledgerHistory = [];
+    }
+    draw();
+  }
+
+  Harness.mount({
+    id: 'S-57', version: '1.0.0',
+    pause: pause,
+    getParams: getParams, setParams: setParams,
+    paramNames: {
+      preset: { category: 's', code: 'preset', full: 'preset' },
+      rho: { category: 'p', code: 'rho', full: 'rho' },
+      L: { category: 's', code: 'l', full: 'box_L' },
+      Tq: { category: 'p', code: 'tq', full: 'T_q' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      prepTau: { category: 's', code: 'prep', full: 'prep_tau' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+      showBonds: { category: 's', code: 'bonds', full: 'show_bonds' },
+      colorByType: { category: 's', code: 'ctype', full: 'color_by_type' },
+      showArrows: { category: 's', code: 'arrows', full: 'show_arrows' },
+      initX: { category: 'd', code: 'ix', full: 'init_x' }, initY: { category: 'd', code: 'iy', full: 'init_y' },
+      initPhi: { category: 'd', code: 'iphi', full: 'init_phi' }, initVx: { category: 'd', code: 'ivx', full: 'init_vx' },
+      initVy: { category: 'd', code: 'ivy', full: 'init_vy' }, initOmega: { category: 'd', code: 'iw', full: 'init_omega' },
+    },
+    resize: function (scale) { E.L.value = Math.round(L() * scale); init(); },
+    canvases: ['world', 'ledgerCv'],
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>

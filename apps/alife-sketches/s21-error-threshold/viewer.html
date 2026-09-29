@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-21 エラー閾値 — 主配列は誤りの中でどこまで保てるか</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --line:#2a2f3a; --fg:#d7dce5; --dim:#7e8797;
+    --hot:#ff7a59; --cool:#4aa3ff; --good:#4ade80; --warn:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:4px 0 0;color:var(--dim);font-size:12px;max-width:1100px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070a;border:1px solid var(--line);border-radius:4px;max-width:100%;height:auto}
+  aside{width:340px;min-width:300px}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 13px;margin-bottom:12px}
+  .box h2{margin:0 0 9px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.06em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:104px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  input[type=number],select{background:#0c0e13;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  .val{width:64px;text-align:right;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--fg);flex:none;
+       font-variant-numeric:tabular-nums}
+  button{background:#20252f;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#2a3140}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  button.primary:hover{background:#2557e6}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #20242c}
+  table.stat td.k{color:var(--dim);width:58%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:9ch}
+  .banner{margin-top:9px;padding:8px 10px;border-radius:4px;font-size:12px;
+          border:1px solid var(--line);background:#12161d;color:var(--dim)}
+  .banner.keep{border-color:var(--hot);background:#2a1610;color:#ffd1c2}
+  .banner.lost{border-color:var(--cool);background:#0e1c2b;color:#c2e0ff}
+  .banner.flat{border-color:var(--good);background:#0f2416;color:#c8f5d4}
+  .note{color:var(--dim);font-size:11px;margin-top:8px}
+  .cap{color:var(--dim);font-size:11px;margin:0 0 2px}
+  code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#a5b4fc}
+  b.hi{color:#fff}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--dim);font-size:11px;margin-top:4px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  @media(max-width:820px){aside{width:auto;min-width:0;max-width:100%}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-21 — エラー閾値。主配列は、複写の誤りの中でどこまで保てるか</h1>
+  <p>長さ L の 0/1 の語が N 個。原点（全て 0）だけ重み σ、他は 1。親を重みに比例して引き、複写のとき各桁を確率 μ で反転する。
+     それだけ。<b class="hi">μ を上げていくと、原点の語（主配列）はある点で急に保てなくなる</b>——
+     Eigen の理論は長い鎖の極限でその点を <code>μ_c ≈ ln σ / L</code> と言う。
+     左は今の集団の姿（類ごとの語の数）と、<b class="hi">同じ規則の無限個体群版（決定論の写像）が同じ世代に予測する分布</b>（白い点）。
+     右の掃引板は μ を振ったときの主配列の頻度で、<b class="hi">「μ 掃引」を押すと点が一つずつ置かれて閾値が見えてくる</b>。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <div>
+      <p class="cap">類（原点からの Hamming 距離 d）ごとの語の数。白い点 = 無限個体群の写像の予測（同じ世代）。</p>
+      <canvas id="hist" width="440" height="220"></canvas>
+      <div class="legend">
+        <span><span class="sw" style="background:#ff7a59"></span>d=0（主配列）</span>
+        <span><span class="sw" style="background:#4aa3ff"></span>d≥1（雲）</span>
+        <span><span class="sw" style="background:#e8e8e8"></span>写像の予測</span>
+      </div>
+    </div>
+    <div>
+      <p class="cap">主配列の頻度 x_0 の推移（橙 = 有限個体群 N、白 = 無限個体群の写像）。峰+平原では対極側 P_B（緑）も。</p>
+      <canvas id="trace" width="440" height="140"></canvas>
+    </div>
+  </div>
+
+  <div class="col">
+    <div>
+      <p class="cap">掃引板。横 = μ / μ_c⁰、縦 = 主配列の頻度の時間平均。曲線 = 決定論の固定点、破線 = 閉形式 (σ(1−μ)^L−1)/(σ−1)、点 = 走らせた結果。</p>
+      <canvas id="sweep" width="440" height="300"></canvas>
+      <div class="legend">
+        <span><span class="sw" style="background:#e8e8e8"></span>固定点（逆反転を含む）</span>
+        <span><span class="sw" style="background:#7e8797"></span>閉形式（逆反転なし）</span>
+        <span><span class="sw" style="background:#ff7a59"></span>有限 N の実測</span>
+        <span><span class="sw" style="background:#fbbf24"></span>今の μ</span>
+      </div>
+    </div>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>つまみ</h2>
+      <label><span class="k">地形</span>
+        <select id="mode">
+          <option value="one">峰1つ（原点だけ σ）</option>
+          <option value="two">峰+平原（原点 σ、対極半分 3）</option>
+          <option value="flat">平坦（全て 1）</option>
+          <option value="moving">峰が毎世代動く</option>
+        </select></label>
+      <label><span class="k">桁数 L</span>
+        <select id="L">
+          <option value="10">10</option><option value="20" selected>20</option>
+          <option value="40">40</option><option value="80">80</option>
+        </select></label>
+      <label><span class="k">重み σ</span><input type="range" id="sigma" min="2" max="20" step="1" value="10"><span class="val" id="sigmav">10</span></label>
+      <label><span class="k">μ / μ_c⁰</span><input type="range" id="mu" min="0" max="1.5" step="0.025" value="0.7"><span class="val" id="muv">0.700</span></label>
+      <label><span class="k">μ（実値）</span><span class="val" id="muabs" style="width:auto">—</span></label>
+      <label><span class="k">世代/点 T</span><input type="number" id="T" value="300" min="20" max="5000" step="10"></label>
+      <label><span class="k">シード</span><input type="number" id="seed" value="11" min="1" step="1"></label>
+      <div class="row">
+        <button class="primary" id="play">再生</button>
+        <button id="step">10世代</button>
+        <button id="reset">やり直す</button>
+        <button id="sweepBtn">μ 掃引</button>
+      </div>
+      <div class="row">
+        <button id="preBelow">例: 閾値の手前 (0.7)</button>
+        <button id="preAbove">例: 向こう (1.3)</button>
+        <button id="preTwo">例: 峰+平原</button>
+      </div>
+      <p class="note">つまみを動かすと自動でやり直す。語の数 N は上の「広さ」で変える（既定 <span id="nv">1000</span>）。
+        μ 掃引は μ/μ_c⁰ = 0.05 … 1.5 を順に T 世代ずつ走らせ、後半の時間平均を点として置く。</p>
+    </div>
+
+    <div class="box">
+      <h2>いま</h2>
+      <table class="stat">
+        <tr><td class="k">世代</td><td class="v" id="gen">0</td></tr>
+        <tr><td class="k">語の数 N</td><td class="v" id="nn">1000</td></tr>
+        <tr><td class="k"><b class="hi">主配列</b> x_0（有限 N）</td><td class="v" id="x0">—</td></tr>
+        <tr><td class="k">同（無限個体群の写像）</td><td class="v" id="x0det">—</td></tr>
+        <tr><td class="k">閉形式 (σq^L−1)/(σ−1)</td><td class="v" id="closed">—</td></tr>
+        <tr><td class="k">雲 d≤1 / d≤2</td><td class="v" id="cloud">—</td></tr>
+        <tr><td class="k">合意配列 = 主配列</td><td class="v" id="cons">—</td></tr>
+        <tr><td class="k">平均 d / L</td><td class="v" id="dm">—</td></tr>
+        <tr><td class="k">μ_c⁰ = 1−σ^(−1/L)</td><td class="v" id="muc">—</td></tr>
+        <tr><td class="k">ln σ / L</td><td class="v" id="mulog">—</td></tr>
+        <tr><td class="k">状態ハッシュ</td><td class="v" id="hash">—</td></tr>
+      </table>
+      <div class="banner" id="verdict">まだ走らせていない</div>
+      <p class="note">札は viewer の目安で、本番の判定は <code>criteria.json</code>（水準 ε=0.1・窓の時間平均・腕の中央値）による。
+        <b class="hi">合意配列は主配列が 1 語も無くても主配列に一致しうる</b>——「誰を数えるか」で閾値が動く（K-30）。</p>
+    </div>
+
+    <div class="box">
+      <h2>読み方</h2>
+      <p class="note">
+        <b class="hi">左上の赤い棒（d=0）が残っていれば</b>主配列は保たれている。μ を上げると棒は縮み、青い雲が右へ流れて二項分布の山になる。<br>
+        <b class="hi">白い点が棒の高さと一致していれば</b>、有限の N は無限個体群と同じところにいる。ずれるのは閾値の近くだけのはず——それを掃引板で確かめる。<br>
+        峰+平原では、μ が小さいうちは原点（高い峰）が勝ち、μ が大きくなると対極の平原（低いが広い）が勝つ——<b class="hi">survival of the flattest</b>。
+      </p>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="stats.js"></script>
+<script>
+(function () {
+  'use strict';
+  var SIGMA_B = 3, N0 = 1000, popScale = 1, TRACE_CAP = 600;
+  var el = function (id) { return document.getElementById(id); };
+  var hist = el('hist'), trace = el('trace'), sweep = el('sweep');
+  var hx = hist.getContext('2d'), tx = trace.getContext('2d'), sx = sweep.getContext('2d');
+
+  var P = null, X = null, Tr = null, W = null, cfg = null;
+  var playing = false, sweeping = false, sweepState = null, sweepPts = [];
+  var traceSim = [], traceDet = [], traceFar = [];
+  var detCurve = null, detCurveKey = '';
+  var consText = '—', lastCons = -1;
+
+  function readParams() {
+    return {
+      mode: el('mode').value,
+      L: parseInt(el('L').value, 10),
+      sigma: parseFloat(el('sigma').value),
+      rel: parseFloat(el('mu').value),
+      T: Math.max(20, parseInt(el('T').value, 10) || 300),
+      seed: parseInt(el('seed').value, 10) || 1,
+      N: Math.max(10, Math.round(N0 * popScale)),
+    };
+  }
+  function scaleOf(p) {
+    return p.mode === 'two' ? S21.naiveCrossover(p.sigma, SIGMA_B, p.L) : S21.closedFormRoot(p.sigma, p.L, 0);
+  }
+  function weightsFor(p) {
+    if (p.mode === 'two') return S21.weightsPeakAndPlain(p.L, p.sigma, SIGMA_B);
+    if (p.mode === 'flat') return S21.weightsFlat(p.L);
+    return S21.weightsOnePeak(p.L, p.sigma);
+  }
+  function muOf(p, rel) { var m = rel * scaleOf(p); return m >= 1 ? 0.999 : m; }
+
+  function makePool(p, rel) {
+    return S21.createPool({
+      L: p.L, N: p.N, mu: muOf(p, rel), weights: W,
+      init: p.mode === 'two' ? 'poles' : 'origin',
+      anchor: p.mode === 'moving' ? 'redraw' : 'fixed',
+      seed: p.seed, stream: 0,
+    });
+  }
+
+  function ensureDetCurve(p) {
+    var key = [p.mode, p.L, p.sigma].join('|');
+    if (key === detCurveKey) return;
+    detCurveKey = key;
+    detCurve = { rel: [], fixed: [], closed: [] };
+    var sc = scaleOf(p);
+    for (var i = 0; i <= 60; i++) {
+      var rel = i * 0.025, mu = muOf(p, rel);
+      var T2 = S21.classTransition(p.L, mu);
+      var fp = S21.fixedPoint(T2, W, p.L);
+      var v = 0;
+      if (p.mode === 'two') { for (var d = 0; d <= p.L; d++) if (2 * d > p.L) v += fp[d]; } else v = fp[0];
+      detCurve.rel.push(rel); detCurve.fixed.push(v);
+      detCurve.closed.push(p.mode === 'one' ? S21.closedFormShare(p.sigma, mu, p.L) : null);
+    }
+    void sc;
+  }
+
+  function reset() {
+    cfg = readParams();
+    W = weightsFor(cfg);
+    P = makePool(cfg, cfg.rel);
+    X = S21.initialShares(cfg.L, cfg.mode === 'two' ? 'poles' : 'origin');
+    Tr = S21.classTransition(cfg.L, P.mu);
+    traceSim = []; traceDet = []; traceFar = [];
+    lastCons = -1; consText = '—';
+    ensureDetCurve(cfg);
+    pushTrace();
+    el('nn').textContent = P.N; el('nv').textContent = P.N;
+    render();
+  }
+
+  function pushTrace() {
+    var far = 0;
+    for (var d = 0; d <= P.L; d++) if (2 * d > P.L) far += P.count[d];
+    traceSim.push(P.count[0] / P.N); traceDet.push(X[0]); traceFar.push(far / P.N);
+    if (traceSim.length > TRACE_CAP) { traceSim.shift(); traceDet.shift(); traceFar.shift(); }
+  }
+
+  function advance(k) {
+    for (var i = 0; i < k; i++) {
+      S21.stepPool(P);
+      X = S21.mapStep(X, Tr, W, P.L);
+      pushTrace();
+    }
+  }
+
+  /* ---------------- 掃引 ---------------- */
+  function startSweep() {
+    cfg = readParams(); W = weightsFor(cfg); ensureDetCurve(cfg);
+    sweepPts = []; sweeping = true; playing = false; el('play').textContent = '再生';
+    sweepState = { j: cfg.mode === 'two' ? 8 : 1, gens: 0, acc: 0, n: 0 };
+    beginSweepPoint();
+  }
+  function relOfJ(j) { return j * 0.05; }
+  function beginSweepPoint() {
+    var rel = relOfJ(sweepState.j);
+    P = makePool(cfg, rel);
+    X = S21.initialShares(cfg.L, cfg.mode === 'two' ? 'poles' : 'origin');
+    Tr = S21.classTransition(cfg.L, P.mu);
+    traceSim = []; traceDet = []; traceFar = [];
+    sweepState.gens = 0; sweepState.acc = 0; sweepState.n = 0;
+    el('mu').value = rel; el('muv').textContent = rel.toFixed(3);
+  }
+  function sweepChunk() {
+    var T = cfg.T, chunk = Math.max(1, Math.min(25, Math.round(4000 / P.N)));
+    for (var i = 0; i < chunk && sweepState.gens < T; i++) {
+      S21.stepPool(P); X = S21.mapStep(X, Tr, W, P.L); pushTrace();
+      sweepState.gens++;
+      if (sweepState.gens >= T / 2) {
+        var v;
+        if (cfg.mode === 'two') { v = 0; for (var d = 0; d <= P.L; d++) if (2 * d > P.L) v += P.count[d]; v /= P.N; }
+        else v = P.count[0] / P.N;
+        sweepState.acc += v; sweepState.n++;
+      }
+    }
+    if (sweepState.gens >= T) {
+      sweepPts.push({ rel: relOfJ(sweepState.j), val: sweepState.acc / sweepState.n });
+      sweepState.j++;
+      if (sweepState.j > 30) { sweeping = false; sweepState = null; Harness.say('掃引を終えた（' + sweepPts.length + ' 点）'); return; }
+      beginSweepPoint();
+    }
+  }
+
+  /* ---------------- 描画 ---------------- */
+  function clear(c, ctx) { ctx.fillStyle = '#05070a'; ctx.fillRect(0, 0, c.width, c.height); }
+
+  function drawHist() {
+    clear(hist, hx);
+    var L = P.L, N = P.N, pad = 26, w = hist.width - pad - 8, h = hist.height - 30;
+    var bw = w / (L + 1), ymax = 0.05;
+    for (var d = 0; d <= L; d++) { ymax = Math.max(ymax, P.count[d] / N, X[d]); }
+    function Y(v) { return 8 + (1 - v / ymax) * h; }
+    for (var d2 = 0; d2 <= L; d2++) {
+      var v = P.count[d2] / N, x = pad + d2 * bw;
+      hx.fillStyle = d2 === 0 ? '#ff7a59' : (2 * d2 > L && cfg.mode === 'two' ? '#4ade80' : '#4aa3ff');
+      hx.fillRect(x + 1, Y(v), Math.max(1, bw - 2), 8 + h - Y(v));
+    }
+    hx.fillStyle = '#e8e8e8';
+    for (var d3 = 0; d3 <= L; d3++) {
+      var xv = X[d3]; if (xv < 1e-4) continue;
+      hx.beginPath(); hx.arc(pad + (d3 + 0.5) * bw, Y(xv), Math.max(1.5, Math.min(3, bw / 3)), 0, 6.283); hx.fill();
+    }
+    hx.strokeStyle = 'rgba(255,255,255,.25)'; hx.beginPath(); hx.moveTo(pad, 8 + h); hx.lineTo(pad + w, 8 + h); hx.stroke();
+    hx.fillStyle = 'rgba(215,220,229,.8)'; hx.font = '10px ui-monospace,Menlo,monospace';
+    hx.fillText(ymax.toFixed(2), 2, 14); hx.fillText('0', 12, 8 + h + 4);
+    hx.fillText('d=0', pad, hist.height - 6); hx.fillText('d=' + L, pad + w - 28, hist.height - 6);
+    hx.fillText('世代 ' + P.gen, hist.width - 80, 14);
+  }
+
+  function drawTrace() {
+    clear(trace, tx);
+    var n = traceSim.length, pad = 6, H = trace.height - 2 * pad;
+    function Y(v) { return pad + (1 - v) * H; }
+    function X_(i) { return pad + (i / Math.max(1, TRACE_CAP - 1)) * (trace.width - 2 * pad); }
+    tx.strokeStyle = 'rgba(255,255,255,.2)'; tx.beginPath(); tx.moveTo(0, Y(0.5)); tx.lineTo(trace.width, Y(0.5)); tx.stroke();
+    function line(arr, color, width) {
+      tx.strokeStyle = color; tx.lineWidth = width; tx.beginPath();
+      for (var i = 0; i < n; i++) { if (i === 0) tx.moveTo(X_(i), Y(arr[i])); else tx.lineTo(X_(i), Y(arr[i])); }
+      tx.stroke();
+    }
+    if (cfg.mode === 'two') line(traceFar, '#4ade80', 1.2);
+    line(traceDet, '#e8e8e8', 1.2);
+    line(traceSim, '#ff7a59', 1.6);
+    tx.fillStyle = 'rgba(215,220,229,.7)'; tx.font = '10px ui-monospace,Menlo,monospace';
+    tx.fillText('1', 3, Y(1) + 9); tx.fillText('0', 3, Y(0) - 2);
+    tx.fillText('x_0', trace.width - 26, Y(traceSim[n - 1]) - 3);
+  }
+
+  function drawSweep() {
+    clear(sweep, sx);
+    var padL = 34, padB = 22, padT = 10, padR = 10;
+    var w = sweep.width - padL - padR, h = sweep.height - padT - padB;
+    function X_(rel) { return padL + (rel / 1.5) * w; }
+    function Y(v) { return padT + (1 - v) * h; }
+    sx.strokeStyle = 'rgba(255,255,255,.25)';
+    sx.beginPath(); sx.moveTo(padL, Y(0)); sx.lineTo(padL + w, Y(0)); sx.moveTo(padL, Y(0)); sx.lineTo(padL, Y(1)); sx.stroke();
+    sx.fillStyle = 'rgba(215,220,229,.75)'; sx.font = '10px ui-monospace,Menlo,monospace';
+    [0, 0.5, 1, 1.5].forEach(function (r) {
+      sx.fillText(r.toFixed(1), X_(r) - 8, sweep.height - 8);
+      sx.strokeStyle = 'rgba(255,255,255,.08)'; sx.beginPath(); sx.moveTo(X_(r), Y(0)); sx.lineTo(X_(r), Y(1)); sx.stroke();
+    });
+    [0, 0.5, 1].forEach(function (v) { sx.fillText(v.toFixed(1), 6, Y(v) + 4); });
+    // ε=0.1 の水準
+    sx.strokeStyle = 'rgba(251,191,36,.35)'; sx.setLineDash([2, 4]); sx.beginPath(); sx.moveTo(padL, Y(0.1)); sx.lineTo(padL + w, Y(0.1)); sx.stroke();
+    sx.setLineDash([]);
+    sx.fillStyle = 'rgba(251,191,36,.8)'; sx.fillText('ε=0.1', padL + w - 36, Y(0.1) - 3);
+    // ln σ / L の位置
+    if (cfg.mode !== 'two') {
+      var relLog = (Math.log(cfg.sigma) / cfg.L) / scaleOf(cfg);
+      sx.strokeStyle = 'rgba(255,255,255,.35)'; sx.setLineDash([3, 3]); sx.beginPath(); sx.moveTo(X_(relLog), Y(0)); sx.lineTo(X_(relLog), Y(1)); sx.stroke(); sx.setLineDash([]);
+      sx.fillStyle = 'rgba(215,220,229,.7)'; sx.fillText('ln σ/L', X_(relLog) + 3, padT + 10);
+    }
+    if (detCurve) {
+      if (cfg.mode === 'one') {
+        sx.strokeStyle = '#7e8797'; sx.setLineDash([4, 3]); sx.lineWidth = 1; sx.beginPath();
+        for (var i = 0; i < detCurve.rel.length; i++) { var c = detCurve.closed[i]; if (i === 0) sx.moveTo(X_(detCurve.rel[i]), Y(c)); else sx.lineTo(X_(detCurve.rel[i]), Y(c)); }
+        sx.stroke(); sx.setLineDash([]);
+      }
+      sx.strokeStyle = '#e8e8e8'; sx.lineWidth = 1.5; sx.beginPath();
+      for (var i2 = 0; i2 < detCurve.rel.length; i2++) { var f = detCurve.fixed[i2]; if (i2 === 0) sx.moveTo(X_(detCurve.rel[i2]), Y(f)); else sx.lineTo(X_(detCurve.rel[i2]), Y(f)); }
+      sx.stroke();
+    }
+    sx.fillStyle = '#ff7a59';
+    sweepPts.forEach(function (p) { sx.beginPath(); sx.arc(X_(p.rel), Y(p.val), 3.5, 0, 6.283); sx.fill(); });
+    var curRel = sweeping && sweepState ? relOfJ(sweepState.j) : cfg.rel;
+    sx.strokeStyle = '#fbbf24'; sx.lineWidth = 1; sx.beginPath(); sx.moveTo(X_(curRel), Y(0)); sx.lineTo(X_(curRel), Y(1)); sx.stroke();
+    if (sweeping && sweepState) {
+      sx.fillStyle = 'rgba(251,191,36,.9)';
+      sx.fillText('掃引中 ' + sweepState.gens + '/' + cfg.T + ' 世代', X_(0.02), Y(0.96));
+    }
+    sx.fillStyle = 'rgba(215,220,229,.7)'; sx.fillText('μ / μ_c⁰ →', padL + w - 60, sweep.height - 8);
+    sx.fillText(cfg.mode === 'two' ? 'P_B' : 'x̄_0', 4, padT + 8);
+  }
+
+  function render() {
+    drawHist(); drawTrace(); drawSweep();
+    var L = P.L, N = P.N, x0 = P.count[0] / N;
+    var c1 = (P.count[0] + P.count[1]) / N, c2 = c1 + (L >= 2 ? P.count[2] / N : 0);
+    var dsum = 0; for (var d = 0; d <= L; d++) dsum += d * P.count[d];
+    if (P.gen !== lastCons && P.gen % 10 === 0) {
+      consText = S21S.consensusIsMaster(S21.siteCounts(P), N) ? '一致' : 'ずれ'; lastCons = P.gen;
+    }
+    el('gen').textContent = P.gen;
+    Harness.num('x0', x0.toFixed(4), 8);
+    Harness.num('x0det', X[0].toFixed(4), 8);
+    Harness.num('closed', cfg.mode === 'one' ? S21.closedFormShare(cfg.sigma, P.mu, L).toFixed(4) : '—', 8);
+    Harness.num('cloud', c1.toFixed(3) + ' / ' + c2.toFixed(3), 14);
+    el('cons').textContent = consText;
+    Harness.num('dm', (dsum / (N * L)).toFixed(4), 8);
+    Harness.num('muc', S21.closedFormRoot(cfg.sigma, L, 0).toFixed(5), 9);
+    Harness.num('mulog', (Math.log(cfg.sigma) / L).toFixed(5), 9);
+    Harness.num('muabs', P.mu.toFixed(5), 9);
+    el('hash').textContent = S21.hashPool(P);
+    var b = el('verdict');
+    if (P.gen < 20) { b.className = 'banner'; b.textContent = '20 世代たつと目安の札を出す'; }
+    else if (cfg.mode === 'flat') { b.className = 'banner flat'; b.textContent = '平坦 — どの μ でも主配列は保てない（負コントロール）'; }
+    else if (cfg.mode === 'two') {
+      var far = traceFar[traceFar.length - 1];
+      b.className = far > 0.5 ? 'banner lost' : 'banner keep';
+      b.textContent = far > 0.5 ? '平原（低いが広い）が勝っている P_B = ' + far.toFixed(3) : '峰（高いが狭い）が勝っている P_B = ' + far.toFixed(3);
+    }
+    else if (x0 >= 0.1) { b.className = 'banner keep'; b.textContent = '主配列が保たれている x_0 = ' + x0.toFixed(3) + '（写像 ' + X[0].toFixed(3) + '）'; }
+    else { b.className = 'banner lost'; b.textContent = '主配列は保てていない x_0 = ' + x0.toFixed(3) + '（写像 ' + X[0].toFixed(3) + '）'; }
+  }
+
+  function frame() {
+    if (sweeping) { sweepChunk(); render(); }
+    else if (playing) { advance(P.N >= 5000 ? 1 : P.N >= 2000 ? 2 : 4); render(); }
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------------- つまみ ---------------- */
+  el('sigma').addEventListener('input', function () { el('sigmav').textContent = el('sigma').value; sweeping = false; sweepState = null; sweepPts = []; reset(); });
+  el('mu').addEventListener('input', function () { el('muv').textContent = parseFloat(el('mu').value).toFixed(3); if (!sweeping) reset(); });
+  ['mode', 'L', 'seed', 'T'].forEach(function (id) {
+    el(id).addEventListener('change', function () { sweeping = false; sweepState = null; sweepPts = []; reset(); });
+  });
+  el('play').addEventListener('click', function () {
+    if (sweeping) { sweeping = false; sweepState = null; reset(); }
+    playing = !playing; this.textContent = playing ? '止める' : '再生';
+  });
+  el('step').addEventListener('click', function () { if (sweeping) return; advance(10); render(); });
+  el('reset').addEventListener('click', function () { sweeping = false; sweepState = null; sweepPts = []; reset(); });
+  el('sweepBtn').addEventListener('click', function () { startSweep(); });
+  function preset(mode, rel, L) {
+    el('mode').value = mode; el('L').value = String(L); el('mu').value = rel; el('muv').textContent = rel.toFixed(3);
+    el('sigma').value = 10; el('sigmav').textContent = '10';
+    sweeping = false; sweepState = null; sweepPts = [];
+    reset(); playing = true; el('play').textContent = '止める';
+  }
+  el('preBelow').addEventListener('click', function () { preset('one', 0.7, 20); });
+  el('preAbove').addEventListener('click', function () { preset('one', 1.3, 20); });
+  el('preTwo').addEventListener('click', function () { preset('two', 1.2, 20); });
+
+  reset();
+  frame();
+
+  // --- 共通の実行UI（撮る / 広さ / 設定の保存と復元）を載せる ---
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (playing) document.getElementById('play').click(); },
+    id: 'S-21',
+    version: '1.0.0',
+    inputs: ['mode', 'L', 'sigma', 'mu', 'T', 'seed'],
+    paramNames: {
+      mode: { category: 'p', code: 'mode', full: 'landscape_mode' },
+      L: { category: 's', code: 'l', full: 'word_length' },
+      sigma: { category: 'p', code: 'sigma', full: 'sigma' },
+      mu: { category: 'p', code: 'mu', full: 'mu_relative' },
+      T: { category: 's', code: 't', full: 'gens_per_point' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+    },
+    canvases: ['hist', 'trace', 'sweep'],
+    // この系に空間は無い。「広さ」は語の数 N（個体数）にあたる——有限 N の効きを見る本スケッチでは意味を持つ。
+    // 桁数 L は 32bit 語の都合と閾値の 1/L スケーリングを見せるため、つまみ側で 10/20/40/80 から選ぶ。
+    resize: function (scale) {
+      popScale = scale;
+      sweeping = false; sweepState = null; sweepPts = [];
+      reset();
+      Harness.say('語の数 N を ' + P.N + ' にした（1世代の手間は N に比例する）');
+    },
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-41 Lenia の分岐 — 同じパラメータで4系統を並べて回す</title>
+<style>
+  :root{
+    --bg:#0d1013; --panel:#161a1f; --line:#272d35; --fg:#d9dee4; --dim:#7c8694;
+    --l:#5aa9e6; --al:#8ad6a0; --fl:#f2b544; --pl:#ef6f6c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:13px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1000px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .grid{display:flex;gap:12px;flex-wrap:wrap;min-width:0}
+  .cell{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 10px 10px}
+  .cell h2{margin:0 0 2px;font-size:12px;font-weight:600;letter-spacing:.02em}
+  .cell .sub{margin:0 0 7px;font-size:11px;color:var(--dim);font-family:ui-monospace,Menlo,monospace}
+  canvas{display:block;background:#04070a;border:1px solid var(--line);border-radius:3px;
+         image-rendering:pixelated;max-width:100%;height:auto}
+  aside{width:330px;min-width:280px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:11px 12px;margin-bottom:12px}
+  .box h2{margin:0 0 8px;font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.07em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:104px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  select,input[type=number]{background:#0b0e12;color:var(--fg);border:1px solid var(--line);
+    border-radius:4px;padding:4px 6px;font:12px ui-monospace,Menlo,monospace;flex:1;min-width:0}
+  button{background:#1e242c;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#2a323c}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;border-bottom:1px solid #1d2229}
+  table.stat td.k{color:var(--dim);width:58%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:9ch}
+  .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:1px}
+  .note{font-size:11px;color:var(--dim);margin:8px 0 0;line-height:1.55}
+  code{background:#0b0e12;padding:1px 4px;border-radius:3px;font-size:11px}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-41 Lenia の分岐 — 同じパラメータで4系統を並べて回す</h1>
+  <p>左から <b>Lenia</b>（原型・加算して clip）／<b>Asymptotic Lenia</b>（目標値へ緩和・clip 無し）／
+  <b>Flow Lenia</b>（質量を輸送・保存する）／<b>Particle Lenia</b>（格子を捨ててエネルギー場の勾配で動く粒子）。
+  上3つは<b>同じ核・同じ成長写像・同じ初期配置</b>を共有する。質量の欄を見ると、保存則が入っているのはどれかが一目で分かる。</p>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+    <div class="cell"><h2 style="color:var(--l)">Lenia (2019)</h2>
+      <p class="sub">A ← [A + dt·G(K*A)]₀¹</p><canvas id="cL" width="192" height="192"></canvas></div>
+    <div class="cell"><h2 style="color:var(--al)">Asymptotic Lenia (2021)</h2>
+      <p class="sub">A ← A + dt·(T(K*A) − A)</p><canvas id="cA" width="192" height="192"></canvas></div>
+    <div class="cell"><h2 style="color:var(--fl)">Flow Lenia (2022)</h2>
+      <p class="sub">A ← 輸送(A, F), ΣA = const</p><canvas id="cF" width="192" height="192"></canvas></div>
+    <div class="cell"><h2 style="color:var(--pl)">Particle Lenia (2022)</h2>
+      <p class="sub">dp/dt = −∇(R − G)</p><canvas id="cP" width="192" height="192"></canvas></div>
+    <div class="cell" style="flex:1;min-width:280px"><h2>総質量とエネルギーの推移</h2>
+      <p class="sub">各系の質量を初期値で割った比／粒子系は E_total</p>
+      <canvas id="cT" width="600" height="150" style="width:100%"></canvas></div>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>つまみ</h2>
+      <label><span class="k">パラメータ組</span><input id="pset" type="range" min="0" max="23" step="1" value="3"><output id="psetv" class="num">3</output></label>
+      <label><span class="k">μ（成長の中心）</span><input id="mu" type="range" min="0.05" max="0.5" step="0.005" value="0.15"><output id="muv" class="num">0.150</output></label>
+      <label><span class="k">σ（成長の幅）</span><input id="sg" type="range" min="0.005" max="0.2" step="0.002" value="0.017"><output id="sgv" class="num">0.017</output></label>
+      <label><span class="k">dt</span><input id="dt" type="range" min="0.05" max="0.3" step="0.01" value="0.2"><output id="dtv" class="num">0.20</output></label>
+      <label><span class="k">粒子の規則</span>
+        <select id="pmode">
+          <option value="field">場の勾配（原典）</option>
+          <option value="total">全エネルギーの勾配（対照）</option>
+        </select></label>
+      <label><span class="k">1コマの歩数</span><input id="spd" type="range" min="1" max="6" step="1" value="1"><output id="spdv" class="num">1</output></label>
+      <div class="row">
+        <button id="go">停止</button><button id="rs">撒き直す</button>
+        <button id="orb">Orbium を置く</button>
+      </div>
+      <p class="note">「パラメータ組」は <code>run.js</code> が掃引したのと同じ 24 組（同じ乱数の種）。
+      μ と σ を動かすと3つの格子系に同時に効く。</p>
+    </div>
+
+    <div class="box">
+      <h2>いま出ている数</h2>
+      <table class="stat">
+        <tr><td class="k"><span class="sw" style="background:var(--l)"></span>Lenia 質量比</td><td class="v" id="mL">—</td></tr>
+        <tr><td class="k"><span class="sw" style="background:var(--al)"></span>Asymptotic 質量比</td><td class="v" id="mA">—</td></tr>
+        <tr><td class="k"><span class="sw" style="background:var(--fl)"></span>Flow 質量比</td><td class="v" id="mF">—</td></tr>
+        <tr><td class="k">Flow の相対変動</td><td class="v" id="dF">—</td></tr>
+        <tr><td class="k">Lenia 占有比 PR</td><td class="v" id="pL">—</td></tr>
+        <tr><td class="k">Flow 占有比 PR</td><td class="v" id="pF">—</td></tr>
+        <tr><td class="k"><span class="sw" style="background:var(--pl)"></span>粒子 E_total</td><td class="v" id="eP">—</td></tr>
+        <tr><td class="k">粒子 平均速度</td><td class="v" id="vP">—</td></tr>
+        <tr><td class="k">E が上がった歩の割合</td><td class="v" id="uP">—</td></tr>
+        <tr><td class="k">歩数 t</td><td class="v" id="tt">0</td></tr>
+      </table>
+      <p class="note">占有比 PR = (Σa)²/(N·Σa²)。<b>一様な場でちょうど 1.0</b> になり、狭い範囲に集まるほど 0 に近づく。
+      閾値も連結半径も選ばずに測れる（事前登録 V3）。</p>
+    </div>
+
+    <div class="box">
+      <h2>読み方</h2>
+      <p class="note">Flow の質量比は <b>1.000000</b> から動かない——reintegration tracking の分布が 1 に積分されるため。
+      Lenia は clip があるので動く。Asymptotic Lenia は clip を持たないが、保存則も持たない。<br><br>
+      粒子系で「規則」を<b>全エネルギーの勾配</b>に替えると、E は単調に下がって止まる。
+      <b>場の勾配</b>（原典）では E が上がる歩が現れ、止まらない。</p>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+'use strict';
+(function () {
+  var S = window.S41;
+  var W = 48, H = 48, R = 8, NP = 200, HALF = 12, SC = 4;
+  var sysL, sysA, sysF, sysP, ker, m0L, m0A, m0F, t = 0, running = true;
+  var hist = [], ePrev = null, eUp = 0, eAll = 0;
+
+  function $(id) { return document.getElementById(id); }
+  function num(id, v) { $(id).textContent = v; }
+
+  function sampleParams(rng) {
+    return {
+      mu: 0.05 + rng() * 0.45, sigma: 0.001 + rng() * 0.199,
+      rings: [0, 1, 2].map(function () { return { a: rng(), b: rng(), w: 0.01 + rng() * 0.49 }; })
+    };
+  }
+  function seedField(rng, patch) {
+    var A = new Float64Array(W * H), x0 = Math.floor((W - patch) / 2), y0 = Math.floor((H - patch) / 2);
+    for (var y = 0; y < patch; y++) for (var x = 0; x < patch; x++) A[(y0 + y) * W + x0 + x] = rng();
+    return A;
+  }
+
+  function build(keepSliders) {
+    var si = +$('pset').value;
+    var p = sampleParams(S.mulberry32(1000 + si));
+    if (!keepSliders) {
+      $('mu').value = p.mu.toFixed(3); $('sg').value = Math.max(0.005, Math.min(0.2, p.sigma)).toFixed(3);
+    }
+    var mu = +$('mu').value, sg = +$('sg').value, dt = +$('dt').value;
+    ker = S.makeKernel(R, p.rings);
+    var A0 = seedField(S.mulberry32(5000 + si), Math.round(W / 3));
+    sysL = S.makeLenia({ W: W, H: H, kernel: ker, mu: mu, sigma: sg, dt: dt });
+    sysA = S.makeAsymptotic({ W: W, H: H, kernel: ker, mu: mu, sigma: sg, dt: dt });
+    sysF = S.makeFlow({ W: W, H: H, kernel: ker, mu: mu, sigma: sg, dt: dt, s: 0.65, n: 2, Ac: 4 });
+    sysL.A.set(A0); sysA.A.set(A0); sysF.A.set(A0);
+    m0L = S.totalMass(sysL.A); m0A = S.totalMass(sysA.A); m0F = S.totalMass(sysF.A);
+    var rng = S.mulberry32(17), pts = new Float64Array(NP * 2);
+    for (var i = 0; i < pts.length; i++) pts[i] = (rng() * 2 - 1) * HALF;
+    sysP = S.makeParticle({
+      params: { mu_k: 4.0, sigma_k: 1.0, w_k: 0.022, mu_g: 0.6, sigma_g: 0.15, c_rep: 1.0 },
+      points: pts, dt: 0.1, mode: $('pmode').value
+    });
+    t = 0; hist = []; ePrev = null; eUp = 0; eAll = 0;
+    syncOut();
+  }
+
+  /** Orbium（Chan 2019 の代表的な模様）に近い設定へ合わせる。核は1環にする。 */
+  function orbium() {
+    $('mu').value = 0.15; $('sg').value = 0.017; $('dt').value = 0.1;
+    ker = S.makeKernel(13, [{ a: 0.5, b: 1, w: 0.15 }]);
+    var A0 = new Float64Array(W * H), rng = S.mulberry32(3);
+    for (var y = 0; y < 20; y++) for (var x = 0; x < 20; x++) {
+      var dx = (x - 10) / 9, dy = (y - 10) / 9, r = Math.sqrt(dx * dx + dy * dy);
+      A0[(14 + y) * W + 14 + x] = r < 1 ? Math.max(0, 1 - r) * (0.55 + 0.45 * Math.sin(4 * Math.atan2(dy, dx + 0.4))) : 0;
+    }
+    for (var i = 0; i < A0.length; i++) A0[i] = Math.max(0, Math.min(1, A0[i] + (rng() - 0.5) * 0.02));
+    var mu = +$('mu').value, sg = +$('sg').value, dt = +$('dt').value;
+    sysL = S.makeLenia({ W: W, H: H, kernel: ker, mu: mu, sigma: sg, dt: dt });
+    sysA = S.makeAsymptotic({ W: W, H: H, kernel: ker, mu: mu, sigma: sg, dt: dt });
+    sysF = S.makeFlow({ W: W, H: H, kernel: ker, mu: mu, sigma: sg, dt: dt, s: 0.65, n: 2, Ac: 4 });
+    sysL.A.set(A0); sysA.A.set(A0); sysF.A.set(A0);
+    m0L = S.totalMass(sysL.A); m0A = S.totalMass(sysA.A); m0F = S.totalMass(sysF.A);
+    t = 0; hist = []; syncOut();
+  }
+
+  function draw(canvas, A, hue) {
+    var ctx = canvas.getContext('2d');
+    var img = ctx.createImageData(W, H), d = img.data, i, v;
+    for (i = 0; i < W * H; i++) {
+      v = Math.max(0, Math.min(1, A[i]));
+      d[i * 4] = Math.round(hue[0] * v * 255);
+      d[i * 4 + 1] = Math.round(hue[1] * v * 255);
+      d[i * 4 + 2] = Math.round(hue[2] * v * 255);
+      d[i * 4 + 3] = 255;
+    }
+    var off = document.createElement('canvas'); off.width = W; off.height = H;
+    off.getContext('2d').putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
+  }
+
+  function drawParticles() {
+    var c = $('cP'), ctx = c.getContext('2d'), pts = sysP.points;
+    ctx.fillStyle = '#04070a'; ctx.fillRect(0, 0, c.width, c.height);
+    var sc = c.width / (2 * HALF * 1.4);
+    ctx.fillStyle = '#ef6f6c';
+    for (var i = 0; i < pts.length; i += 2) {
+      var x = c.width / 2 + pts[i] * sc, y = c.height / 2 + pts[i + 1] * sc;
+      ctx.beginPath(); ctx.arc(x, y, 1.6, 0, 6.2832); ctx.fill();
+    }
+  }
+
+  function drawTrace() {
+    var c = $('cT'), ctx = c.getContext('2d');
+    ctx.fillStyle = '#04070a'; ctx.fillRect(0, 0, c.width, c.height);
+    if (hist.length < 2) return;
+    var cols = ['#5aa9e6', '#8ad6a0', '#f2b544'];
+    ctx.strokeStyle = '#2a323c'; ctx.beginPath();
+    ctx.moveTo(0, c.height * 0.5); ctx.lineTo(c.width, c.height * 0.5); ctx.stroke();
+    for (var k = 0; k < 3; k++) {
+      ctx.strokeStyle = cols[k]; ctx.lineWidth = 1.4; ctx.beginPath();
+      for (var i = 0; i < hist.length; i++) {
+        var x = i / (hist.length - 1) * c.width;
+        var y = c.height * (1 - Math.max(0, Math.min(1, hist[i][k] / 2)));
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#7c8694'; ctx.font = '10px ui-monospace,Menlo,monospace';
+    ctx.fillText('質量比 0〜2（中央の線が 1.0）', 6, 12);
+  }
+
+  function syncOut() {
+    num('psetv', $('pset').value); num('muv', (+$('mu').value).toFixed(3));
+    num('sgv', (+$('sg').value).toFixed(3)); num('dtv', (+$('dt').value).toFixed(2));
+    num('spdv', $('spd').value);
+  }
+
+  function stats() {
+    var mL = S.totalMass(sysL.A) / m0L, mA = S.totalMass(sysA.A) / m0A, mF = S.totalMass(sysF.A) / m0F;
+    num('mL', mL.toFixed(6)); num('mA', mA.toFixed(6)); num('mF', mF.toFixed(6));
+    num('dF', Math.abs(mF - 1).toExponential(2));
+    var pL = S.participation(sysL.A), pF = S.participation(sysF.A);
+    num('pL', isNaN(pL) ? '定義されず' : pL.toFixed(4));
+    num('pF', isNaN(pF) ? '定義されず' : pF.toFixed(4));
+    var e = S.totalEnergy(sysP.params.params, sysP.points);
+    num('eP', e.toFixed(3)); num('vP', sysP.speed.toExponential(2));
+    if (ePrev !== null) { eAll++; if (e > ePrev + 1e-12) eUp++; }
+    ePrev = e;
+    num('uP', eAll ? (eUp / eAll).toFixed(3) : '—');
+    num('tt', String(t));
+    hist.push([mL, mA, mF]); if (hist.length > 260) hist.shift();
+  }
+
+  function frame() {
+    if (running) {
+      var n = +$('spd').value;
+      for (var i = 0; i < n; i++) { sysL.step(); sysA.step(); sysF.step(); sysP.step(); t++; }
+    }
+    draw($('cL'), sysL.A, [0.35, 0.66, 0.90]);
+    draw($('cA'), sysA.A, [0.54, 0.84, 0.63]);
+    draw($('cF'), sysF.A, [0.95, 0.71, 0.27]);
+    drawParticles(); stats(); drawTrace();
+    requestAnimationFrame(frame);
+  }
+
+  ['mu', 'sg', 'dt'].forEach(function (id) {
+    $(id).addEventListener('input', function () {
+      syncOut();
+      var mu = +$('mu').value, sg = +$('sg').value, dt = +$('dt').value;
+      [sysL, sysA, sysF].forEach(function (s) { s.params.mu = mu; s.params.sigma = sg; s.params.dt = dt; });
+    });
+  });
+  $('spd').addEventListener('input', syncOut);
+  $('pset').addEventListener('input', function () { build(false); });
+  $('pmode').addEventListener('change', function () { build(true); });
+  $('go').addEventListener('click', function () { running = !running; $('go').textContent = running ? '停止' : '再開'; });
+  $('rs').addEventListener('click', function () { build(true); });
+  $('orb').addEventListener('click', orbium);
+
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('go').click(); },
+    id: 'S-41', version: '1.0.0',
+    inputs: ['pset', 'mu', 'sg', 'dt', 'pmode', 'spd'],
+    paramNames: {
+      pset: { category: 'p', code: 'pset', full: 'param_set' },
+      mu: { category: 'p', code: 'mu', full: 'mu' },
+      sg: { category: 'p', code: 'sg', full: 'sigma' },
+      dt: { category: 'p', code: 'dt', full: 'dt' },
+      pmode: { category: 'p', code: 'pmode', full: 'particle_rule' },
+      spd: { category: 's', code: 'spd', full: 'steps_per_frame' },
+    },
+    canvases: ['cL', 'cA', 'cF', 'cP', 'cT'],
+    // 「広さ」= 格子の一辺と粒子の撒き幅。どちらも意味を持つので出す
+    resize: function (scale) {
+      W = H = Math.max(16, Math.round(48 * scale));
+      NP = Math.max(20, Math.round(200 * scale * scale));
+      HALF = 12 * scale;
+      ['cL', 'cA', 'cF', 'cP'].forEach(function (id) {
+        $(id).width = Math.round(W * SC); $(id).height = Math.round(H * SC);
+      });
+      build(true);
+    },
+    onRestore: function () { syncOut(); build(true); }
+  });
+
+  build(false);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,731 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-60 — 小パターン→大パターンの階層シミュレーションの年表（提示の run。主張はしない）</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--hot:#fbbf24}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.7 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  h2{font-size:13px;color:var(--acc);border-bottom:1px solid var(--line);padding-bottom:6px;margin:26px 0 10px}
+  h3{font-size:12.5px;color:var(--fg);margin:18px 0 4px}
+  .sub{color:var(--dim);font-size:12px;margin:0}
+  main{padding:4px 16px 28px;max-width:820px}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:12px;color:var(--dim)}
+  .box b{color:var(--fg)}
+  p{margin:6px 0;font-size:12.5px}
+  p.meta{color:var(--dim);font-size:11.5px;margin:2px 0}
+  p.note{color:var(--hot);font-size:11.5px;margin:4px 0}
+  p.dim{color:var(--dim)}
+  ul,ol{margin:6px 0;padding-left:1.3em;font-size:12.5px}
+  li{margin:3px 0}
+  code{background:#0009;border-radius:4px;padding:1px 5px;font-size:11.5px}
+  figure.cite{margin:6px 0 10px;padding:0}
+  blockquote.cite{margin:0;padding:7px 9px;border-left:3px solid var(--acc);background:#0c0f16;border-radius:0 6px 6px 0;font-size:11.6px;color:var(--fg);overflow-x:auto}
+  figcaption{margin-top:3px;font-size:10.5px;color:var(--dim)}
+  a{color:var(--acc)}
+  footer{padding:10px 16px 26px;color:var(--dim);font-size:11px;max-width:820px}
+  .tag{display:inline-block;font-size:9.5px;color:var(--dim);border:1px solid var(--line);border-radius:10px;padding:1px 7px;margin-left:6px;font-weight:400}
+  .entry{border-bottom:1px solid var(--line);padding-bottom:10px}
+</style>
+
+<header>
+  <h1>S-60 — 小パターン→大パターンの階層シミュレーションの年表 <span class="tag">提示の run（exhibit）</span></h1>
+  <p class="sub">要素が集まって小さな単位（U1）を作り、それが集まってより大きな単位（U2, …）を作るシミュレーションについて、
+  searchProtocol（criteria.json）の範囲で到達できた文献を、発表年順に列べる。書いてあるのは原典から逐語または機械的に
+  取れる事実（書誌・著者・識別子・著者自身の記述）だけである。<b>分類・系統・順位づけ・時系列の読み・結論は一行も書かない</b>——
+  それは符号化（S4）とレポートの仕事である。書いた事実が原典と一致することは <code>selftest.js</code> が機械で照合する。</p>
+</header>
+
+<main>
+
+<div class="box">
+  <b>このページの性質。</b> 母集団は eligibility.gateS2_Hloose（包含の門）を通った 76 件。
+  うち P1（本文または要旨に到達）が 70 件、
+  P2（要旨・書誌だけで、U1/U2 の逐語は採れなかったが除外もしなかった）が 6 件。
+  ページに置く逐語はすべて raw/quote-evidence.jsonl の判定「逐語」または「表記差」を持つもののみで、
+  書誌はすべて raw/bib-check.jsonl の判定「一致」または「表記差」を持つもののみである。
+</div>
+
+<h2>1. 年表</h2>
+
+<article class="entry" id="M76" data-corpus-id="M76">
+  <h3>1974 — Autopoiesis: the organization of living systems (Varela, Maturana &amp; Uribe) <span class="tag">P2・書誌のみ</span><span class="tag" data-bib-key="M76">層A: 一致</span></h3>
+  <p class="meta">Autopoiesis: The organization of living systems, its characterization and a model</p>
+  <p class="meta">著者: Francisco Varela, Humberto R. Maturana, R. Uribe　分野(OpenAlex primary_topic.field): Social Sciences</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1016/0303-2647(74)90031-8">10.1016/0303-2647(74)90031-8</a></p>
+  <p class="meta dim">U1/U2の逐語は未到達（母集団には含むが本文・要旨から採れなかった）。</p>
+  <p class="note">要旨が取得できなかった（1974年の論文）。S-31（自己創出）の登録済み書誌（McMullin 1997/2004 が再現したアルゴリズム）と同一の模型。触媒・基質・結合子の要素が膜で囲まれた自己産出単位を形成する2段構造として広く知られるが、逐語は本セッションでは採れず不明とし、S-31 の既存記述に委ねる。</p>
+</article>
+<article class="entry" id="M06" data-corpus-id="M06">
+  <h3>1983 — DLCA（Meakin 1983） <span class="tag">P1・要旨</span><span class="tag" data-bib-key="D1">層A: 一致</span></h3>
+  <p class="meta">Formation of Fractal Clusters and Networks by Irreversible Diffusion-Limited Aggregation</p>
+  <p class="meta">著者: Paul Meakin　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1103/physrevlett.51.1119">10.1103/physrevlett.51.1119</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M06-u1u2">growing clusters as well as individual particles are mobile</blockquote><figcaption>M06:U1=個々の粒子, U2=growing clusters</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M06-result">structures with a fractal (Hausdorff) dimensionality of about 1.45-1.5</blockquote><figcaption>M06:結果（相似則）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M07" data-corpus-id="M07">
+  <h3>1983 — CCA（Kolb–Botet–Jullien 1983） <span class="tag">P1・要旨</span><span class="tag" data-bib-key="D2">層A: 一致</span></h3>
+  <p class="meta">Scaling of Kinetically Growing Clusters</p>
+  <p class="meta">著者: Moritz Georg Kolb, Robert S. Botet, Rémi Jullien　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1103/physrevlett.51.1123">10.1103/physrevlett.51.1123</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M07-u1u2">the process of cluster growth by aggregation of clusters</blockquote><figcaption>M07:U1=クラスタ, U2=クラスタの集合（自己相似）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M24" data-corpus-id="M24">
+  <h3>1984 — Hierarchical CCA model（1984, chemically limited） <span class="tag">P1・要旨</span><span class="tag" data-bib-key="N1">層A: 一致</span></h3>
+  <p class="meta">Hierarchical model for chemically limited cluster-cluster aggregation</p>
+  <p class="meta">著者: Rémi Jullien, Moritz Georg Kolb　分野(OpenAlex primary_topic.field): Environmental Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1088/0305-4470/17/12/003">10.1088/0305-4470/17/12/003</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M24-u1u2">hierarchical model is introduced to describe chemically limited cluster-cluster aggregation</blockquote><figcaption>M24:U1=活性サイト/粒子, U2=クラスタ</figcaption></figure>
+  
+</article>
+<article class="entry" id="M45" data-corpus-id="M45">
+  <h3>1984 — Effects of cluster trajectories on cluster-cluster aggregation (1984) <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M45">層A: 一致</span></h3>
+  <p class="meta">Effects of cluster trajectories on cluster-cluster aggregation: A comparison of linear and Brownian trajectories in two- and three-dimensional simulations</p>
+  <p class="meta">著者: Paul Meakin　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1103/physreva.29.997">10.1103/physreva.29.997</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M45-u1u2">aggregates formed as a result of cluster-cluster aggregation</blockquote><figcaption>M45:U1=particle, U2=cluster-cluster aggregate</figcaption></figure>
+  
+</article>
+<article class="entry" id="M67" data-corpus-id="M67">
+  <h3>1988 — Restructuring effects on cluster geometry (DLCA/ballistic/reaction-limited) <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M67">層A: 一致</span></h3>
+  <p class="meta">The effects of restructuring on the geometry of clusters formed by diffusion-limited, ballistic, and reaction-limited cluster–cluster aggregation</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1063/1.455517">10.1063/1.455517</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M67-u1u2">restructuring is allowed to take place immediately after two clusters have contacted each other</blockquote><figcaption>M67:D1/D2の直接の派生（restructuring変種）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M18" data-corpus-id="M18">
+  <h3>1991 — Hypercycle spiral waves（Boerlijst–Hogeweg 1991） <span class="tag">P2・書誌のみ</span><span class="tag" data-bib-key="E2">層A: 一致</span></h3>
+  <p class="meta">Spiral wave structure in pre-biotic evolution: Hypercycles stable against parasites</p>
+  <p class="meta">著者: Maarten C. Boerlijst, Paulien Hogeweg　分野(OpenAlex primary_topic.field): Social Sciences</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1016/0167-2789(91)90049-f">10.1016/0167-2789(91)90049-f</a></p>
+  <p class="meta dim">U1/U2の逐語は未到達（母集団には含むが本文・要旨から採れなかった）。</p>
+  <p class="note">要旨なし。題名から U1=hypercycle（分子種）, U2=spiral wave（空間パターン）と見込まれるが逐語は採れず不明。</p>
+</article>
+<article class="entry" id="M11" data-corpus-id="M11">
+  <h3>1992 — Cellular Potts model（Graner–Glazier 1992） <span class="tag">P1・要旨</span><span class="tag" data-bib-key="X1">層A: 一致</span></h3>
+  <p class="meta">Simulation of biological cell sorting using a two-dimensional extended Potts model</p>
+  <p class="meta">著者: François Graner, James A. Glazier　分野(OpenAlex primary_topic.field): Biochemistry, Genetics and Molecular Biology</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1103/physrevlett.69.2013">10.1103/physrevlett.69.2013</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M11-u1">sorting of a mixture of two types of biological cells</blockquote><figcaption>M11:U1=生物学的細胞</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M11-u2">a logarithmic increase in the length scale of homogeneous clusters. Sorted clusters then round</blockquote><figcaption>M11:U2=ソートされたクラスタ</figcaption></figure>
+  
+</article>
+<article class="entry" id="M09" data-corpus-id="M09">
+  <h3>1993 — Turbulent pattern bases for CA（Crutchfield–Hanson 1993） <span class="tag">P2・書誌のみ</span><span class="tag" data-bib-key="K1">層A: 一致</span></h3>
+  <p class="meta">Turbulent pattern bases for cellular automata</p>
+  <p class="meta">著者: James P. Crutchfield, James Hanson　分野(OpenAlex primary_topic.field): Computer Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1016/0167-2789(93)90092-f">10.1016/0167-2789(93)90092-f</a></p>
+  <p class="meta dim">U1/U2の逐語は未到達（母集団には含むが本文・要旨から採れなかった）。</p>
+  <p class="note">要旨なし。題名から U1=ドメイン/粒子, U2=パターン基底と見込まれるが逐語は採れず不明。</p>
+</article>
+<article class="entry" id="M19" data-corpus-id="M19">
+  <h3>1994 — AlChemy（Fontana–Buss 1994） <span class="tag">P1・要旨</span><span class="tag" data-bib-key="E3">層A: 一致</span></h3>
+  <p class="meta">What would be conserved if &quot;the tape were played twice&quot;?</p>
+  <p class="meta">著者: Walter Fontana, Leo W. Buss　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1073/pnas.91.2.757">10.1073/pnas.91.2.757</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M19-u1">hypercycles of self-reproducing objects arise</blockquote><figcaption>M19:U1=self-reproducing objects</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M19-u2u3">self-maintaining organizations, once established, can combine into higher-order self-maintaining organizations</blockquote><figcaption>M19:U2=self-maintaining organizations, U3=higher-order organizations</figcaption></figure>
+  
+</article>
+<article class="entry" id="M37" data-corpus-id="M37">
+  <h3>1995 — Fluctuating Bond Aggregation gel model <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M37">層A: 一致</span></h3>
+  <p class="meta">Fluctuating Bond Aggregation: a Model for Chemical Gel Formation</p>
+  <p class="meta">著者: R. Jullien, A. Hasmy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1103/PhysRevLett.74.4003">10.1103/PhysRevLett.74.4003</a> ／ arXiv: <a href="https://arxiv.org/abs/cond-mat/9504041">cond-mat/9504041</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M37-u1u2">the realization of all intra-aggregate bonding possibilities prevents the formation of a gelling network</blockquote><figcaption>M37:U1=クラスタ, U2=gelling network</figcaption></figure>
+  
+</article>
+<article class="entry" id="M10" data-corpus-id="M10">
+  <h3>1997 — Computational mechanics of CA: an example（Hanson–Crutchfield 1997） <span class="tag">P1・本文</span><span class="tag" data-bib-key="K2">層A: 一致</span></h3>
+  <p class="meta">Computational mechanics of cellular automata: An example</p>
+  <p class="meta">著者: James Hanson, James P. Crutchfield　分野(OpenAlex primary_topic.field): Computer Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1016/s0167-2789(96)00259-x">10.1016/s0167-2789(96)00259-x</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M10-u1">a domain is a region of parallel rolls</blockquote><figcaption>M10:U1=domain（背景パターン）</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M10-u2">A domain wall (or defect) is defined as follows</blockquote><figcaption>M10:U2=defect/particle（domain wallの群）の定義の導入</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M10-u2detail">We will also refer to a group of closely interacting walls as a defect</blockquote><figcaption>M10:U2=defect（domain wallの群として定義）</figcaption></figure>
+  <p class="note">UC Davis の著者公開ページ（csc.ucdavis.edu/~cmg/papers/ECA54.pdf）から本文PDFを取得し、work/2026-08-30-pdf-text-extractor.py で抽出して本文へ格上げした（#72 系統。ただし真の始祖K1（1993）自体はスキャン画像PDFでOCRできず未到達——K2はK1の技法を直接引き継ぐ後続論文であり、系統としては本文に触れているが、K1個別の本文到達ではない点をS4へ申し送る）。</p>
+</article>
+<article class="entry" id="M57" data-corpus-id="M57">
+  <h3>1997 — Entropy-driven molecular self-assembly (lattice CA) <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M57">層A: 一致</span></h3>
+  <p class="meta">Simulation and dynamics of entropy-driven, molecular self-assembly processes</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Biochemistry, Genetics and Molecular Biology</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1103/physreve.55.4489">10.1103/physreve.55.4489</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M57-u1u2">self-assembly of lipids in aqueous solution forming membranes, micelles, and vesicles</blockquote><figcaption>M57:U1=lipids, U2=membranes/micelles/vesicles</figcaption></figure>
+  
+</article>
+<article class="entry" id="M03" data-corpus-id="M03">
+  <h3>1998 — Lattice Molecular Automaton (LMA) <span class="tag">P1・要旨</span><span class="tag" data-bib-key="R3">層A: 一致</span></h3>
+  <p class="meta">The Lattice Molecular Automaton(LMA): A Simulation System for Constructive Molecular Dynamics</p>
+  <p class="meta">著者: Bernd Mayer, Steen Rasmussen　分野(OpenAlex primary_topic.field): Engineering</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1142/s0129183198000133">10.1142/s0129183198000133</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M03-u1">Molecular objects are encoded as data structures on a 2D triangular lattice</blockquote><figcaption>M03:U1=分子オブジェクト</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M03-u2">Molecular self-assembly is frequently encountered in biochemical systems generating higher order structures with well-defined functionalities</blockquote><figcaption>M03:U2=higher order structures</figcaption></figure>
+  
+</article>
+<article class="entry" id="M74" data-corpus-id="M74">
+  <h3>1998 — Computer simulations of bilayer membranes (Goetz &amp; Lipowsky) <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M74">層A: 一致</span></h3>
+  <p class="meta">Computer simulations of bilayer membranes: Self-assembly and interfacial tension</p>
+  <p class="meta">著者: Rüdiger Goetz, Reinhard Lipowsky　分野(OpenAlex primary_topic.field): Chemistry</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1063/1.476160">10.1063/1.476160</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M74-u1u2">we observe the self-assembly of the surfactant molecules into bilayer membranes</blockquote><figcaption>M74:U1=surfactant molecules, U2=bilayer membranes（S-15の出典）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M08" data-corpus-id="M08">
+  <h3>2000 — Abstract cell model（Ono–Ikegami） <span class="tag">P1・本文</span><span class="tag" data-bib-key="O1">層A: 一致</span></h3>
+  <p class="meta">Self-maintenance and Self-reproduction in an Abstract Cell Model ／ Artificial Chemistry: Computational Studies on the Emergence of Self-Reproducing Units</p>
+  <p class="meta">著者: Naoaki Ono, Takashi Ikegami ／ Naoaki Ono, Takashi Ikegami　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1006/jtbi.2000.2121">10.1006/jtbi.2000.2121</a>　DOI: <a href="https://doi.org/10.1007/3-540-44811-x_20">10.1007/3-540-44811-x_20</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M08-u1u2">chemicals organize themselves into a cell-like structure that maintains its membranes dynamically</blockquote><figcaption>M08:U1=abstract chemicals（catalysts）, U2=cell-like structure（membrane）</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M08-formation">cells that can divide themselves automatically into daughter cells</blockquote><figcaption>M08:走行中の形成・自己複製</figcaption></figure>
+  <p class="note">O1（JTB 2000）自体の要旨はOpenAlex・Crossrefとも取得できなかったが、同じ著者2名による直接の前身プレプリント（Ono &amp; Ikegami, &quot;Model of self-replicating cell capable of self-maintenance&quot;, arXiv adap-org/9905002, 1999）を ar5iv 経由で取得できた——同一の模型（abstract cell model）を報告しており、本文へ格上げした（#71 の始祖として本文到達。ただし正確には2000年版そのものではなく1999年の直接の前身版であることを明記する）。S-59 が同じ書誌を既に引いている。</p>
+</article>
+<article class="entry" id="M47" data-corpus-id="M47">
+  <h3>2000 — Dynamics and simulation of micellar self-reproduction <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M47">層A: 一致</span></h3>
+  <p class="meta">DYNAMICS AND SIMULATION OF MICELLAR SELF-REPRODUCTION</p>
+  <p class="meta">著者: Bernd Mayer, Steen Rasmussen　分野(OpenAlex primary_topic.field): Engineering</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1142/s0129183100000705">10.1142/s0129183100000705</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M47-u1u2">formation and successive self-reproduction of membraneous compartments in a polar environment</blockquote><figcaption>M47:U1=amphiphilic polymers, U2=micellar compartments</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M47-hierarchy">self-reproducing dynamical hierarchies</blockquote><figcaption>M47:R-family（LMA）との直接の系譜</figcaption></figure>
+  
+</article>
+<article class="entry" id="M02" data-corpus-id="M02">
+  <h3>2001 — Dynamical Hierarchies Ansatz（Rasmussen et al.） <span class="tag">P1・要旨</span><span class="tag" data-bib-key="R1">層A: 一致</span></h3>
+  <p class="meta">Ansatz for Dynamical Hierarchies ／ Defense of the Ansatz for Dynamical Hierarchies</p>
+  <p class="meta">著者: Steen Rasmussen, Nils Andreas Baas, Bernd Mayer 他 ／ Steen Rasmussen, Nils Andreas Baas, Bernd Mayer 他　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1162/106454601317296988">10.1162/106454601317296988</a>　DOI: <a href="https://doi.org/10.1162/106454601317297004">10.1162/106454601317297004</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M02-u1u2">monomers at level one, polymers and water at level two, and micelles (polymer aggregates) and water at level three</blockquote><figcaption>M02:U1(polymers)・U2(micelles)を段として名指し</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M02-formation">demonstrate the successive emergence of two higher levels (three levels all together) of robust structures</blockquote><figcaption>M02:走行中の形成</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M02-clarify">the micelles in our simulations are third-order emergent structures</blockquote><figcaption>M02:R2 による確認（同一模型の追補）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M66" data-corpus-id="M66">
+  <h3>2001 — Physical Properties Determining Self-Organization of Motors and Microtubules <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M66">層A: 一致</span></h3>
+  <p class="meta">Physical Properties Determining Self-Organization of Motors and Microtubules</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Biochemistry, Genetics and Molecular Biology</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1126/science.1059758">10.1126/science.1059758</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M66-u1u2">microtubules and their associated motor proteins can be organized into various large-scale patterns</blockquote><figcaption>M66:U1=motors/microtubules, U2=large-scale patterns（asters, vortices）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M48" data-corpus-id="M48">
+  <h3>2002 — A cellular automaton model of gravitational clustering <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M48">層A: 一致</span></h3>
+  <p class="meta">A cellular automaton model of gravitational clustering</p>
+  <p class="meta">著者: Roya Mohayaee, Luciano Pietronero</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1016/S0378-4371(02)01990-8">10.1016/S0378-4371(02)01990-8</a> ／ arXiv: <a href="https://arxiv.org/abs/cond-mat/0212264">cond-mat/0212264</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M48-u1u2">particles move towards their nearest neighbours with whom they coalesce on collision</blockquote><figcaption>M48:U1=point masses, U2=coalesced tree-like structure</figcaption></figure>
+  
+</article>
+<article class="entry" id="M64" data-corpus-id="M64">
+  <h3>2002 — JohnnyVon: self-replicating machines in continuous space <span class="tag">P1・要旨</span><span class="tag">層A: 単一経路（arXiv自己申告のみ）（識別子1経路のみ・検査対象外）</span></h3>
+  <p class="meta">Self-Replicating Machines in Continuous Space with Virtual Physics / JohnnyVon: Self-Replicating Automata in Continuous Two-Dimensional Space</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Computer Science</p>
+  <p class="meta">arXiv: <a href="https://arxiv.org/abs/cs/0212010">cs/0212010</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M64-u1u2">The particles can be assembled into patterns that can encode arbitrary strings of bits</blockquote><figcaption>M64:U1=particles, U2=replicating patterns</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M64-formation">a soup of separate individual particles will eventually spontaneously form self-replicating patterns</blockquote><figcaption>M64:走行中の形成</figcaption></figure>
+  
+</article>
+<article class="entry" id="M77" data-corpus-id="M77">
+  <h3>2002 — Self-Assembling Dynamical Hierarchies (Dorin &amp; McCormack, ALIFE8) <span class="tag">P2・書誌のみ</span></h3>
+  <p class="meta">Dorin, A., McCormack, J. (2002) Self-Assembling Dynamical Hierarchies. Proceedings of Artificial Life VIII</p>
+  <p class="meta"></p>
+  <p class="meta"></p>
+  <p class="meta dim">U1/U2の逐語は未到達（母集団には含むが本文・要旨から採れなかった）。</p>
+  <p class="note">R-family（dynamical hierarchies）の関連研究として本文PDFを取得できたが、抽出テキストの語間空白が破損しており、そのままでは逐語引用に使えない（機械照合で誤って通ってしまう危険があるため見送った）。無限に階層化する自己組織化モデルを提案し、Rasmussen 系の議論を批判的に検討する内容。書誌のみで母集団に含める。</p>
+</article>
+<article class="entry" id="M33" data-corpus-id="M33">
+  <h3>2003 — Hierarchical majority-rule / hierarchical game-of-life CA tool <span class="tag">P2・要旨</span></h3>
+  <p class="meta">Complexity and hierarchical game of life</p>
+  <p class="meta">著者: Ivan Gotz, Isaak Rubinstein, Eugene Tsvetkov 他</p>
+  <p class="meta">arXiv: <a href="https://arxiv.org/abs/q-bio/0310004">q-bio/0310004</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M33-desc">we propose a simple cellular-automata tool for study of hierarchical population dynamics</blockquote><figcaption>M33:記述（arXiv 版要旨。具体的な U1/U2 の名指しまでは要旨からは読めない）</figcaption></figure>
+  <p class="note">arXiv 自己申告の DOI (10.1142/S0129183104005838) は OpenAlex 上で別題名「COMPLEXITY AND HIERARCHICAL MAJORITY RULE」の記録に解決し、層Aで不一致となった。同一著者群の関連論文である可能性はあるが確認できないため、corpus では arXiv id のみを識別子として使い、DOI は使わない（ページにも載せない）。</p>
+</article>
+<article class="entry" id="M01" data-corpus-id="M01">
+  <h3>2005 — Millennium Simulation <span class="tag">P1・本文</span><span class="tag" data-bib-key="G2">層A: 一致</span></h3>
+  <p class="meta">Simulations of the formation, evolution and clustering of galaxies and quasars</p>
+  <p class="meta">著者: Volker Springel, Simon D. M. White, Adrian R. Jenkins 他　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1038/nature03597">10.1038/nature03597</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M01-formation">structures grow hierarchically through gravitational instability</blockquote><figcaption>M01:走行中の形成（U1=dark matter halo）</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M01-u2">combines the largest simulation of the growth of dark matter structure ever carried out with new techniques for following the formation and evolution of the visible components</blockquote><figcaption>M01:U2=可視成分（銀河）を載せる半解析手法（ダークマター段の上に別手法を組み合わせる構造）</figcaption></figure>
+  <p class="note">OpenAlex・Crossref とも要旨を持たない。arXiv 版（astro-ph/0504097、同内容の Supplementary Information）を ar5iv 経由で取得し本文へ格上げした（#67 の始祖として本文到達）。</p>
+</article>
+<article class="entry" id="M58" data-corpus-id="M58">
+  <h3>2005 — Self-Assembly of Patchy Particles into Diamond Structures through Molecular Mimicry <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M58">層A: 一致</span></h3>
+  <p class="meta">Self-Assembly of Patchy Particles into Diamond Structures through Molecular Mimicry</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/la0513611">10.1021/la0513611</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M58-u1u2">they can self-assemble into a diamond structure from an initially disordered state</blockquote><figcaption>M58:U1=patchy particles, U2=diamond structure</figcaption></figure>
+  
+</article>
+<article class="entry" id="M75" data-corpus-id="M75">
+  <h3>2005 — Tunable generic model for fluid bilayer membranes (Cooke, Kremer &amp; Deserno) <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M75">層A: 一致</span></h3>
+  <p class="meta">Tunable generic model for fluid bilayer membranes</p>
+  <p class="meta">著者: Ira Cooke, Kurt Kremer, Markus Deserno　分野(OpenAlex primary_topic.field): Biochemistry, Genetics and Molecular Biology</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1103/physreve.72.011506">10.1103/physreve.72.011506</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M75-u1u2">Individual lipids are represented by one head bead and two tail beads. By means of simple pair potentials these robustly self-assemble to a fluid bilayer state</blockquote><figcaption>M75:U1=lipid beads, U2=fluid bilayer（S-15の出典）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M12" data-corpus-id="M12">
+  <h3>2006 — Multilevel selection（Traulsen–Nowak 2006） <span class="tag">P1・要旨</span><span class="tag" data-bib-key="X2">層A: 一致</span></h3>
+  <p class="meta">Evolution of cooperation by multilevel selection</p>
+  <p class="meta">著者: Arne Traulsen, Martin A. Nowak　分野(OpenAlex primary_topic.field): Social Sciences</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1073/pnas.0602530103">10.1073/pnas.0602530103</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M12-u1u2">A population is subdivided into groups. Individuals interact with other members of the group</blockquote><figcaption>M12:U1=individuals, U2=groups</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M12-rule">If a group reaches a certain size, it can split into two</blockquote><figcaption>M12:W-rule の候補（上位の単位に掛かる規則）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M21" data-corpus-id="M21">
+  <h3>2007 — Minimal self-replicating nanocells（Fellermann–Solé 2007） <span class="tag">P1・要旨</span><span class="tag" data-bib-key="E8">層A: 一致</span></h3>
+  <p class="meta">Minimal model of self-replicating nanocells: a physically embodied information-free scenario</p>
+  <p class="meta">著者: Harold M. Fellermann, Ricard V. Solé　分野(OpenAlex primary_topic.field): Engineering</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1098/rstb.2007.2072">10.1098/rstb.2007.2072</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M21-u1">a simple coupling between a precursor molecule and surfactant molecules forming micelles can experience a growth-division cycle</blockquote><figcaption>M21:U1=precursor/surfactant molecules</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M21-u2">a dividing cell-like structure can be built from a metabolism-container coupled system only</blockquote><figcaption>M21:U2=cell-like structure</figcaption></figure>
+  
+</article>
+<article class="entry" id="M59" data-corpus-id="M59">
+  <h3>2008 — The role of collective motion in coarsening and self-assembly <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M59">層A: 一致</span></h3>
+  <p class="meta">The role of collective motion in examples of coarsening and self-assembly</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Environmental Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1039/b810031d">10.1039/b810031d</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M59-u1u2">constituents (or clusters of constituents) may aggregate to form clusters (or clusters of clusters) that serve as building blocks for later stages of assembly</blockquote><figcaption>M59:U1=constituents/clusters, U2=clusters of clusters</figcaption></figure>
+  
+</article>
+<article class="entry" id="M63" data-corpus-id="M63">
+  <h3>2008 — Evolution of complexity in RNA-like replicator systems <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M63">層A: 一致</span></h3>
+  <p class="meta">Evolution of complexity in RNA-like replicator systems</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Biochemistry, Genetics and Molecular Biology</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1186/1745-6150-3-11">10.1186/1745-6150-3-11</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M63-u1u2">a population of replicators, originally consisting of one genotype, evolves to form a complex ecosystem of up to four species</blockquote><figcaption>M63:U1=replicators, U2=ecosystem of species</figcaption></figure>
+  
+</article>
+<article class="entry" id="M16" data-corpus-id="M16">
+  <h3>2009 — Multilevel selection II（Takeuchi–Hogeweg 2009） <span class="tag">P1・要旨</span><span class="tag" data-bib-key="X6">層A: 一致</span></h3>
+  <p class="meta">Multilevel Selection in Models of Prebiotic Evolution II: A Direct Comparison of Compartmentalization and Spatial Self-Organization</p>
+  <p class="meta">著者: Nobuto Takeuchi, Paulien Hogeweg　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1371/journal.pcbi.1000542">10.1371/journal.pcbi.1000542</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M16-implicit">higher level selection among emergent mesoscopic spatial patterns (traveling waves)</blockquote><figcaption>M16:U2相当の証拠（空間的自己組織化によるtraveling waves）</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M16-explicit">compartmentalization of replicators by vesicles has been suggested, which leads to higher level evolutionary dynamics among explicitly imposed mesoscopic entities (protocells)</blockquote><figcaption>M16:U2相当の証拠（vesicleによる区画化、protocells）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M46" data-corpus-id="M46">
+  <h3>2009 — Collisional growth conditions for dust aggregates <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M46">層A: 一致</span></h3>
+  <p class="meta">COLLISIONAL GROWTH CONDITIONS FOR DUST AGGREGATES</p>
+  <p class="meta">著者: Koji Wada, Hidekazu Tanaka, Toru Suyama 他　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1088/0004-637x/702/2/1490">10.1088/0004-637x/702/2/1490</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M46-u1u2">icy equal-mass clusters formed under ballistic particle-cluster aggregation (BPCA) as well as those of ballistic cluster-cluster aggregation</blockquote><figcaption>M46:U1=dust particles, U2=clusters/aggregates</figcaption></figure>
+  
+</article>
+<article class="entry" id="M49" data-corpus-id="M49">
+  <h3>2009 — Self-assembly of amphiphilic peanut-shaped nanoparticles <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M49">層A: 一致</span></h3>
+  <p class="meta">Self-assembly of amphiphilic peanut-shaped nanoparticles</p>
+  <p class="meta">著者: Stephen Whitelam, Stefan A. F. Bon</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1063/1.3316794">10.1063/1.3316794</a> ／ arXiv: <a href="https://arxiv.org/abs/0907.3227">0907.3227</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M49-u1u2">finding phases of clusters, bilayers and micelles in accord with ideas of packing familiar from the study of molecular surfactants</blockquote><figcaption>M49:U1=peanut-shaped nanoparticles, U2=clusters/bilayers/micelles</figcaption></figure>
+  
+</article>
+<article class="entry" id="M68" data-corpus-id="M68">
+  <h3>2009 — Construction of Reversible Lattice Molecular Automata <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M68">層A: 一致</span></h3>
+  <p class="meta">CONSTRUCTION OF REVERSIBLE LATTICE MOLECULAR AUTOMATA</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Computer Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1142/s0129183109014072">10.1142/s0129183109014072</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M68-u1u2">simulates molecular interaction and self-organization of higher-order structures</blockquote><figcaption>M68:R3(LMA)の直接の拡張</figcaption></figure>
+  
+</article>
+<article class="entry" id="M25" data-corpus-id="M25">
+  <h3>2010 — Hierarchical self-assembly of soft disklike particles <span class="tag">P1・要旨</span><span class="tag" data-bib-key="N2">層A: 一致</span></h3>
+  <p class="meta">Simulation Model for Hierarchical Self-Assembly of Soft Disklike Particles</p>
+  <p class="meta">著者: Zhan‐Wei Li, Zhao‐Yan Sun, Zhong‐Yuan Lu　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/jp909959k">10.1021/jp909959k</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M25-u1u2">self-assemble into one-dimensional flexible threads</blockquote><figcaption>M25:U1=disklike particles → threads</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M25-u3">the threads reversibly pack into flexible hexagonal bundles</blockquote><figcaption>M25:U2=hexagonal bundles</figcaption></figure>
+  
+</article>
+<article class="entry" id="M69" data-corpus-id="M69">
+  <h3>2011 — Hierarchical Self-Assembly of Soft Disklike Particles under Shear Flow <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M69">層A: 一致</span></h3>
+  <p class="meta">Hierarchical Self-Assembly of Soft Disklike Particles under Shear Flow</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/jp205683x">10.1021/jp205683x</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M69-u1u2">soft disklike particles can self-assemble into flexible threads and bundle-like structures along the flow direction</blockquote><figcaption>M69:N2(M25)のせん断流変種</figcaption></figure>
+  
+</article>
+<article class="entry" id="M36" data-corpus-id="M36">
+  <h3>2012 — Telechelic star polymers molecular-to-macroscopic self-assembly <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M36">層A: 一致</span></h3>
+  <p class="meta">Telechelic star polymers as self-assembling units from the molecular to the macroscopic scaleBarbara Capone</p>
+  <p class="meta">著者: Barbara Capone, Ivan Coluzza, Federica Lo verso 他</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1103/PhysRevLett.109.238301">10.1103/PhysRevLett.109.238301</a> ／ arXiv: <a href="https://arxiv.org/abs/1209.5334">1209.5334</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M36-u1u2">hierarchically self-assembles first into soft-patchy particles and then into targeted crystalline structures</blockquote><figcaption>M36:U1=soft-patchy particles, U2=結晶構造</figcaption></figure>
+  
+</article>
+<article class="entry" id="M65" data-corpus-id="M65">
+  <h3>2012 — Modeling the Self-Assembly of Peptide Amphiphiles into Fibers Using Coarse-Grained Molecular Dynamics <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M65">層A: 一致</span></h3>
+  <p class="meta">Modeling the Self-Assembly of Peptide Amphiphiles into Fibers Using Coarse-Grained Molecular Dynamics</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/nl302487m">10.1021/nl302487m</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M65-u1u2u3">the PA molecules first form spherical micelles, and then micelles form a three-dimensional network via van der Waals interactions</blockquote><figcaption>M65:U1=micelles, U2=3次元ネットワーク（3段）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M29" data-corpus-id="M29">
+  <h3>2013 — Hierarchically assembled active matter (microtubule bundles) <span class="tag">P1・要旨</span><span class="tag" data-bib-key="N8oa">層A: 一致</span></h3>
+  <p class="meta">Spontaneous motion in hierarchically assembled active matter</p>
+  <p class="meta">著者: Tim H. Sanchez, Daniel T. N. Chen, Stephen J. DeCamp 他　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1038/nature11591">10.1038/nature11591</a> ／ arXiv: <a href="https://arxiv.org/abs/1301.1122">1301.1122</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M29-u1">Starting from extensile microtubule bundles, we hierarchically assemble active analogs of conventional polymer gels, liquid crystals and emulsions</blockquote><figcaption>M29:U1=microtubule bundles</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M29-u2">microtubules form a percolating active network characterized by internally driven chaotic flows</blockquote><figcaption>M29:U2=percolating active network</figcaption></figure>
+  
+</article>
+<article class="entry" id="M42" data-corpus-id="M42">
+  <h3>2013 — Simulation-Assisted Self-Assembly of Multicomponent Polymers into Hierarchical Assemblies <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M42">層A: 一致</span></h3>
+  <p class="meta">Simulation‐Assisted Self‐Assembly of Multicomponent Polymers into Hierarchical Assemblies with Varied Morphologies</p>
+  <p class="meta">著者: Chunhua Cai, Yongliang Li, Jiaping Lin 他　分野(OpenAlex primary_topic.field): Chemistry</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1002/anie.201210024">10.1002/anie.201210024</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M42-u1u2">synthesis of supramolecular hierarchical nanostructures with designed morphologies has been realized through computer-simulation-guided multicomponent assembly of polypeptide-based block copolymers</blockquote><figcaption>M42:U1=block copolymers, U2=hierarchical nanostructures</figcaption></figure>
+  
+</article>
+<article class="entry" id="M31" data-corpus-id="M31">
+  <h3>2014 — Yeast aggregation multicellularity model <span class="tag">P1・要旨</span><span class="tag" data-bib-key="N11oa">層A: 一致</span></h3>
+  <p class="meta">Emergence of multicellularity in a model of cell growth, death and aggregation under size-dependent selection</p>
+  <p class="meta">著者: Salva Duran-Nebreda, Ricard Solé　分野(OpenAlex primary_topic.field): Social Sciences</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1098/rsif.2014.0982">10.1098/rsif.2014.0982</a> ／ arXiv: <a href="https://arxiv.org/abs/1404.0196">1404.0196</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M31-u1u2">selection for faster sedimenting cells leads to the appearance of stable aggregates of cells that are able to split into smaller clusters</blockquote><figcaption>M31:U1=cells, U2=aggregates/clusters</figcaption></figure>
+  
+</article>
+<article class="entry" id="M60" data-corpus-id="M60">
+  <h3>2014 — Patterns without Patches: Hierarchical Self-Assembly of Complex Structures from Simple Building Blocks <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M60">層A: 一致</span></h3>
+  <p class="meta">Patterns without Patches: Hierarchical Self-Assembly of Complex Structures from Simple Building Blocks</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/nn500978p">10.1021/nn500978p</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M60-u1u2">finite clusters of well-defined structure and composition emerge from natural dynamics with high yield. In effect a kind of patchy particle, these clusters can further assemble into a variety of complex superstructures</blockquote><figcaption>M60:U1=finite clusters, U2=複雑な上位構造</figcaption></figure>
+  
+</article>
+<article class="entry" id="M05" data-corpus-id="M05">
+  <h3>2015 — Design path for hierarchical self-assembly of patchy colloids <span class="tag">P1・要旨</span><span class="tag" data-bib-key="C2">層A: 一致</span></h3>
+  <p class="meta">A design path for the hierarchical self-assembly of patchy colloidal particles</p>
+  <p class="meta">著者: Erik Edlund, Oskar Lindgren, Martin Nilsson Jacobi　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1039/c5sm00596e">10.1039/c5sm00596e</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M05-u1">surface patterns themselves can be made to self-assemble</blockquote><figcaption>M05:U1=surface patterns</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M05-u2">strings, membranes, cubic aggregates and colloidosomes, as well as various crystalline patterns</blockquote><figcaption>M05:U2=colloidal particles self-assemble into structures</figcaption></figure>
+  
+</article>
+<article class="entry" id="M61" data-corpus-id="M61">
+  <h3>2015 — Crystal-Templated Colloidal Clusters Exhibit Directional DNA Interactions <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M61">層A: 一致</span></h3>
+  <p class="meta">Crystal-Templated Colloidal Clusters Exhibit Directional DNA Interactions</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/acsnano.5b03272">10.1021/acsnano.5b03272</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M61-u1u2">form five distinct symmetries of colloidal clusters from DNA-functionalized spheres using a single type of colloidal crystal as a template</blockquote><figcaption>M61:U1=DNA-functionalized spheres, U2=colloidal clusters</figcaption></figure>
+  
+</article>
+<article class="entry" id="M17" data-corpus-id="M17">
+  <h3>2016 — Thermotaxis particle life-like system（Schmickl et al. 2016） <span class="tag">P1・要旨</span><span class="tag" data-bib-key="E1">層A: 一致</span></h3>
+  <p class="meta">How a life-like system emerges from a simplistic particle motion law</p>
+  <p class="meta">著者: Thomas Schmickl, Martin Stefanec, Karl Crailsheim　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1038/srep37969">10.1038/srep37969</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M17-u1">interacting self-propelled particles leading to a self-structuring, self-reproducing and self-sustaining life-like system</blockquote><figcaption>M17:U1=self-propelled particles</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M17-u2">The emergent cells we found show a distinct life cycle and even create their own ecosystem from scratch</blockquote><figcaption>M17:U2=ecosystem</figcaption></figure>
+  
+</article>
+<article class="entry" id="M56" data-corpus-id="M56">
+  <h3>2016 — Hierarchical Self-Assembly of Cellulose Nanocrystals in a Confined Geometry <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M56">層A: 一致</span></h3>
+  <p class="meta">Hierarchical Self-Assembly of Cellulose Nanocrystals in a Confined Geometry</p>
+  <p class="meta">著者: Richard Parker, Bruno Frka‐Petesic, Giulia Guidetti 他　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/acsnano.6b03355">10.1021/acsnano.6b03355</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M56-u1u2">hierarchical cholesteric architectures are obtained by the self-assembly of cellulose nanocrystals within shrinking, micron-sized aqueous droplets</blockquote><figcaption>M56:U1=cellulose nanocrystals, U2=cholesteric architecture</figcaption></figure>
+  
+</article>
+<article class="entry" id="M62" data-corpus-id="M62">
+  <h3>2016 — Colloidal Cluster Assembly into Ordered Superstructures via Engineered Directional Binding <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M62">層A: 一致</span></h3>
+  <p class="meta">Colloidal Cluster Assembly into Ordered Superstructures via Engineered Directional Binding</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/acsnano.6b06415">10.1021/acsnano.6b06415</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M62-u1u2">hierarchical assembly of superstructures with symmetries that are otherwise inaccessible with simple spherical particles</blockquote><figcaption>M62:U1=colloidal clusters, U2=ordered superstructures</figcaption></figure>
+  
+</article>
+<article class="entry" id="M35" data-corpus-id="M35">
+  <h3>2017 — Local assembly hierarchical crystallization of colloidal hard hemispheres <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M35">層A: 一致</span></h3>
+  <p class="meta">Role of local assembly in the hierarchical crystallization of associating colloidal hard hemispheres</p>
+  <p class="meta">著者: Qun-li Lei, Kunn Hadinoto, Ran Ni</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1103/PhysRevMaterials.1.052601">10.1103/PhysRevMaterials.1.052601</a> ／ arXiv: <a href="https://arxiv.org/abs/1705.02458">1705.02458</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M35-u1u2">associating colloidal hemispheres crystallizing into face-centered-cubic crystals comprised of spherical dimers of hemispheres</blockquote><figcaption>M35:U1=hemisphere dimers, U2=fcc結晶</figcaption></figure>
+  
+</article>
+<article class="entry" id="M41" data-corpus-id="M41">
+  <h3>2017 — Star cluster structure from hierarchical star formation <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M41">層A: 一致</span></h3>
+  <p class="meta">From the Top Down and Back Up Again: Star Cluster Structure from Hierarchical Star Formation</p>
+  <p class="meta">著者: Michael Y. Grudić, Dávid Guszejnov, Philip F. Hopkins 他</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1093/mnras/sty2303">10.1093/mnras/sty2303</a> ／ arXiv: <a href="https://arxiv.org/abs/1708.09065">1708.09065</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M41-u1u2">relaxation from a hierarchically-clustered distribution of stars into a monolithic star cluster through hierarchical merging</blockquote><figcaption>M41:U1=hierarchically-clustered stars, U2=monolithic star cluster</figcaption></figure>
+  
+</article>
+<article class="entry" id="M43" data-corpus-id="M43">
+  <h3>2017 — Coarse-Grained Molecular Simulation of Hierarchical Self-Assembly of π-Conjugated Optoelectronic Peptides <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M43">層A: 一致</span></h3>
+  <p class="meta">Coarse-Grained Molecular Simulation of the Hierarchical Self-Assembly of π-Conjugated Optoelectronic Peptides</p>
+  <p class="meta">著者: Rachael A. Mansbach, Andrew L. Ferguson　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/acs.jpcb.6b10165">10.1021/acs.jpcb.6b10165</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M43-u1u2">approximately two to eight peptides assemble into stacks with aligned aromatic cores that subsequently form elliptical aggregates and ultimately a branched network</blockquote><figcaption>M43:U1=peptide stacks, U2=elliptical aggregates/branched network（3段）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M04" data-corpus-id="M04">
+  <h3>2018 — Patchy triblock colloids → colloidal molecules → crystals <span class="tag">P1・要旨</span><span class="tag" data-bib-key="C1">層A: 一致</span></h3>
+  <p class="meta">Programming Hierarchical Self-Assembly of Patchy Particles into Colloidal Crystals via Colloidal Molecules</p>
+  <p class="meta">著者: Daniel Morphew, James G. Shaw, Christopher Avins 他　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/acsnano.7b07633">10.1021/acsnano.7b07633</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M04-u1u2">the hierarchical self-assembly of triblock patchy colloidal particles into two distinct colloidal crystals</blockquote><figcaption>M04:走行中の形成（U1=colloidal particles, U2=crystals）</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M04-u1detail">distinct clusters of uniform size and shape, namely, tetrahedra and octahedra</blockquote><figcaption>M04:U1=colloidal molecules（中間段）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M26" data-corpus-id="M26">
+  <h3>2018 — Reversible superstructured peptide-DNA networks <span class="tag">P1・要旨</span><span class="tag" data-bib-key="N5">層A: 一致</span></h3>
+  <p class="meta">Reversible self-assembly of superstructured networks</p>
+  <p class="meta">著者: Ronit Freeman, Ming Han, Zaida Álvarez 他　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1126/science.aat6141">10.1126/science.aat6141</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M26-u1u2">hydrogels of peptide-DNA conjugates and peptides that organize into superstructures of intertwined filaments</blockquote><figcaption>M26:U1=peptide-DNA conjugates, U2=superstructures</figcaption></figure>
+  <p class="note">実験と計算機シミュレーションの併用論文（&quot;Experiments and simulations demonstrate&quot;）。計算機上で走らせた模型の報告を含むため条件(1)は満たすと判断。</p>
+</article>
+<article class="entry" id="M22" data-corpus-id="M22">
+  <h3>2019 — Hash Chemistry（Sayama 2019） <span class="tag">P1・要旨</span><span class="tag" data-bib-key="E9">層A: 一致</span></h3>
+  <p class="meta">Cardinality Leap for Open-Ended Evolution: Theoretical Consideration and Demonstration by Hash Chemistry</p>
+  <p class="meta">著者: Hiroki Sayama　分野(OpenAlex primary_topic.field): Biochemistry, Genetics and Molecular Biology</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1162/artl_a_00283">10.1162/artl_a_00283</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M22-u1u2">facilitating formation of higher-order entities is a generalizable, effective way to cause a cardinality leap</blockquote><figcaption>M22:U1=entities, U2=higher-order entities</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M22-formation">the number of individual entities involved in a single replication event gradually increased over time, indicating evolutionary appearance of higher-order entities</blockquote><figcaption>M22:走行中の形成</figcaption></figure>
+  
+</article>
+<article class="entry" id="M70" data-corpus-id="M70">
+  <h3>2019 — Activity-Enhanced Self-Assembly of a Colloidal Kagome Lattice <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M70">層A: 一致</span></h3>
+  <p class="meta">Activity-Enhanced Self-Assembly of a Colloidal Kagome Lattice</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/jacs.8b12165">10.1021/jacs.8b12165</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M70-u1u2">the formation of this elusive structure can be significantly improved by self-propelling or activating the colloids</blockquote><figcaption>M70:U1=Janus colloids, U2=kagome lattice</figcaption></figure>
+  
+</article>
+<article class="entry" id="M13" data-corpus-id="M13">
+  <h3>2020 — Growing Neural Cellular Automata <span class="tag">P1・本文</span><span class="tag" data-bib-key="X3">層A: 一致</span></h3>
+  <p class="meta">Growing Neural Cellular Automata</p>
+  <p class="meta">著者: Alexander Mordvintsev, Ettore Randazzo, Eyvind Niklasson 他　分野(OpenAlex primary_topic.field): Computer Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.23915/distill.00023">10.23915/distill.00023</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M13-u1">Cells, the tiny building blocks of bodies, communicate with their neighbors to decide the shape of organs and body plans</blockquote><figcaption>M13:U1=cell</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M13-u2formation">starting from a single cell, will produce a predefined multicellular pattern on a 2D grid. This is our analogous toy model of organism development</blockquote><figcaption>M13:U2=multicellular pattern／走行中の形成</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M13-learned">we simply train the CA to achieve a target image after a random number of updates</blockquote><figcaption>M13:L（学習で目標の形へ合わせた規則）の証拠</figcaption></figure>
+  
+</article>
+<article class="entry" id="M30" data-corpus-id="M30">
+  <h3>2020 — Hierarchical self-assembly of patchy colloidal platelets <span class="tag">P1・要旨</span><span class="tag" data-bib-key="N9b">層A: 一致</span></h3>
+  <p class="meta">Hierarchical self-assembly of patchy colloidal platelets</p>
+  <p class="meta">著者: Carina Karner, Christoph Dellago, Emanuela M. Bianchi　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1039/d0sm00044b">10.1039/d0sm00044b</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M30-u1u2u3">two-stage assembly of these units into clusters with well-defined symmetries and, subsequently, into extended lattices</blockquote><figcaption>M30:U1=platelets, U2=clusters, U3=lattices</figcaption></figure>
+  
+</article>
+<article class="entry" id="M71" data-corpus-id="M71">
+  <h3>2020 — Archimedean Tessellation via Building Blocks and Linkers Geometry <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M71">層A: 一致</span></h3>
+  <p class="meta">Archimedean Tessellation Found by the Variation of Building Blocks’ and Linkers’ Geometry: In Silico Investigations</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Engineering</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/acs.jpcc.0c05137">10.1021/acs.jpcc.0c05137</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M71-u1u2">depending on the molecule’s and the linkers’ geometry, we can control the pore size and observe the formation of novel ordered structures</blockquote><figcaption>M71:U1=molecules/linkers, U2=ordered tessellation</figcaption></figure>
+  
+</article>
+<article class="entry" id="M72" data-corpus-id="M72">
+  <h3>2021 — Self-Assembly of Patchy Colloidal Rods into Photonic Crystals <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M72">層A: 一致</span></h3>
+  <p class="meta">Self-Assembly of Patchy Colloidal Rods into Photonic Crystals Robust to Stacking Faults</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/acsnano.0c07824">10.1021/acsnano.0c07824</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M72-u1u2">two distinct self-assembly routes for designer triblock patchy colloidal rods, both proceeding via tetrahedral clusters</blockquote><figcaption>M72:U1=patchy rods, U2=tetrahedral clusters/RCD結晶</figcaption></figure>
+  
+</article>
+<article class="entry" id="M28" data-corpus-id="M28">
+  <h3>2022 — Multi-scale communicating active matter <span class="tag">P1・要旨</span><span class="tag" data-bib-key="N7">層A: 一致</span></h3>
+  <p class="meta">Multi-scale organization in communicating active matter</p>
+  <p class="meta">著者: Alexander Ziepke, Ivan V. Maryshev, Igor S. Aranson 他　分野(OpenAlex primary_topic.field): Physics and Astronomy</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1038/s41467-022-34484-2">10.1038/s41467-022-34484-2</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M28-u1u2">self-organize through a series of collective dynamical states at multiple hierarchical levels</blockquote><figcaption>M28:U1=self-propelled agents, U2=collective dynamical states</figcaption></figure>
+  
+</article>
+<article class="entry" id="M40" data-corpus-id="M40">
+  <h3>2022 — Goal-Guided Neural Cellular Automata <span class="tag">P1・要旨</span><span class="tag">層A: 単一経路（arXiv自己申告のみ）（識別子1経路のみ・検査対象外）</span></h3>
+  <p class="meta">Goal-Guided Neural Cellular Automata: Learning to Control Self-Organising Systems</p>
+  <p class="meta">著者: Shyam Sudhakaran, Elias Najarro, Sebastian Risi</p>
+  <p class="meta">arXiv: <a href="https://arxiv.org/abs/2205.06806">2205.06806</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M40-u1u2">leverages goal encodings to control cell behavior dynamically at every step of cellular growth</blockquote><figcaption>M40:U1=cell, U2=grown structure（学習で目標へ合わせた規則）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M44" data-corpus-id="M44">
+  <h3>2022 — Hierarchically self-assembled homochiral helical microtoroids <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M44">層A: 一致</span></h3>
+  <p class="meta">Hierarchically self-assembled homochiral helical microtoroids</p>
+  <p class="meta">著者: Cong Du, Zujian Li, Xuefeng Zhu 他　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1038/s41565-022-01234-w">10.1038/s41565-022-01234-w</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M44-u1u2">a combined solution-interface-directed assembly strategy for the formation of hierarchically self-assembled helical microtoroids</blockquote><figcaption>M44:U1=pre-assembled intermediate colloids, U2=helical microtoroids</figcaption></figure>
+  
+</article>
+<article class="entry" id="M14" data-corpus-id="M14">
+  <h3>2023 — Hierarchical Neural Cellular Automata（Pande–Grattarola 2023） <span class="tag">P1・要旨</span><span class="tag" data-bib-key="X4">層A: 一致</span></h3>
+  <p class="meta">Hierarchical Neural Cellular Automata</p>
+  <p class="meta">著者: Ritu Pande, Daniele Grattarola　分野(OpenAlex primary_topic.field): Computer Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1162/isal_a_00601">10.1162/isal_a_00601</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M14-u1">constituents of an intelligent system are cognitive units driven towards a specific goal</blockquote><figcaption>M14:U1=cognitive units</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M14-u2">modelling emergent behaviour at two different scales in a modular hierarchy with dedicated goals</blockquote><figcaption>M14:U2=モジュラー階層</figcaption></figure>
+  
+</article>
+<article class="entry" id="M20" data-corpus-id="M20">
+  <h3>2023 — Flow-Lenia <span class="tag">P1・要旨</span><span class="tag" data-bib-key="E5">層A: 一致</span></h3>
+  <p class="meta">Flow-Lenia: Towards open-ended evolution in cellular automata through mass conservation and parameter localization</p>
+  <p class="meta">著者: Erwan Plantec, Gautier Hamon, Mayalen Etcheverry 他　分野(OpenAlex primary_topic.field): Computer Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1162/isal_a_00651">10.1162/isal_a_00651</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M20-u1">spatially localized patterns (SLPs) resemble life-like artificial creatures</blockquote><figcaption>M20:U1=SLP/creature</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M20-u2">allowing for multi-species simulations, with locally coherent update rules that define properties of the emerging creatures, and that can be mixed with neighbouring rules</blockquote><figcaption>M20:U2=multi-species集団（境界の余地あり）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M32" data-corpus-id="M32">
+  <h3>2023 — Real-time multicellularity with artificial gene regulation <span class="tag">P1・要旨</span><span class="tag" data-bib-key="N12">層A: 一致</span></h3>
+  <p class="meta">Real-time Evolution of Multicellularity with Artificial Gene Regulation</p>
+  <p class="meta">著者: Dylan Cope　分野(OpenAlex primary_topic.field): Biochemistry, Genetics and Molecular Biology</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1162/isal_a_00690">10.1162/isal_a_00690</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M32-u1u2">adhesion receptors that allow cells to bind together into multicellular structures in which individuals can share resource and signal to one another</blockquote><figcaption>M32:U1=protozoan-like cells, U2=multicellular structures</figcaption></figure>
+  
+</article>
+<article class="entry" id="M55" data-corpus-id="M55">
+  <h3>2023 — DOSE: Digital Organism Simulation Environment <span class="tag">P1・要旨</span><span class="tag">層A: 単一経路（arXiv自己申告のみ）（識別子1経路のみ・検査対象外）</span></h3>
+  <p class="meta">An Artificial Life Simulation Library Based on Genetic Algorithm, 3-Character Genetic Code and Biological Hierarchy</p>
+  <p class="meta">著者: Maurice HT Ling</p>
+  <p class="meta">arXiv: <a href="https://arxiv.org/abs/2304.13520">2304.13520</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M55-u1u2">a Python library for artificial life simulation, Digital Organism Simulation Environment (DOSE), based on GA and biological hierarchy starting from genetic sequence to population</blockquote><figcaption>M55:U1=digital organism, U2=population（3-dimensional world of ecological cells）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M15" data-corpus-id="M15">
+  <h3>2024 — Evolving Hierarchical NCA（Bielawski et al. 2024） <span class="tag">P1・要旨</span><span class="tag" data-bib-key="X5">層A: 一致</span></h3>
+  <p class="meta">Evolving Hierarchical Neural Cellular Automata</p>
+  <p class="meta">著者: Kameron Bielawski, Nathan Gaylinn, Cameron Lunn 他　分野(OpenAlex primary_topic.field): Computer Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1145/3638529.3654150">10.1145/3638529.3654150</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M15-u1u2">hierarchical arrangements of semi-independent cells, tissues, organs, and entire bodies</blockquote><figcaption>M15:U1=cells, U2=tissues/organs/bodies</figcaption></figure>
+  
+</article>
+<article class="entry" id="M27" data-corpus-id="M27">
+  <h3>2024 — Outlier rule: self-replicating hierarchical CA structures <span class="tag">P1・要旨</span><span class="tag" data-bib-key="N6">層A: 一致</span></h3>
+  <p class="meta">Emergence of Self-Replicating Hierarchical Structures in a Binary Cellular Automaton</p>
+  <p class="meta">著者: Bo Yang　分野(OpenAlex primary_topic.field): Computer Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1162/artl_a_00449">10.1162/artl_a_00449</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M27-u1u2">Lower-level, shape-shifting clusters frequently follow a transient attractor trajectory, generating new clusters</blockquote><figcaption>M27:U1=shape-shifting clusters</figcaption></figure>
+<figure class="cite"><blockquote class="cite prose" data-quote-id="M27-u2u3">these clusters coalesce into larger formations that also self-replicate</blockquote><figcaption>M27:U2=larger formations（自己複製）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M50" data-corpus-id="M50">
+  <h3>2024 — Self-organizing Nervous Systems for Robot Swarms (SoNS) <span class="tag">P1・要旨</span><span class="tag">層A: 単一経路（arXiv自己申告のみ）（識別子1経路のみ・検査対象外）</span></h3>
+  <p class="meta">Self-organizing Nervous Systems for Robot Swarms</p>
+  <p class="meta">著者: W. Zhu, S. Oguz, M. K. Heinrich 他</p>
+  <p class="meta">arXiv: <a href="https://arxiv.org/abs/2401.13103">2401.13103</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M50-u1u2">a robot swarm consisting of n independent robots could transform into a single n-robot SoNS and then into several independent smaller SoNSs</blockquote><figcaption>M50:U1=robots, U2=SoNS（動的階層）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M51" data-corpus-id="M51">
+  <h3>2024 — Coralai: embodied NCA ecosystems <span class="tag">P1・要旨</span><span class="tag">層A: 単一経路（arXiv自己申告のみ）（識別子1経路のみ・検査対象外）</span></h3>
+  <p class="meta">Coralai: Intrinsic Evolution of Embodied Neural Cellular Automata Ecosystems</p>
+  <p class="meta">著者: Aidan Barbieux, Rodrigo Canaan</p>
+  <p class="meta">arXiv: <a href="https://arxiv.org/abs/2406.09654">2406.09654</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M51-u1u2">emergence of competition between sessile and mobile organisms, cycles of resource depletion and recovery, and symbiosis between diverse organisms</blockquote><figcaption>M51:U1=NCA organisms, U2=ecosystem</figcaption></figure>
+  
+</article>
+<article class="entry" id="M52" data-corpus-id="M52">
+  <h3>2024 — Structural Cellular Hash Chemistry (SCHC) <span class="tag">P1・要旨</span><span class="tag">層A: 単一経路（arXiv自己申告のみ）（識別子1経路のみ・検査対象外）</span></h3>
+  <p class="meta">Structural Cellular Hash Chemistry</p>
+  <p class="meta">著者: Hiroki Sayama</p>
+  <p class="meta">arXiv: <a href="https://arxiv.org/abs/2412.12790">2412.12790</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M52-u1u2">individual identities of evolving patterns are explicitly represented and processed as the connected components of the nearest neighbor graph of active cells</blockquote><figcaption>M52:U1=active cells, U2=evolving patterns（多スケールの生態相互作用）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M53" data-corpus-id="M53">
+  <h3>2024 — Non-Spatial Hash Chemistry <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M53">層A: 一致</span></h3>
+  <p class="meta">Non-Spatial Hash Chemistry as a Minimalistic Open-Ended Evolutionary System</p>
+  <p class="meta">著者: Hiroki Sayama</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1109/CEC60901.2024.10611791">10.1109/CEC60901.2024.10611791</a> ／ arXiv: <a href="https://arxiv.org/abs/2404.18027">2404.18027</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M53-u1u2">unbounded growth in both maximal and average sizes of replicating higher-order entities</blockquote><figcaption>M53:U1=entities, U2=higher-order entities（E9との系統）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M54" data-corpus-id="M54">
+  <h3>2024 — PDE Model of Cultural Multilevel Selection <span class="tag">P1・要旨</span><span class="tag">層A: 単一経路（arXiv自己申告のみ）（識別子1経路のみ・検査対象外）</span></h3>
+  <p class="meta">Exploring the Evolution of Altruistic Punishment with a PDE Model of Cultural Multilevel Selection</p>
+  <p class="meta">著者: Daniel B. Cooney</p>
+  <p class="meta">arXiv: <a href="https://arxiv.org/abs/2405.18419">2405.18419</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M54-u1u2">modeling individual-level birth-death competition with a replicator equation based on individual payoffs and describing group-level competition with pairwise conflicts</blockquote><figcaption>M54:U1=individuals, U2=groups（PDEによる多水準選択）</figcaption></figure>
+  
+</article>
+<article class="entry" id="M23" data-corpus-id="M23">
+  <h3>2025 — ASAL（Kumar et al. 2024/2025） <span class="tag">P2・要旨</span><span class="tag" data-bib-key="T5">層A: 一致</span></h3>
+  <p class="meta">Automating the Search for Artificial Life With Foundation Models</p>
+  <p class="meta">著者: Akarsh Kumar, Chris Xiaoxuan Lu, Louis Kirsch 他　分野(OpenAlex primary_topic.field): Computer Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1162/artl.a.8">10.1162/artl.a.8</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M23-desc">foundation models (FMs) for exploring large combinatorial spaces promise to revolutionize many scientific fields</blockquote><figcaption>M23:記述（探索手法そのもの）</figcaption></figure>
+  <p class="note">要旨は探索手法（基盤モデルによる自動探索）を述べるのみで、U1/U2 を自ら名指ししていない（探索対象は他の基質）。登録時の見込み（A1=B1 境界の実例）どおりかは本文でしか確かめられないため不明。母集団には入れるが適格性そのものが不明。</p>
+</article>
+<article class="entry" id="M34" data-corpus-id="M34">
+  <h3>2025 — PER-directed colloidal assembly digital twin <span class="tag">P1・要旨</span><span class="tag">層A: 単一経路（arXiv自己申告のみ）（識別子1経路のみ・検査対象外）</span></h3>
+  <p class="meta">A simulation that recapitulates the dynamics of PER-directed colloidal assembly</p>
+  <p class="meta">著者: Cheng-Hung Chou, Pepijn G. Moerman, Sikao Guo 他</p>
+  <p class="meta">arXiv: <a href="https://arxiv.org/abs/2511.04102">2511.04102</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M34-u1u2">particle-based reaction-diffusion algorithm to model the spatial-temporal evolution of hundreds to thousands of micron-scale DNA-coated colloid self-assembly process</blockquote><figcaption>M34:U1=DNA-coated colloids, U2=core-shell構造</figcaption></figure>
+  
+</article>
+<article class="entry" id="M38" data-corpus-id="M38">
+  <h3>2025 — Scale-free cluster-cluster aggregation during polymer collapse <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M38">層A: 一致</span></h3>
+  <p class="meta">Scale-free cluster-cluster aggregation during polymer collapse</p>
+  <p class="meta">著者: Suman Majumder, Saikat Chakraborty</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/acs.macromol.5c01432">10.1021/acs.macromol.5c01432</a> ／ arXiv: <a href="https://arxiv.org/abs/2506.06801">2506.06801</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M38-u1u2">formation of clusters of monomers or pearls. The nascent clusters merge, resulting in growth of the average cluster size</blockquote><figcaption>M38:U1=monomer pearls, U2=merged clusters/globule</figcaption></figure>
+  
+</article>
+<article class="entry" id="M73" data-corpus-id="M73">
+  <h3>2025 — Numerical Simulations of Colloidal Dimer Assembly into Chiral Clusters and Crystals <span class="tag">P1・要旨</span><span class="tag" data-bib-key="M73">層A: 一致</span></h3>
+  <p class="meta">Numerical Simulations of Colloidal Dimer Assembly into Chiral Clusters and Crystals under Combined Electric and Magnetic Fields</p>
+  <p class="meta">　分野(OpenAlex primary_topic.field): Materials Science</p>
+  <p class="meta">DOI: <a href="https://doi.org/10.1021/acs.langmuir.5c00765">10.1021/acs.langmuir.5c00765</a></p>
+  <figure class="cite"><blockquote class="cite prose" data-quote-id="M73-u1u2">we utilize the assembled clusters to construct hierarchical structures and chiral colloidal crystals, where global chirality emerges from local packing arrangements</blockquote><figcaption>M73:U1=dimers/clusters, U2=chiral colloidal crystals</figcaption></figure>
+  
+</article>
+
+<h2>2. 引用の辺（母集団内。OpenAlex の referenced_works の写し）</h2>
+<div class="box">
+  母集団に含まれる文献どうしの引用関係のうち、OpenAlex が記録する referenced_works が母集団内で閉じるものだけを機械的に抜き出した。
+  これは著者が「先行として名指しした」系統関係（derivation）ではなく、単なる引用の事実である——系統の判定は符号化（S4）の仕事。
+</div>
+<ul>
+<li data-edge="M02|M57">M02 → M57（OpenAlex referenced_works）</li>
+<li data-edge="M02|M47">M02 → M47（OpenAlex referenced_works）</li>
+<li data-edge="M02|M03">M02 → M03（OpenAlex referenced_works）</li>
+<li data-edge="M02|M76">M02 → M76（OpenAlex referenced_works）</li>
+<li data-edge="M04|M60">M04 → M60（OpenAlex referenced_works）</li>
+<li data-edge="M04|M58">M04 → M58（OpenAlex referenced_works）</li>
+<li data-edge="M04|M59">M04 → M59（OpenAlex referenced_works）</li>
+<li data-edge="M04|M61">M04 → M61（OpenAlex referenced_works）</li>
+<li data-edge="M04|M62">M04 → M62（OpenAlex referenced_works）</li>
+<li data-edge="M08|M57">M08 → M57（OpenAlex referenced_works）</li>
+<li data-edge="M08|M03">M08 → M03（OpenAlex referenced_works）</li>
+<li data-edge="M08|M76">M08 → M76（OpenAlex referenced_works）</li>
+<li data-edge="M10|M09">M10 → M09（OpenAlex referenced_works）</li>
+<li data-edge="M15|M14">M15 → M14（OpenAlex referenced_works）</li>
+<li data-edge="M16|M11">M16 → M11（OpenAlex referenced_works）</li>
+<li data-edge="M16|M18">M16 → M18（OpenAlex referenced_works）</li>
+<li data-edge="M16|M63">M16 → M63（OpenAlex referenced_works）</li>
+<li data-edge="M21|M08">M21 → M08（OpenAlex referenced_works）</li>
+<li data-edge="M22|M12">M22 → M12（OpenAlex referenced_works）</li>
+<li data-edge="M23|M13">M23 → M13（OpenAlex referenced_works）</li>
+<li data-edge="M23|M20">M23 → M20（OpenAlex referenced_works）</li>
+<li data-edge="M24|M07">M24 → M07（OpenAlex referenced_works）</li>
+<li data-edge="M24|M45">M24 → M45（OpenAlex referenced_works）</li>
+<li data-edge="M24|M06">M24 → M06（OpenAlex referenced_works）</li>
+<li data-edge="M26|M65">M26 → M65（OpenAlex referenced_works）</li>
+<li data-edge="M28|M29">M28 → M29（OpenAlex referenced_works）</li>
+<li data-edge="M29|M66">M29 → M66（OpenAlex referenced_works）</li>
+<li data-edge="M30|M60">M30 → M60（OpenAlex referenced_works）</li>
+<li data-edge="M30|M62">M30 → M62（OpenAlex referenced_works）</li>
+<li data-edge="M30|M04">M30 → M04（OpenAlex referenced_works）</li>
+</ul>
+
+</main>
+
+<footer>
+  S-60 S2（2026-09-25）。検索の実行記録は raw/queries.jsonl、選別は raw/screening.jsonl、書誌の引き当ては raw/bib-check.jsonl、
+  逐語の照合は raw/quote-evidence.jsonl、事実の照合器は selftest.js（criteria.json の citationVerifierDetail.layerD）。
+</footer>

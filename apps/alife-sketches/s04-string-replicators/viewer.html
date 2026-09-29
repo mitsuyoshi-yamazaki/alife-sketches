@@ -1,0 +1,328 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-04 文字列分子の衝突と複製</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--ok:#4ade80;--warn:#fbbf24}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;background:#0b0d13;padding:1px 4px;border-radius:3px}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  label b{color:var(--fg);font-variant-numeric:tabular-nums;min-width:3.6em}
+  input[type=range]{width:130px}
+  select{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;background:#0b0d13}
+  table{border-collapse:collapse;font-size:12px;width:100%;table-layout:fixed}
+  /* 値の桁が変わっても列が動かないよう、値の列を固定する */
+  table td:last-child{width:120px}
+  .fx{display:inline-block;font-variant-numeric:tabular-nums}
+  #topstr{word-break:break-all}
+  .wide{min-width:520px}
+  th,td{padding:3px 8px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  td{font-variant-numeric:tabular-nums}
+  .hi{color:var(--ok)}
+  .legend{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.8}
+  .sw{display:inline-block;width:14px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .ops span{display:inline-block;margin-right:9px;white-space:nowrap}
+  footer{padding:0 18px 24px;color:var(--dim);font-size:12px;max-width:980px}
+  footer b{color:var(--fg)}
+  @media(max-width:900px){.wrap{flex-direction:column}.wide{min-width:0}}
+</style>
+
+<header>
+  <h1>S-04 — 文字列分子の衝突と複製（Stringmol 風）</h1>
+  <p class="sub">文字列は<b>データであると同時にプログラム</b>。2本が出会うと相補的な整列で束縛部位が決まり、
+    一方が<b>束縛部位の直後から自分を命令として実行し</b>、他方を読んで新しい文字列を書く。<br>
+    出典: Hickinbotham, Clark, Stepney ほか (2010) <i>Specification of the stringmol chemical programming language v0.1</i>, York TR YCS-2010-457（アイデアのみ）</p>
+</header>
+
+<div class="bar">
+  <button id="run">停止</button>
+  <button id="reset">撒き直す</button>
+  <label>コピー誤り率 μ <input type="range" id="mu" min="0" max="11" value="0"> <b id="muV">0</b></label>
+  <label>初期の複製子
+    <select id="seedf">
+      <option value="0.2" selected>20%</option>
+      <option value="1">100%（正コントロール）</option>
+      <option value="0">0%（複製子なし）</option>
+    </select>
+  </label>
+  <label>実行を切る <input type="checkbox" id="noexec"></label>
+  <span style="flex:1"></span>
+  <span style="color:var(--dim)">世代 <b id="gen" class="fx" style="color:var(--fg);min-width:8ch">0</b> ／ 分子 <b id="nmol" class="fx" style="color:var(--fg);min-width:5ch">—</b></span>
+</div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>反応槽（1行 = 1分子。横は配列、色は記号）</h2>
+    <canvas id="soup" width="500" height="600"></canvas>
+    <div class="legend ops" id="oplegend"></div>
+    <div class="legend">薄い色は<b style="color:var(--fg)">テンプレート記号</b>（実行しても何もしない）、鮮やかな色は<b style="color:var(--fg)">命令記号</b>。
+      複製子が広がると、同じ模様の行が槽を埋める。</div>
+  </div>
+
+  <div class="panel wide">
+    <h2>秩序変数の時系列（破線 = 理論的な帰無値 1.0）</h2>
+    <canvas id="chart" width="500" height="210"></canvas>
+    <div class="legend">
+      <span class="sw" style="background:#60a5fa"></span>多様度比 H/log2(N)（<b style="color:var(--fg)">主の秩序変数</b>。1.0 = 全て相異なる／0 = 単一配列）
+      <br><span class="sw" style="background:#4ade80"></span>最頻配列の占有率
+      <span class="sw" style="background:#fbbf24;margin-left:10px"></span>手組み複製子の割合
+    </div>
+
+    <h2 style="margin-top:16px">いま槽で起きていること</h2>
+    <table>
+      <tr><td>異なる配列の数</td><td id="sp">—</td></tr>
+      <tr><td>多様度比（帰無値 1.0）</td><td id="her" class="hi">—</td></tr>
+      <tr><td>記号エントロピー比（帰無値 1.0）</td><td id="sye">—</td></tr>
+      <tr><td>最頻配列の占有率</td><td id="dom">—</td></tr>
+      <tr><td>手組み複製子の割合</td><td id="mas">—</td></tr>
+      <tr><td>衝突が束縛になる割合</td><td id="br">—</td></tr>
+      <tr><td>系統の深さ（最大 / 平均）</td><td id="dep">—</td></tr>
+      <tr><td>平均の長さ</td><td id="len">—</td></tr>
+    </table>
+
+    <h2 style="margin-top:16px">最頻配列</h2>
+    <canvas id="topseq" width="500" height="22"></canvas>
+    <div class="legend"><code id="topstr">—</code> <span id="topis"></span></div>
+
+    <h2 style="margin-top:16px">手で組んだ複製子</h2>
+    <canvas id="copier" width="500" height="22"></canvas>
+    <div class="legend"><code id="copierstr">—</code><br>
+      <span style="color:var(--fg)">[0..8] 束縛部位 α → [9..17] その相補 β（繰り返しの戻り先）→ [18] <code>?</code> 読み終えたか
+      → [23] <code>=</code> 1記号写す → [24] <code>&gt;</code> 戻る → [38] <code>}</code> 終了</span></div>
+  </div>
+</div>
+
+<footer>
+  <p><b>見どころ①</b>: μ=0 のまま放っておくと、20% しかいなかった手組み複製子が槽を埋める。
+  自分を作る手続きを自分の中に書いてある文字列だけが、自分のコピーを増やせる。</p>
+  <p><b>見どころ②</b>: μ を上げていくと、ある所から<b>多様度比が帰無値 1.0 へ戻る</b>。
+  複製は続いているのに写し間違いが蓄積して、配列の同一性が集団から消える——エラーカタストロフにあたる。
+  下げ戻しても元に戻らないことがある（複製子が既に槽から消えていれば、二度と湧かない）。</p>
+  <p><b>見どころ③</b>: 「実行を切る」にチェックすると、束縛も機械も使わず一様乱数の文字列を産み続ける系になる。
+  このとき多様度比は<b>理論値 1.0</b> へ張り付く。検出器がここで 1.0 を返さなければ検出器のほうが壊れている。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var MUS = [0, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.03, 0.05, 0.08, 0.12, 0.2];
+  var CAPACITY_BASE = 300, CAPACITY = CAPACITY_BASE;
+  var SHOWN_LEN = 40, CELL_W = 6, COL_GAP = 20;
+  var ROWS = 150, CELL_H = 4;          // 槽を 2 列に分けて描く（ROWS × 2 = CAPACITY, CELL_H = 600 / ROWS）
+
+  /** 容量を変えたときに、槽の絵の行数と行の高さを取り直す。 */
+  function layoutSoup() {
+    ROWS = Math.ceil(CAPACITY / 2);
+    CELL_H = soupCv.height / ROWS;
+  }
+
+  var COLORS = {
+    'A': '#2b5f8e', 'B': '#2e7d6a', 'C': '#3f7d2e',
+    'D': '#6b5fa0', 'E': '#8a5f9e', 'F': '#9e5f7a',
+    'G': '#8e6b2b', 'H': '#7d5a2e', 'I': '#8e8e3f',
+    '=': '#ff5c5c', '?': '#fbbf24', '>': '#4fd1ff',
+    '$': '#c084fc', '^': '#34d399', '%': '#f472b6', '}': '#f5f5f5'
+  };
+
+  var soupCv = document.getElementById('soup'), soupCx = soupCv.getContext('2d');
+  var chartCv = document.getElementById('chart'), chartCx = chartCv.getContext('2d');
+  var topCv = document.getElementById('topseq'), topCx = topCv.getContext('2d');
+  var copCv = document.getElementById('copier'), copCx = copCv.getContext('2d');
+
+  var vessel = null, running = true, history = [];
+
+  function opts() {
+    return {
+      capacity: CAPACITY,
+      mu: MUS[+document.getElementById('mu').value],
+      seedFraction: parseFloat(document.getElementById('seedf').value),
+      mode: document.getElementById('noexec').checked ? 'noExecution' : 'normal'
+    };
+  }
+
+  function reset() {
+    vessel = S04.createVessel(opts(), (Date.now() & 0x7fffffff));
+    history = [];
+    document.getElementById('nmol').textContent = vessel.soup.length;
+    drawStrip(copCx, copCv, S04.COPIER, 500 / S04.COPIER.length);
+    document.getElementById('copierstr').textContent = S04.COPIER;
+    drawSoup();
+    refresh();
+  }
+
+  function drawStrip(cx, cv, s, w) {
+    cx.fillStyle = '#0b0d13';
+    cx.fillRect(0, 0, cv.width, cv.height);
+    for (var i = 0; i < s.length; i++) {
+      cx.fillStyle = COLORS[s.charAt(i)] || '#444';
+      cx.fillRect(i * w, 0, Math.max(1, w - 0.5), cv.height);
+    }
+  }
+
+  function drawSoup() {
+    soupCx.fillStyle = '#0b0d13';
+    soupCx.fillRect(0, 0, soupCv.width, soupCv.height);
+    var soup = vessel.soup;
+    var colW = SHOWN_LEN * CELL_W;
+    for (var i = 0; i < soup.length && i < ROWS * 2; i++) {
+      var col = i < ROWS ? 0 : 1;
+      var row = i % ROWS;
+      var x0 = col * (colW + COL_GAP), y = row * CELL_H;
+      var s = soup[i].s;
+      var n = Math.min(s.length, SHOWN_LEN);
+      for (var k = 0; k < n; k++) {
+        soupCx.fillStyle = COLORS[s.charAt(k)] || '#444';
+        soupCx.fillRect(x0 + k * CELL_W, y, CELL_W, Math.max(1, CELL_H - 1));
+      }
+    }
+  }
+
+  function drawChart() {
+    var W = chartCv.width, H = chartCv.height, PAD = 26;
+    chartCx.fillStyle = '#0b0d13';
+    chartCx.fillRect(0, 0, W, H);
+    var n = history.length;
+
+    // 帰無値 1.0 の線
+    chartCx.strokeStyle = '#3b4254';
+    chartCx.setLineDash([4, 4]);
+    chartCx.beginPath();
+    chartCx.moveTo(PAD, 8); chartCx.lineTo(W - 4, 8); chartCx.stroke();
+    chartCx.setLineDash([]);
+    chartCx.fillStyle = '#8b93a7';
+    chartCx.font = '10px -apple-system,sans-serif';
+    chartCx.fillText('1.0', 4, 11);
+    chartCx.fillText('0.5', 4, (H - 8 + 8) / 2 + 3);
+    chartCx.fillText('0', 4, H - 5);
+    chartCx.strokeStyle = '#252a36';
+    chartCx.beginPath(); chartCx.moveTo(PAD, H - 8); chartCx.lineTo(W - 4, H - 8); chartCx.stroke();
+
+    if (n < 2) return;
+    var span = Math.max(60, n);
+    var x = function (i) { return PAD + ((W - PAD - 4) * i) / (span - 1); };
+    var y = function (v) { return 8 + (H - 16) * (1 - Math.max(0, Math.min(1, v))); };
+
+    var series = [
+      { k: 'speciesEntropyRatio', c: '#60a5fa', w: 2 },
+      { k: 'dominantFraction', c: '#4ade80', w: 1.5 },
+      { k: 'masterFraction', c: '#fbbf24', w: 1.5 }
+    ];
+    for (var s = 0; s < series.length; s++) {
+      chartCx.strokeStyle = series[s].c;
+      chartCx.lineWidth = series[s].w;
+      chartCx.beginPath();
+      for (var i = 0; i < n; i++) {
+        var px = x(i), py = y(history[i][series[s].k]);
+        if (i === 0) chartCx.moveTo(px, py); else chartCx.lineTo(px, py);
+      }
+      chartCx.stroke();
+    }
+    chartCx.lineWidth = 1;
+  }
+
+  function refresh() {
+    var m = S04.measure(vessel);
+    history.push(m);
+    if (history.length > 600) history.shift();
+
+    document.getElementById('gen').textContent = vessel.gen;
+    document.getElementById('nmol').textContent = m.molecules;
+    document.getElementById('sp').textContent = m.speciesCount;
+    document.getElementById('her').textContent = m.speciesEntropyRatio.toFixed(3);
+    document.getElementById('sye').textContent = m.symbolEntropyRatio.toFixed(3);
+    document.getElementById('dom').textContent = m.dominantFraction.toFixed(3);
+    document.getElementById('mas').textContent = m.masterFraction.toFixed(3);
+    document.getElementById('br').textContent = m.bindRate.toFixed(4);
+    document.getElementById('dep').textContent = m.maxDepth + ' / ' + m.meanDepth.toFixed(1);
+    document.getElementById('len').textContent = m.meanLength.toFixed(1);
+
+    var ts = m.dominantSequence;
+    drawStrip(topCx, topCv, ts, Math.min(12, 500 / Math.max(1, ts.length)));
+    document.getElementById('topstr').textContent = ts;
+    document.getElementById('topis').textContent =
+      ts === S04.COPIER ? '← 手組み複製子そのもの' : '（手組み複製子とは違う配列）';
+    drawChart();
+  }
+
+  var frame = 0;
+  function loop() {
+    if (running && vessel) {
+      vessel.params.mu = MUS[+document.getElementById('mu').value];
+      vessel.params.mode = document.getElementById('noexec').checked ? 'noExecution' : 'normal';
+      var budget = performance.now() + 22;
+      do { S04.runGeneration(vessel); } while (performance.now() < budget);
+      drawSoup();
+      if (++frame % 2 === 0) refresh();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  (function legend() {
+    var html = '';
+    for (var i = 0; i < S04.RING.length; i++) {
+      var c = S04.RING.charAt(i);
+      var name = S04.OP_NAMES[c];
+      html += '<span><span class="sw" style="background:' + COLORS[c] + '"></span><code>' +
+        (c === '<' ? '&lt;' : c) + '</code>' + (name ? ' ' + name : '') + '</span>';
+    }
+    document.getElementById('oplegend').innerHTML = html;
+  })();
+
+  document.getElementById('run').onclick = function () {
+    running = !running;
+    this.textContent = running ? '停止' : '再開';
+  };
+  document.getElementById('reset').onclick = reset;
+  document.getElementById('seedf').onchange = reset;
+  document.getElementById('mu').oninput = function () {
+    var v = MUS[+this.value];
+    document.getElementById('muV').textContent = v === 0 ? '0' : v.toString();
+  };
+
+  reset();
+  requestAnimationFrame(loop);
+
+  // --- 共通の実行UI（撮る / 広さ / 設定の保存と復元）を載せる ---
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('run').click(); },
+    id: 'S-04',
+    version: '1.0.0',
+    inputs: ['mu', 'seedf', 'noexec'],
+    // URLパラメータの短縮名/フル名（K-80・2026-09-15 ユーザ指定）。μと実行の有無は反応の規則そのもの。
+    // seedf は初期の複製子比率だが、正コントロール（100%）/複製子なし（0%）を切り替える実験条件そのものなので物理法則側にした
+    paramNames: {
+      mu: { category: 'p', code: 'mu', full: 'mu' },
+      seedf: { category: 'p', code: 'seedf', full: 'seedf' },
+      noexec: { category: 'p', code: 'noexec', full: 'noexec' },
+    },
+    canvases: ['soup', 'chart', 'topseq', 'copier'],
+    // この系に空間は無い（衝突はよく混ざった槽で一様に起きる）。「広さ」にあたるのは
+    // **槽の容量**＝同時に保てる分子の本数 N。多様度比の帰無値 log2(N) もこれで決まる。
+    resize: function (scale) {
+      var next = Math.max(20, Math.round(CAPACITY_BASE * scale / 2) * 2);
+      if (next === CAPACITY) return;
+      CAPACITY = next;
+      layoutSoup();
+      reset();
+      Harness.say('槽の容量を ' + CAPACITY + ' 本にした（多様度比の分母 log2 N も一緒に動く）');
+    },
+  });
+})();
+</script>

@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-48 簡易 Screeps エンジン — 同じ世界で競合する bot の強さは、順序づくか</title>
+<style>
+  :root{ --bg:#0c0f14; --panel:#151a22; --line:#262d39; --fg:#d8dee9; --dim:#78829a; --good:#4ade80; --warn:#fbbf24; --a:#5b9bff; --b:#ff6b6b; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1000px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:10px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070b;border:1px solid var(--line);border-radius:4px;
+         max-width:100%;height:auto;image-rendering:pixelated}
+  aside{width:320px;min-width:280px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:11px 12px;margin-bottom:11px}
+  .box h2{margin:0 0 8px;font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.07em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:112px;color:var(--dim);flex:none}
+  select,input[type=number],input[type=text]{background:#0a0d13;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  input[type=range]{flex:1;min-width:0}
+  input[type=checkbox]{flex:none}
+  button{background:#1d2430;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#27303e}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #1d2430}
+  table.stat td.k{color:var(--dim);width:56%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:8ch}
+  .banner{margin-top:8px;padding:7px 9px;border-radius:4px;font-size:12px;border:1px solid var(--line);
+          background:#10141b;color:var(--dim)}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:11px;color:var(--dim)}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+  .note{color:var(--dim);font-size:11px;margin-top:7px}
+  .log{background:#05070b;border:1px solid var(--line);border-radius:4px;padding:6px 8px;
+       font:11px ui-monospace,SFMono-Regular,Menlo,monospace;max-height:140px;overflow-y:auto;white-space:pre-wrap}
+  @media(max-width:860px){aside{width:auto;min-width:0}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-48 簡易 Screeps エンジン</h1>
+  <p>単一の部屋に2人のbotが180度回転対称な配置で競合する。creepのbody（WORK / CARRY / MOVE / ATTACK / RANGED_ATTACK / HEAL / TOUGH）・
+     RCLによるstructure解禁・経路探索（10ティックごとのBFS距離場近似）を実装している。問いは「勝敗行列は単一の強さへ潰れるか、
+     それとも3すくみ（非推移）を作るか」——このビューアは1試合を目で追うためのもので、非推移性の判定は多数の試合を集計した
+     circularTriadFraction（run.js/観測器側）で行う。</p>
+</header>
+
+<div class="wrap">
+  <div class="col" style="max-width:520px;flex:0 1 520px"><!-- 幅は setCanvasPx が動的に上書きする -->
+    <p class="note" id="cap1">部屋（50x50）。青=A 赤=B 灰=invader。creepは円で、円周の弧がbody part（上=WORK/ATTACK/RANGED_ATTACK/HEAL、下=MOVE、外周の白いリング=TOUGH）——<strong>外観からcreepの仕様が読める</strong>。spawn=大円 extension=小円 tower=砲身つき controller=八角形+RCL wall=灰の塗り source=黄</p>
+    <canvas id="grid" width="500" height="500"></canvas>
+    <div class="row" style="margin-top:0">
+      <button id="zoomOut">− 縮小</button>
+      <button id="zoomIn">＋ 拡大</button>
+      <button id="zoomFit">全体</button>
+      <span style="width:12px"></span>
+      <button id="sizeDown">画面 小</button>
+      <button id="sizeUp">画面 大</button>
+      <button id="sizeMax">画面 最大</button>
+      <span class="note" style="margin:0;align-self:center;flex:1 1 100%">倍率 <span id="zoomOut2">1.0</span>×　描画 <span id="sizeOut">500</span>px（下限500・ウィンドウ幅まで）／拡大するとcreepのbody構成が読める・ドラッグで移動・クリックで選択</span>
+    </div>
+    <div class="legend" id="legend">
+      <span><span class="sw" style="background:#5b9bff"></span>A</span>
+      <span><span class="sw" style="background:#ff6b6b"></span>B</span>
+      <span><span class="sw" style="background:#9aa4b8"></span>invader</span>
+      <span style="width:100%;height:0"></span>
+      <span><span class="sw" style="background:#ffe56d"></span>WORK</span>
+      <span><span class="sw" style="background:#a9b7c6"></span>MOVE</span>
+      <span><span class="sw" style="background:#777"></span>CARRY</span>
+      <span><span class="sw" style="background:#f93842"></span>ATTACK</span>
+      <span><span class="sw" style="background:#5d80b2"></span>RANGED_ATTACK</span>
+      <span><span class="sw" style="background:#65fd62"></span>HEAL</span>
+      <span><span class="sw" style="background:#fff"></span>TOUGH</span>
+    </div>
+    <div class="banner" id="phase">「初期化」→「走らせる」で始まる</div>
+    <div class="box"><h2>ターミナル（bot の console.log 相当。A10）</h2><div class="log" id="termlog"></div></div>
+  </div>
+
+  <aside>
+    <div class="box" id="inspectorBox">
+      <h2>選択したオブジェクト（本家と同じく種別ごとに欄が変わる）</h2>
+      <div id="inspector"><p class="note" style="margin:0">盤面のオブジェクトをクリックすると、ここにプロパティが出る（本家と同じく種別ごとに欄が変わる）。</p></div>
+    </div>
+
+    <div class="box">
+      <h2>対戦設定</h2>
+      <label><span class="k">bot A</span><select id="botA"></select></label>
+      <label><span class="k">bot B</span><select id="botB"></select></label>
+      <label><span class="k">シード</span><input type="number" id="seed" value="20260916"></label>
+      <label><span class="k">経路探索の間隔</span><input type="number" id="pfInterval" min="1" max="50" value="10"></label>
+      <label><span class="k">戦闘を無効化</span><input type="checkbox" id="combatDisabled"></label>
+      <label><span class="k">相手を見せない</span><input type="checkbox" id="blind"></label>
+      <label><span class="k">invaderを無効化</span><input type="checkbox" id="invadersDisabled"></label>
+      <div class="row">
+        <button class="primary" id="init">初期化</button>
+        <button id="run">走らせる</button>
+        <button id="one">1ティック</button>
+        <button id="fastfwd">+100ティック</button>
+      </div>
+      <label><span class="k">速さ</span><input type="range" id="speed" min="1" max="300" value="60"><output class="num" id="speedOut" style="min-width:4ch">60</output></label>
+    </div>
+
+    <div class="box">
+      <h2>観測</h2>
+      <table class="stat">
+        <tr><td class="k">ティック t</td><td class="v num" id="stT">0</td></tr>
+        <tr><td class="k">RCL A / B</td><td class="v num" id="stRcl">- / -</td></tr>
+        <tr><td class="k">energy pool A / B</td><td class="v num" id="stEnergy">- / -</td></tr>
+        <tr><td class="k">累積採取 A / B</td><td class="v num" id="stHarvest">- / -</td></tr>
+        <tr><td class="k">controller進捗 A / B</td><td class="v num" id="stCtrl">- / -</td></tr>
+        <tr><td class="k">creep数 A / B / invader</td><td class="v num" id="stPop">- / - / -</td></tr>
+        <tr><td class="k">エネルギー保存則</td><td class="v num" id="stLedger">-</td></tr>
+        <tr><td class="k">状態ハッシュ</td><td class="v num" id="stHash">-</td></tr>
+      </table>
+      <p class="note">circularTriadFraction 等の秩序変数は多数の試合（45対×5シード）から求まる量であり、
+         1試合だけを見るこの画面には出さない。詳しくは criteria.json の orderParameters と run.js を見よ。</p>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="constants.js"></script>
+<script src="core.js"></script>
+<script src="ownership.js"></script>
+<script src="render.js"></script>
+<script src="tick.js"></script>
+<script src="bots.js"></script>
+<script src="match.js"></script>
+<script>
+(function () {
+  'use strict';
+  var gridCv = document.getElementById('grid'), gctx = gridCv.getContext('2d');
+  var N = S48.C.SIZE;
+  // **描画キャンバスの一辺（px）。500 が下限で、ウィンドウ横幅いっぱいまで広げられる**
+  // （2026-09-16 ユーザ指示「今の大きさは下限であり、ウィンドウ横幅いっぱいに広げられるようにせよ」）。
+  // CELL はここから導く——1マスの px 数であり、大きいほど creep の body 構成が読みやすくなる。
+  var MIN_CANVAS = 500;
+  var canvasPx = MIN_CANVAS;
+  function CELLpx() { return canvasPx / N; }
+
+  function els(ids) { var o = {}; ids.forEach(function (id) { o[id] = document.getElementById(id); }); return o; }
+  var E = els(['botA', 'botB', 'seed', 'pfInterval', 'combatDisabled', 'blind', 'invadersDisabled',
+    'speed', 'speedOut', 'phase', 'termlog', 'stT', 'stRcl', 'stEnergy', 'stHarvest', 'stCtrl', 'stPop', 'stLedger', 'stHash']);
+
+  // criteria.botGridの10体をここへ複製する（criteria.jsonをfetchしない——file://で開いたとき失敗するため）
+  var BOTS = [
+    { id: 'B01', name: 'rusher-melee', econFraction: 0.4, militaryBody: 'melee', aggression: 'rush', buildPriority: 'extension' },
+    { id: 'B02', name: 'rusher-ranged', econFraction: 0.4, militaryBody: 'ranged', aggression: 'rush', buildPriority: 'extension' },
+    { id: 'B03', name: 'tech-ranged', econFraction: 0.7, militaryBody: 'ranged', aggression: 'tech', buildPriority: 'tower' },
+    { id: 'B04', name: 'tech-melee-heal', econFraction: 0.7, militaryBody: 'meleeHeal', aggression: 'tech', buildPriority: 'tower' },
+    { id: 'B05', name: 'turtle-tower', econFraction: 0.8, militaryBody: 'ranged', aggression: 'turtle', buildPriority: 'tower' },
+    { id: 'B06', name: 'turtle-wall', econFraction: 0.8, militaryBody: 'toughBrawl', aggression: 'turtle', buildPriority: 'wall' },
+    { id: 'B07', name: 'boom', econFraction: 0.9, militaryBody: 'melee', aggression: 'tech', buildPriority: 'extension' },
+    { id: 'B08', name: 'balanced', econFraction: 0.6, militaryBody: 'meleeHeal', aggression: 'tech', buildPriority: 'extension' },
+    { id: 'B09', name: 'harass-ranged', econFraction: 0.6, militaryBody: 'ranged', aggression: 'rush', buildPriority: 'extension' },
+    { id: 'B10', name: 'tough-brawler', econFraction: 0.5, militaryBody: 'toughBrawl', aggression: 'rush', buildPriority: 'wall' },
+  ];
+  BOTS.forEach(function (b, i) {
+    [E.botA, E.botB].forEach(function (sel) {
+      var o = document.createElement('option'); o.value = b.id; o.textContent = b.id + ' ' + b.name; sel.appendChild(o);
+    });
+  });
+  E.botA.value = 'B01'; E.botB.value = 'B02';
+
+  var ctx = null, timer = null, termLines = [];
+
+  function botById(id) { return BOTS.filter(function (b) { return b.id === id; })[0]; }
+
+  function init() {
+    if (timer) { clearInterval(timer); timer = null; }
+    var seed = parseInt(E.seed.value, 10) || 1;
+    var opts = {
+      pathfindInterval: Math.max(1, parseInt(E.pfInterval.value, 10) || 10),
+      combatDisabled: E.combatDisabled.checked, invadersDisabled: E.invadersDisabled.checked,
+    };
+    ctx = S48.createCtx(seed, opts);
+    termLines = []; E.termlog.textContent = '';
+    render(); updateStats();
+    E.phase.textContent = '初期化した（seed=' + seed + '  ' + E.botA.value + ' 対 ' + E.botB.value + '）';
+  }
+
+  function stepOnce() {
+    var botA = botById(E.botA.value), botB = botById(E.botB.value);
+    var blind = E.blind.checked;
+    var viewA = blind ? S48Bots.blindView(ctx.state, 'A') : ctx.state;
+    var viewB = blind ? S48Bots.blindView(ctx.state, 'B') : ctx.state;
+    var ordersA = S48Bots.decide(viewA, 'A', botA), ordersB = S48Bots.decide(viewB, 'B', botB);
+    var beforeLogLen = ctx.state.log.length;
+    ctx = S48.stepTick(ctx, ordersA, ordersB);
+    if (ctx.state.log.length > beforeLogLen) {
+      ctx.state.log.slice(beforeLogLen).forEach(function (l) { pushTerm(l); });
+    }
+    if (ctx.state.tick % 50 === 0) {
+      pushTerm('t=' + ctx.state.tick + ' RCL A=' + ctx.state.players.A.rcl + ' B=' + ctx.state.players.B.rcl +
+        ' creeps A=' + count('A') + ' B=' + count('B') + ' invaders=' + count('invader'));
+    }
+  }
+  function count(owner) { return ctx.state.creeps.filter(function (c) { return c.owner === owner; }).length; }
+  function pushTerm(line) {
+    termLines.push(line);
+    if (termLines.length > 200) termLines.shift();
+    E.termlog.textContent = termLines.join('\n');
+    E.termlog.scrollTop = E.termlog.scrollHeight;
+  }
+
+  function colorFor(owner) { return owner === 'A' ? '#5b9bff' : owner === 'B' ? '#ff6b6b' : '#9aa4b8'; }
+
+  // ───────────────────────────────────────────────── 表示（ズーム・パン・選択）
+  // 本家クライアントと同じく、拡大すると creep の body 構成が読めるようになる（render.js 参照）。
+  var view = { zoom: 1, ox: 0, oy: 0 };   // ox/oy はセル単位の左上
+  var selected = null;                    // { kind, obj } — 選択したゲームオブジェクト
+  var R = window.S48Render;
+
+  function cellPx() { return CELLpx() * view.zoom; }
+  function visibleCells() { return Math.min(N, Math.ceil(gridCv.width / cellPx())); }
+  function clampView() {
+    var v = visibleCells();
+    view.ox = Math.max(0, Math.min(N - v, view.ox));
+    view.oy = Math.max(0, Math.min(N - v, view.oy));
+  }
+  /** 画面座標 → セル座標 */
+  function toCell(px, py) {
+    var rect = gridCv.getBoundingClientRect();
+    var sx = (px - rect.left) * (gridCv.width / rect.width);
+    var sy = (py - rect.top) * (gridCv.height / rect.height);
+    return { x: Math.floor(sx / cellPx() + view.ox), y: Math.floor(sy / cellPx() + view.oy) };
+  }
+
+  function render() {
+    gctx.clearRect(0, 0, gridCv.width, gridCv.height);
+    var st = ctx.state, cp = cellPx();
+    clampView();
+    var x0 = Math.floor(view.ox), y0 = Math.floor(view.oy);
+    var nx = Math.min(N, x0 + Math.ceil(gridCv.width / cp) + 1);
+    var ny = Math.min(N, y0 + Math.ceil(gridCv.height / cp) + 1);
+    function sx(cx) { return (cx - view.ox) * cp; }
+    function sy(cy) { return (cy - view.oy) * cp; }
+    function onScreen(pos) { return pos.x >= x0 - 1 && pos.x < nx && pos.y >= y0 - 1 && pos.y < ny; }
+
+    // 地形
+    for (var y = y0; y < ny; y++) for (var x = x0; x < nx; x++) {
+      if (st.terrain[S48.idx(x, y)] === 1) { gctx.fillStyle = '#1c2230'; gctx.fillRect(sx(x), sy(y), cp + 1, cp + 1); }
+    }
+    st.sources.forEach(function (s) { if (onScreen(s.pos)) R.drawSource(gctx, s, sx(s.pos.x), sy(s.pos.y), cp); });
+    st.structures.walls.forEach(function (w) { if (onScreen(w.pos)) R.drawWall(gctx, w, sx(w.pos.x), sy(w.pos.y), cp); });
+    st.structures.extensions.forEach(function (e) {
+      if (!onScreen(e.pos)) return;
+      var pl = st.players[e.owner];
+      R.drawExtension(gctx, e, sx(e.pos.x), sy(e.pos.y), cp, pl ? R.energyRatio(pl.energy, pl.capacity) : 0);
+    });
+    st.structures.controllers.forEach(function (c) {
+      if (onScreen(c.pos)) R.drawController(gctx, c, sx(c.pos.x), sy(c.pos.y), cp, st.players[c.owner] ? st.players[c.owner].rcl : 1);
+    });
+    st.structures.towers.forEach(function (t) {
+      if (!onScreen(t.pos)) return;
+      var pl = st.players[t.owner];
+      R.drawTower(gctx, t, sx(t.pos.x), sy(t.pos.y), cp, pl ? R.energyRatio(pl.energy, pl.capacity) : 0);
+    });
+    st.structures.spawns.forEach(function (s) {
+      if (!onScreen(s.pos)) return;
+      var pl = st.players[s.owner];
+      R.drawSpawn(gctx, s, sx(s.pos.x), sy(s.pos.y), cp, pl ? R.energyRatio(pl.energy, pl.capacity) : 0);
+    });
+    st.creeps.forEach(function (c) {
+      if (!onScreen(c.pos)) return;
+      R.drawCreep(gctx, c, sx(c.pos.x) + cp / 2, sy(c.pos.y) + cp / 2, cp * 0.36);
+    });
+
+    // 選択枠
+    if (selected && selected.obj && selected.obj.pos && onScreen(selected.obj.pos)) {
+      gctx.strokeStyle = '#ffffff'; gctx.lineWidth = Math.max(1, cp * 0.09);
+      gctx.strokeRect(sx(selected.obj.pos.x) + 1, sy(selected.obj.pos.y) + 1, cp - 2, cp - 2);
+    }
+  }
+
+  /** 右側のプロパティパネル（本家と同じく、選択したオブジェクトの種別ごとに欄が変わる）。 */
+  function renderInspector() {
+    var host = document.getElementById('inspector');
+    if (!selected) {
+      host.innerHTML = '<p class="note" style="margin:0">盤面のオブジェクトをクリックすると、ここにプロパティが出る（本家と同じく種別ごとに欄が変わる）。</p>';
+      return;
+    }
+    // 選択したオブジェクトは毎ティック作り直されるので、id で引き直して最新の値を出す
+    var live = selected;
+    if (selected.obj && selected.obj.id) {
+      var again = R.pick(ctx.state, selected.obj.pos.x, selected.obj.pos.y);
+      var found = null;
+      if (selected.kind === 'creep') {
+        ctx.state.creeps.forEach(function (c) { if (c.id === selected.obj.id) found = { kind: 'creep', obj: c }; });
+      } else if (again && again.obj && again.obj.id === selected.obj.id) { found = again; }
+      if (found) { live = found; selected = found; }
+      else if (selected.kind === 'creep') {
+        host.innerHTML = '<h3 style="margin:0 0 6px;font-size:13px">Creep ' + esc(selected.obj.id) + '</h3>' +
+          '<p class="note" style="margin:0">この creep は死んだ（ticksToLive 切れ、または撃破）。</p>';
+        return;
+      }
+    }
+    var d = R.describe(live, ctx.state, null);
+    var h = '<h3 style="margin:0 0 7px;font-size:13px">' + esc(d.title) + '</h3><table class="stat">';
+    d.rows.forEach(function (r) {
+      h += '<tr><td class="k">' + esc(r.k) + '</td><td class="v">' + esc(r.v) + '</td></tr>';
+    });
+    h += '</table>';
+    if (d.body && d.body.length) {
+      h += '<div style="margin-top:9px"><div style="font-size:11px;color:var(--dim);margin-bottom:5px">body（外観の弧と対応する）</div>';
+      d.body.forEach(function (b) {
+        h += '<div style="display:flex;align-items:center;gap:7px;margin:3px 0;font:12px ui-monospace,Menlo,monospace">' +
+          '<span class="sw" style="background:' + b.color + '"></span>' +
+          '<span style="flex:1;min-width:0">' + esc(b.part) + '</span><span>×' + b.n + '</span></div>';
+      });
+      h += '</div>';
+    }
+    if (d.note) h += '<p class="note">' + mdBold(esc(d.note)) + '</p>';
+    host.innerHTML = h;
+  }
+  function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function mdBold(t) { return t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>'); }
+
+  function updateStats() {
+    var st = ctx.state;
+    E.stT.textContent = st.tick;
+    E.stRcl.textContent = st.players.A.rcl + ' / ' + st.players.B.rcl;
+    E.stEnergy.textContent = st.players.A.energy + ' / ' + st.players.B.energy;
+    E.stHarvest.textContent = st.players.A.harvested + ' / ' + st.players.B.harvested;
+    E.stCtrl.textContent = st.players.A.controllerProgress + ' / ' + st.players.B.controllerProgress;
+    E.stPop.textContent = count('A') + ' / ' + count('B') + ' / ' + count('invader');
+    var lc = S48.energyLedgerCheck(st);
+    E.stLedger.textContent = lc.ok ? 'OK' : 'NG';
+    E.stHash.textContent = S48.stateHash(st);
+    renderInspector();
+  }
+
+  // ───────────────────────────────────────────────── ズーム・パン・選択の操作
+  function setZoom(z, anchorCell) {
+    var old = view.zoom;
+    view.zoom = Math.max(1, Math.min(8, z));
+    if (anchorCell) {   // 掴んだセルが画面上の同じ位置に留まるように寄せる
+      var vNew = gridCv.width / (CELLpx() * view.zoom);
+      view.ox = anchorCell.x - vNew / 2; view.oy = anchorCell.y - vNew / 2;
+    } else if (old !== view.zoom) {
+      var vOld = gridCv.width / (CELLpx() * old), vN = gridCv.width / (CELLpx() * view.zoom);
+      view.ox += (vOld - vN) / 2; view.oy += (vOld - vN) / 2;
+    }
+    clampView();
+    document.getElementById('zoomOut2').textContent = view.zoom.toFixed(1);
+    render();
+  }
+  /**
+   * 描画キャンバスの一辺を変える。**500px が下限、上限はウィンドウの横幅**（ユーザ指示）。
+   * キャンバスの解像度そのものを変えるので、大きくするほど 1 マスの px が増えて
+   * creep の body 構成が読みやすくなる（CSS で引き伸ばすのではない）。
+   */
+  function availableWidth() {
+    var wrap = gridCv.parentElement;
+    var pad = 32;
+    return Math.max(MIN_CANVAS, Math.floor((window.innerWidth || 1024) - pad));
+  }
+  function setCanvasPx(px) {
+    canvasPx = Math.max(MIN_CANVAS, Math.min(availableWidth(), Math.round(px)));
+    gridCv.width = canvasPx; gridCv.height = canvasPx;
+    // 列の幅もキャンバスに合わせる（狭いときは横のパネルが隣に、広いときは下へ回る）
+    var col = gridCv.closest('.col');
+    if (col) { col.style.maxWidth = (canvasPx + 20) + 'px'; col.style.flex = '0 1 ' + (canvasPx + 20) + 'px'; }
+    document.getElementById('sizeOut').textContent = canvasPx;
+    clampView();
+    if (ctx) render();   // 起動直後はまだ試合が無い
+  }
+  document.getElementById('sizeUp').addEventListener('click', function () { setCanvasPx(canvasPx * 1.25); });
+  document.getElementById('sizeDown').addEventListener('click', function () { setCanvasPx(canvasPx / 1.25); });
+  document.getElementById('sizeMax').addEventListener('click', function () { setCanvasPx(availableWidth()); });
+  window.addEventListener('resize', function () { if (canvasPx > availableWidth()) setCanvasPx(availableWidth()); });
+
+  document.getElementById('zoomIn').addEventListener('click', function () { setZoom(view.zoom * 2); });
+  document.getElementById('zoomOut').addEventListener('click', function () { setZoom(view.zoom / 2); });
+  document.getElementById('zoomFit').addEventListener('click', function () { view.ox = 0; view.oy = 0; setZoom(1); });
+
+  var drag = null;
+  gridCv.addEventListener('pointerdown', function (ev) {
+    drag = { x: ev.clientX, y: ev.clientY, ox: view.ox, oy: view.oy, moved: false };
+    gridCv.setPointerCapture(ev.pointerId);
+  });
+  gridCv.addEventListener('pointermove', function (ev) {
+    if (!drag) return;
+    var dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.moved = true;
+    var rect = gridCv.getBoundingClientRect();
+    var scale = gridCv.width / rect.width;
+    view.ox = drag.ox - dx * scale / cellPx();
+    view.oy = drag.oy - dy * scale / cellPx();
+    clampView(); render();
+  });
+  gridCv.addEventListener('pointerup', function (ev) {
+    var wasDrag = drag && drag.moved;
+    drag = null;
+    if (wasDrag) return;
+    var cell = toCell(ev.clientX, ev.clientY);
+    if (cell.x < 0 || cell.y < 0 || cell.x >= N || cell.y >= N) return;
+    selected = S48Render.pick(ctx.state, cell.x, cell.y);
+    renderInspector(); render();
+  });
+
+  document.getElementById('init').addEventListener('click', init);
+  document.getElementById('one').addEventListener('click', function () { stepOnce(); render(); updateStats(); });
+  document.getElementById('fastfwd').addEventListener('click', function () { for (var i = 0; i < 100; i++) stepOnce(); render(); updateStats(); });
+  document.getElementById('run').addEventListener('click', function () {
+    if (timer) { clearInterval(timer); timer = null; E.phase.textContent = '停止中'; return; }
+    E.phase.textContent = '走行中';
+    timer = setInterval(function () { stepOnce(); render(); updateStats(); }, Math.max(4, 300 / (parseInt(E.speed.value, 10) || 60)));
+  });
+  E.speed.addEventListener('input', function () { E.speedOut.textContent = E.speed.value; });
+
+  Harness.mount({
+    pause: function () { if (timer) document.getElementById('run').click(); },
+    id: 'S-48', version: '1.2.0',
+    inputs: ['botA', 'botB', 'seed', 'pfInterval', 'combatDisabled', 'blind', 'invadersDisabled', 'speed'],
+    paramNames: {
+      botA: { category: 's', code: 'botA', full: 'bot_a' },
+      botB: { category: 's', code: 'botB', full: 'bot_b' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      pfInterval: { category: 'p', code: 'pf', full: 'pathfind_interval' },
+      combatDisabled: { category: 'p', code: 'noCombat', full: 'combat_disabled' },
+      blind: { category: 'p', code: 'blind', full: 'blind' },
+      invadersDisabled: { category: 'p', code: 'noInv', full: 'invaders_disabled' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+    },
+    canvases: ['grid'],
+    onRestore: init,
+    // 「広さ」＝部屋の一辺（50固定）。system.roomの登録値そのものであり、可変にする意味が無いので省略する（README参照）
+  });
+
+  init();
+  setCanvasPx(MIN_CANVAS);   // 列幅と表示を初期化（下限の 500px から始める）
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,316 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-11 近傍の「形」を変えると結論は動くか</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  button.on{border-color:var(--acc);color:var(--acc)}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  label b{color:var(--fg);font-variant-numeric:tabular-nums;min-width:3.4em}
+  input[type=range]{width:150px}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;background:#080a0e}
+  table{border-collapse:collapse;font-size:12px}
+  th,td{padding:4px 9px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left}
+  td{font-variant-numeric:tabular-nums;min-width:3.6em}
+  #step{display:inline-block;min-width:7ch;text-align:right}
+  .hi{color:#4ade80} .lo{color:#8b93a7}
+  .shapes{display:flex;gap:7px;flex-wrap:wrap}
+  .sh{display:flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 9px;cursor:pointer;font-size:12px;color:var(--dim)}
+  .sh.on{color:var(--fg);border-color:#4b5468}
+  .sw{display:inline-block;width:16px;height:4px;border-radius:2px}
+  footer{padding:0 18px 24px;color:var(--dim);font-size:12px;max-width:960px}
+  footer b{color:var(--fg)}
+  @media(max-width:820px){.wrap{flex-direction:column}.panel{max-width:100%;overflow-x:auto}}
+</style>
+
+<header>
+  <h1>S-11 — 近傍の「形」を変えると結論は動くか</h1>
+  <p class="sub">粒子は混雑した所で遅くなるだけ（<code>v = v₀·exp(−λ·n/n₀)</code>）。引力も結合も無い。<br>
+    <b>同じ一つの配置</b>に、<b>期待次数を 6.03 に揃えた</b>6通りの近傍を同時に当てて描き分ける。力学は一切変えない。</p>
+</header>
+
+<div class="bar">
+  <button id="play">停止</button>
+  <button id="reset">配置をやり直す</button>
+  <label>λ <input id="lam" type="range" min="0" max="4" step="0.05" value="1"><b id="lamv">1.00</b></label>
+  <label>速さの表示 <input id="showSpeed" type="checkbox" checked></label>
+  <label>帰無過程を並べる <input id="showNull" type="checkbox" checked></label>
+  <span style="color:var(--dim)">step <b id="step" style="color:var(--fg)">0</b></span>
+</div>
+<div class="bar">
+  <span style="color:var(--dim)">近傍の形（クリックで辺の表示を切替）</span>
+  <span class="shapes" id="shapes"></span>
+</div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>実系 — 混雑で速さが落ちる粒子</h2>
+    <canvas id="cv" width="520" height="520"></canvas>
+  </div>
+  <div class="panel" id="nullPanel">
+    <h2>帰無過程 — 同じ N のポアソン配置（K-19: 同じノブを振る）</h2>
+    <canvas id="cvN" width="520" height="520"></canvas>
+  </div>
+  <div class="panel">
+    <h2>観測値（帰無比。1.0 = ポアソン配置と区別がつかない）</h2>
+    <table>
+      <thead><tr><th>形</th><th>次数</th><th>次数比</th><th>辺長比</th><th>密度過剰</th><th>2-hop</th><th>判定</th></tr></thead>
+      <tbody id="tb"></tbody>
+    </table>
+    <h2 style="margin-top:14px">帰無過程に同じ形を当てた値</h2>
+    <table>
+      <thead><tr><th>形</th><th>密度過剰</th><th>2-hop</th><th>判定</th></tr></thead>
+      <tbody id="tbN"></tbody>
+    </table>
+    <p style="color:var(--dim);font-size:11px;margin:10px 0 0;max-width:340px">
+      判定は <code>密度過剰 ≥ 1.5 かつ 2-hop ≥ 1.5</code>（事前登録）。<br>
+      形の欄が縦に揃わないことが本スケッチの主題。左右で同じ形の行を見比べると、
+      <b>帰無過程では形を変えても値が動かない</b>ことが分かる。
+    </p>
+  </div>
+</div>
+
+<footer>
+  <p><b>何を見ているか</b>: 面積を完全に等しく取った円・正方形・菱形・帯（縦横比4:1）と、
+  個数を固定する k 近傍（k=5）、そしてパラメータを持たない Gabriel グラフ。
+  前5つはポアソン配置での期待次数が 6.03 で揃う（系の相互作用核から借りた値）。
+  Gabriel だけは 4.00 で、<b>揃えようが無い</b>——パラメータを持たない形の代償である。</p>
+  <p><b>Openshaw (1983) の言う MAUP には2成分ある</b>。区画の<b>数</b>を変える scale problem と、
+  数を固定して<b>分け方</b>を変える aggregation problem。S-02 は前者（連結半径）を振った。
+  これは後者を振る回で、Openshaw 自身の「分け方のほうが効く」という主張を確かめている。</p>
+  <p>出典（アイデアのみ・コード非参照）: Cates &amp; Tailleur (2015) <i>Motility-Induced Phase Separation</i>；
+  Openshaw (1983) <i>The Modifiable Areal Unit Problem</i>, CATMOG 38；Gabriel &amp; Sokal (1969)。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var S = window.S11;
+  var SIZE_BASE = 60;
+  var SIZE = SIZE_BASE, RHO = 1 / 3, RINT = 2.4, N = Math.round(RHO * SIZE * SIZE);
+  var TARGET = RHO * Math.PI * RINT * RINT;
+  var KNN_K = 5;
+  var PARAMS = { disc: RINT, square: RINT, diamond: RINT, stripe: RINT, knn: KNN_K, gabriel: 0 };
+  var COLORS = { disc: '#60a5fa', square: '#f472b6', diamond: '#facc15', stripe: '#34d399', knn: '#fb923c', gabriel: '#a78bfa' };
+  var LABELS = { disc: '円', square: '正方形', diamond: '菱形', stripe: '帯 4:1', knn: 'k近傍 k=5', gabriel: 'Gabriel' };
+  var SHAPES = S.SHAPES_ALL;
+  var on = { disc: true, square: false, diamond: false, stripe: false, knn: true, gabriel: false };
+
+  // 参照集団（帰無比の分母）。読み込み時に一度だけ作る（広さを変えたときだけ作り直す）。
+  function buildRef() {
+    var acc = {};
+    SHAPES.forEach(function (s) { acc[s] = { meanDegree: 0, degreeCV: 0, meanEdgeLength: 0, meanDegree2: 0, meanEdgeLength2: 0 }; });
+    var K = 4;
+    for (var i = 0; i < K; i++) {
+      var m = S.measureAll(S.poissonPoints(N, SIZE, 700000 + i * 13), PARAMS);
+      SHAPES.forEach(function (s) { Object.keys(acc[s]).forEach(function (f) { acc[s][f] += m[s][f] / K; }); });
+    }
+    return acc;
+  }
+  var REF = buildRef();
+
+  function ratios(pts) {
+    var m = S.measureAll(pts, PARAMS);
+    var out = {};
+    SHAPES.forEach(function (s) {
+      var de = m[s].meanDegree / REF[s].meanDegree;
+      var el = m[s].meanEdgeLength / REF[s].meanEdgeLength;
+      var de2 = m[s].meanDegree2 / REF[s].meanDegree2;
+      var el2 = m[s].meanEdgeLength2 / REF[s].meanEdgeLength2;
+      out[s] = {
+        meanDegree: m[s].meanDegree, degreeExcess: de, edgeLenRatio: el,
+        densityContrast: de / (el * el), densityContrast2: de2 / (el2 * el2),
+      };
+      out[s].clumped = out[s].densityContrast >= 1.5 && out[s].densityContrast2 >= 1.5;
+    });
+    return out;
+  }
+
+  var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  var cvN = document.getElementById('cvN'), ctxN = cvN.getContext('2d');
+  var seed = 20260911, world = null, nullPts = null, running = true, frame = 0;
+
+  function reset() {
+    world = S.createWorld({ lambda: parseFloat(document.getElementById('lam').value), size: SIZE }, seed);
+    nullPts = S.poissonPoints(N, SIZE, seed + 555);
+    frame = 0;
+    draw(); refresh();
+  }
+
+  function drawPoints(c, pts, speeds) {
+    var W = c.canvas.width, k = W / SIZE;
+    c.fillStyle = '#080a0e'; c.fillRect(0, 0, W, W);
+    var showSpeed = document.getElementById('showSpeed').checked && speeds;
+    for (var i = 0; i < pts.n; i++) {
+      if (showSpeed) {
+        var f = Math.min(1, speeds[i] / 0.35);
+        c.fillStyle = 'rgb(' + Math.round(90 + 165 * (1 - f)) + ',' + Math.round(120 + 110 * f) + ',' + Math.round(150 + 90 * f) + ')';
+      } else c.fillStyle = '#c8d0e0';
+      c.fillRect(pts.x[i] * k - 1, pts.y[i] * k - 1, 2.2, 2.2);
+    }
+  }
+
+  function drawEdges(c, pts) {
+    var W = c.canvas.width, k = W / SIZE;
+    SHAPES.forEach(function (s) {
+      if (!on[s]) return;
+      var g = S.buildShapeGraph(pts, s, PARAMS[s]);
+      var m = g.ea.length;
+      var stride = m > 9000 ? Math.ceil(m / 9000) : 1;   // 密相では辺が数万本になるので間引く
+      c.strokeStyle = COLORS[s];
+      c.globalAlpha = stride > 1 ? 0.55 : 0.38;
+      c.lineWidth = 1;
+      c.beginPath();
+      for (var e = 0; e < m; e += stride) {
+        var i = g.ea[e], j = g.eb[e];
+        var dx = S.wrapDelta(pts.x[j] - pts.x[i], SIZE), dy = S.wrapDelta(pts.y[j] - pts.y[i], SIZE);
+        c.moveTo(pts.x[i] * k, pts.y[i] * k);
+        c.lineTo((pts.x[i] + dx) * k, (pts.y[i] + dy) * k);   // トーラスの折返しは箱の外へ伸ばして描く
+      }
+      c.stroke();
+      c.globalAlpha = 1;
+    });
+  }
+
+  function draw() {
+    var pts = S.pointsOf(world);
+    drawPoints(ctx, pts, world.speed);
+    drawEdges(ctx, pts);
+    if (document.getElementById('showNull').checked) {
+      drawPoints(ctxN, nullPts, null);
+      drawEdges(ctxN, nullPts);
+    }
+    document.getElementById('step').textContent = frame;
+  }
+
+  function cell(v, good) {
+    var cls = good ? (v >= 1.5 ? 'hi' : 'lo') : '';
+    return '<td class="' + cls + '">' + v.toFixed(v >= 10 ? 1 : 2) + '</td>';
+  }
+
+  function refresh() {
+    var r = ratios(S.pointsOf(world));
+    document.getElementById('tb').innerHTML = SHAPES.map(function (s) {
+      return '<tr><td><span class="sw" style="background:' + COLORS[s] + '"></span> ' + LABELS[s] + '</td>' +
+        '<td>' + r[s].meanDegree.toFixed(1) + '</td>' +
+        '<td>' + r[s].degreeExcess.toFixed(2) + '</td>' +
+        '<td>' + r[s].edgeLenRatio.toFixed(3) + '</td>' +
+        cell(r[s].densityContrast, true) + cell(r[s].densityContrast2, true) +
+        '<td class="' + (r[s].clumped ? 'hi' : 'lo') + '">' + (r[s].clumped ? '集積' : '—') + '</td></tr>';
+    }).join('');
+    var rn = ratios(nullPts);
+    document.getElementById('tbN').innerHTML = SHAPES.map(function (s) {
+      return '<tr><td><span class="sw" style="background:' + COLORS[s] + '"></span> ' + LABELS[s] + '</td>' +
+        cell(rn[s].densityContrast, true) + cell(rn[s].densityContrast2, true) +
+        '<td class="' + (rn[s].clumped ? 'hi' : 'lo') + '">' + (rn[s].clumped ? '集積' : '—') + '</td></tr>';
+    }).join('');
+  }
+
+  document.getElementById('shapes').innerHTML = SHAPES.map(function (s) {
+    return '<span class="sh' + (on[s] ? ' on' : '') + '" data-s="' + s + '">' +
+      '<span class="sw" style="background:' + COLORS[s] + '"></span>' + LABELS[s] + '</span>';
+  }).join('');
+  document.getElementById('shapes').addEventListener('click', function (e) {
+    var el = e.target.closest ? e.target.closest('.sh') : null;
+    if (!el) return;
+    var s = el.getAttribute('data-s');
+    on[s] = !on[s];
+    el.className = 'sh' + (on[s] ? ' on' : '');
+    draw();
+  });
+  document.getElementById('play').addEventListener('click', function () {
+    running = !running; this.textContent = running ? '停止' : '再開';
+  });
+  document.getElementById('reset').addEventListener('click', function () { seed += 1; reset(); });
+  document.getElementById('lam').addEventListener('input', function () {
+    document.getElementById('lamv').textContent = parseFloat(this.value).toFixed(2);
+    world.params.lambda = parseFloat(this.value);
+  });
+  document.getElementById('showNull').addEventListener('change', function () {
+    document.getElementById('nullPanel').style.display = this.checked ? '' : 'none';
+    if (this.checked) draw();
+  });
+
+  reset();
+
+  // --- 共通の実行UI（撮る / 広さ / 設定の保存と復元）を載せる ---
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('play').click(); },
+    id: 'S-11',
+    version: '1.0.0',
+    inputs: ['lam', 'showSpeed', 'showNull'],
+    // URLパラメータの短縮名/フル名（K-80・2026-09-15 ユーザ指定）。λは速さを混雑度で減衰させる
+    // 力学の規則そのものなので物理法則。showSpeed/showNull/shapes はいずれも表示の切り替えで、
+    // 計算そのもの（点の配置・測定値）には効かないのでソフトウェア扱いにした
+    paramNames: {
+      lam: { category: 'p', code: 'lam', full: 'lam' },
+      showSpeed: { category: 's', code: 'showSpeed', full: 'showSpeed' },
+      showNull: { category: 's', code: 'showNull', full: 'showNull' },
+      shapes: { category: 's', code: 'shapes', full: 'shapes' },
+    },
+    canvases: ['cv', 'cvN'],
+    // 近傍の形は DOM の input ではなく span のトグルなので、保存/復元に自分で載せる。
+    getParams: function () {
+      var v = { lam: document.getElementById('lam').value,
+                showSpeed: document.getElementById('showSpeed').checked,
+                showNull: document.getElementById('showNull').checked, shapes: {} };
+      SHAPES.forEach(function (s) { v.shapes[s] = !!on[s]; });
+      return v;
+    },
+    setParams: function (v) {
+      ['lam', 'showSpeed', 'showNull'].forEach(function (id) {
+        if (v[id] === undefined) return;
+        var e = document.getElementById(id);
+        if (e.type === 'checkbox') e.checked = !!v[id]; else e.value = v[id];
+        e.dispatchEvent(new Event('input', { bubbles: true }));
+        e.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      if (v.shapes) {
+        SHAPES.forEach(function (s) {
+          if (v.shapes[s] === undefined) return;
+          on[s] = !!v.shapes[s];
+          var el = document.querySelector('.sh[data-s="' + s + '"]');
+          if (el) el.className = 'sh' + (on[s] ? ' on' : '');
+        });
+        draw();
+      }
+    },
+    // 「広さ」はそのまま箱の辺長。密度 1/3 を保つので粒子数も一緒に変わる。
+    // 相互作用半径は長さなので据え置き（＝期待次数が揃ったままになる）。
+    resize: function (scale) {
+      var next = Math.max(12, Math.round(SIZE_BASE * scale));
+      if (next === SIZE) return;
+      SIZE = next;
+      N = Math.round(RHO * SIZE * SIZE);
+      REF = buildRef();
+      reset();
+      Harness.say('箱 ' + SIZE + '×' + SIZE + '（' + N + ' 粒子。密度は ' + RHO.toFixed(3) + ' のまま）');
+    },
+  });
+
+  (function loop() {
+    if (running) {
+      for (var t = 0; t < 3; t++) { S.stepWorld(world); frame++; }
+      draw();
+      if (frame % 30 < 3) refresh();
+    }
+    requestAnimationFrame(loop);
+  })();
+})();
+</script>

@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>観測器の設計に共通する穴（既作6本の横断考察） — 人工生命スケッチ</title><link rel="stylesheet" href="../../assets/style.css"></head><body class="sketchpage"><nav class="crumbs"><a href="../../index.html">人工生命スケッチ</a><span class="sep">›</span><span aria-current="page">S-10 観測器の設計に共通する穴（既作6本の横断考察）</span></nav><header class="shead"><div class="sline"><span class="cid">S-10</span><h1>観測器の設計に共通する穴（既作6本の横断考察）</h1><span class="ver">v1.0.0</span><span class="kind">文献・考察</span></div><div class="tags"><span class="tag">観測器の設計</span><span class="tag">横断考察</span><span class="tag">文献</span><span class="tag">MAUP</span></div><div class="sacts"><button class="btn ovopen" data-go="r-main">📄 観測器の設計に共通する穴（既作6本の横断考察）</button><button class="btn ovopen" data-go="comments">💬 コメント（0）</button></div></header><div class="stagewrap"><div class="nostage">このスケッチは可視化を持たない（文献・考察）。上のレポートを開く。</div><div class="overlay" id="overlay" hidden data-open=""><div class="ovbar"><span class="ovwho" title="観測器の設計に共通する穴（既作6本の横断考察）">S-10</span><div class="ovtabs"><button class="ovtab" data-go="r-main">観測器の設計に共通する穴（既作6本の横断考察）</button><button class="ovtab" data-go="comments">💬 コメント（0）</button></div><button class="ovclose" id="ovclose" title="閉じて実行に戻る">✕</button></div><div class="ovbody"><section class="pane" data-pane="r-main" hidden><div class="rmeta"><span class="angle">主レポート（最初の切り口）</span></div><details class="rtoc"><summary>目次</summary><a href="#一行で言うと">一行で言うと</a><a href="#何をやったか">何をやったか</a><a href="#結果1-観測器のノブは2種類ある-切り方-と-作り直し">結果1: 観測器のノブは2種類ある——「切り方」と「作り直し」</a><a href="#結果2-s-02-は反転し-s-04-と-s-03-は反転しなかった-差はどこにあるか-問い2-本稿の中心">結果2: S-02 は反転し、S-04 と S-03 は反転しなかった——差はどこにあるか（問い2・<strong>本稿の中心</strong>）</a><a href="#結果3-k-9-k-10-k-14-k-15-は1つの構造の4つの面か-問い1">結果3: K-9 / K-10 / K-14 / K-15 は1つの構造の4つの面か（問い1）</a><a href="#結果4-集約の面-a3-と-生ログと本文の食い違い1件">結果4: 集約の面（A3）と、生ログと本文の食い違い1件</a><a href="#文献の中での位置-問い3">文献の中での位置（問い3）</a><a href="#method-md-への修正提案-問い4-本稿は-method-md-を編集していない">method.md への修正提案（問い4・<strong>本稿は method.md を編集していない</strong>）</a><a href="#本家サブプロジェクトへの含意-候補-要件化はしていない">本家サブプロジェクトへの含意（候補。要件化はしていない）</a><a href="#限界-この考察が言えないこと">限界（この考察が言えないこと）</a></details><article class="md"><h1 id="s-10-観測器の設計に共通する穴-既作6本の横断考察">S-10: 観測器の設計に共通する穴（既作6本の横断考察）</h1>
+<ul><li><strong>実施日</strong>: 2026-09-11</li><li><strong>種別</strong>: <strong>文献・考察のスケッチ</strong>（<span class="deadlink">overview</span> の「文献・考察系も可・全体の1〜2割」に当たる1本目）。<strong>アプリは作っていない</strong></li><li><strong>材料</strong>: S-01・S-02・<strong>S-03</strong>・S-04・S-05・S-06 の <code>report.md</code> と <code>raw/</code> 配下の生ログ（本稿は<strong>読むだけ</strong>で、他のスケッチのファイルを一切書き換えていない）</li><li><strong>再計算</strong>: <span class="deadlink">raw/recount.js</span>。6本の生ログを読み直し、本稿が引用する数値を機械的に作り直す。<code>raw/</code> で <code>node recount.js</code> を実行すると全出力が再生成される</li><li><strong>本稿が出した生ログ</strong>（★は本稿が新しく走らせた解析）:</li></ul>
+<p><span class="deadlink">raw/s01-aggregation.jsonl</span>・<span class="deadlink">raw/s01-answer-set.jsonl</span>・ <span class="deadlink">raw/s02-radius-table.jsonl</span>・<span class="deadlink">raw/s02-answer-set.jsonl</span>・ ★<span class="deadlink">raw/s02-pilot-4runs.jsonl</span>・★<span class="deadlink">raw/s02-cut-vs-recompute.jsonl</span>・ ★<span class="deadlink">raw/s03-band-on-soup.jsonl</span>・★<span class="deadlink">raw/s03-reference-point.jsonl</span>・ <span class="deadlink">raw/s04-answer-set.jsonl</span>・★<span class="deadlink">raw/s04-window-sweep.jsonl</span>・ ★<span class="deadlink">raw/s04-description-level.jsonl</span>・<span class="deadlink">raw/s05-null-zero.jsonl</span>・ <span class="deadlink">raw/s06-specificity.jsonl</span>・★<span class="deadlink">raw/gap-hypothesis.jsonl</span>・ <span class="deadlink">raw/cross-sketch.jsonl</span>・<span class="deadlink">raw/summary.json</span></p>
+<ul><li><strong>所要</strong>: 再計算 0.3 秒（<code>node recount.js</code>）＋ 読解と文献調査</li></ul>
+<p><strong>出典</strong>: 「文献の中での位置」節にまとめて記す。</p>
+<h2 id="一行で言うと">一行で言うと</h2>
+<p><strong>観測器のノブには2種類あり、無効化される条件が違う。</strong> 「どこで切るか」のノブ（閾値・生存帯・集約規則）は<strong>レプリケートの分布に隙間があれば噛まない</strong>——S-03 では隙間が値域の 73% を占め、事前登録した9通りのスケールが<strong>全部同じ答え</strong>を返した。だが「値そのものを作り直す」ノブ（連結半径・記述の層）は<strong>隙間では守れない</strong>。<strong>S-02 の反転は切り方では説明できない</strong>——半径を固定すれば閾値を 0.05〜0.95 のどこへ置いても答えは動かない（安定幅 0.40〜0.69）のに、半径を 1.5 から 2.5 へ動かすと答えが変わる。<strong>隙間は値と一緒に動いてしまうからである。</strong> そして K-9・K-10・K-14・K-15 は1つの構造の4つの面ではなく、<strong>「選択」2つ（K-9 の病名・K-10 の治療）と「検査」2つ（K-14 の偽陽性・K-15 の偽陰性）</strong>に分かれる。<strong>事前登録は選択を固定できるが、検査の代わりにはならない。</strong> <strong>そしてこの問題には既に名前があった</strong>——地理学の <strong>Modifiable Areal Unit Problem</strong>（Openshaw 1983。*scale problem* と *aggregation problem*）、統計学の <strong>multiverse analysis</strong>、ALife の <strong>neutral shadow</strong>、心理測定の <strong>construct validity</strong> が、それぞれ本稿の A2・A の多重性・A4・B に当たる。</p>
+<h2 id="何をやったか">何をやったか</h2>
+<h3 id="手続き">手続き</h3>
+<p>アプリが無いので <code>selftest.js</code> も無い。代わりに次の3つを課した:</p>
+<ol><li><strong>本稿が書く数値は、すべて6本の <code>raw/</code> から機械的に作り直す。</strong> 手で写した数は使わない。道具が <span class="deadlink">raw/recount.js</span> で、出力の各行に<strong>出所のファイル名（と、必要なら行番号）</strong>が入っている</li><li><strong>既作レポートの本文と、生ログの再計算が食い違ったら、生ログを採り、食い違いを明記する</strong>（1件あった。後述）</li><li><strong>既作のレポートが検査していない次元を、本稿が実際に動かす。</strong> 横断考察が「並べ替えただけ」にならないための最低限にあたる。実際に4件動かした:</li></ol>
+<ul><li>S-04 の<strong>時間窓</strong>（<span class="deadlink">raw/s04-window-sweep.jsonl</span>・35 通り）</li><li>S-04 の<strong>記述の層</strong>（記号 / 配列。<span class="deadlink">raw/s04-description-level.jsonl</span>）</li><li>S-02 の<strong>閾値</strong>を半径ごとに（<span class="deadlink">raw/s02-cut-vs-recompute.jsonl</span>・6 半径 × 91 閾値）</li><li>S-03 の<strong>事前登録した生存帯9通りを、もう一方の腕（スープ）へ当て直す</strong>（<span class="deadlink">raw/s03-band-on-soup.jsonl</span>）</li></ul>
+<h3 id="材料-6本で何が効いたか">材料——6本で何が効いたか</h3>
+<div class="tw"><table><thead><tr><th>スケッチ</th><th>効いた自由度</th><th>生ログで確かめた事実</th></tr></thead><tbody><tr><td><strong>S-01</strong></td><td><strong>切り方</strong>（40レプリケートをどう畳むか）</td><td>集約規則ごとに閾値 f = <strong>2.5 / 2.75 / 3.0 / 3.25</strong> の4通り</td></tr><tr><td><strong>S-02</strong></td><td><strong>作り直し</strong>（何を1つの塊と数えるか）</td><td>連結半径 1.5→2.5 で「到達せず」→「ρ=0.04」。粒子は1つも動いていない</td></tr><tr><td><strong>S-03</strong></td><td>切り方は<strong>噛まなかった</strong>／代わりに<strong>量の選択</strong>が効いた</td><td>9通りの帯・窓すべてが同じ境界 μ=0.130〜0.155。kernelExcess 単独なら 0.100〜0.155</td></tr><tr><td><strong>S-04</strong></td><td>切り方は3値ぶん動いた／作り直しは動かなかった</td><td>31通りで μ\*∈{0, 0.001, 0.002}。<strong>本稿の時間窓35通りでは{0.001, 0.002}の2値</strong></td></tr><tr><td><strong>S-05</strong></td><td>作り直しの自由度が<strong>定義から無い</strong></td><td>誤り率 0 で主の秩序変数が<strong>厳密に 0.0</strong></td></tr><tr><td><strong>S-06</strong></td><td><strong>特異性</strong>（その数が何を言い当てるか）</td><td>帰無値 1.0 の2量とも単独では偽物に反応。連言だけが5系すべてを分ける</td></tr></tbody></table></div>
+<h2 id="結果1-観測器のノブは2種類ある-切り方-と-作り直し">結果1: 観測器のノブは2種類ある——「切り方」と「作り直し」</h2>
+<p>これが本稿でいちばん効いた区別である。</p>
+<div class="tw"><table><thead><tr><th></th><th><strong>切り方のノブ</strong>（cut）</th><th><strong>作り直しのノブ</strong>（recompute）</th></tr></thead><tbody><tr><td>何をする</td><td>出た数を<strong>どこで切るか</strong>を変える</td><td><strong>数そのものを作り直す</strong></td></tr><tr><td>例</td><td>閾値・生存帯・集約規則（平均/中央値/多数決）</td><td>連結半径・記述の層（記号/配列）・時間窓・粗視化の粒度</td></tr><tr><td>値は動くか</td><td><strong>動かない</strong>（分布はそのまま）</td><td><strong>動く</strong>（同じ配置が別の数を返す）</td></tr><tr><td>無効化される条件</td><td><strong>分布に隙間があり、もっともらしい切り位置が全部その隙間に入る</strong></td><td><strong>作り直しても値が動かない</strong>（定常状態・系が粒度を与えている）</td></tr><tr><td>本稿の実例</td><td><strong>S-03</strong>（隙間が値域の 73%・9通り同一）</td><td><strong>S-04</strong>（時間窓・定常状態で R_knob=0.02）／<strong>S-05</strong>（定義から自由度なし）</td></tr></tbody></table></div>
+<h3 id="切り方のノブは-隙間があれば噛まない-s-03">切り方のノブは、隙間があれば噛まない（S-03）</h3>
+<p>S-03 は <span class="deadlink">K-9</span> を受けて<strong>スケールを9通り事前登録し、全部で掃引した</strong>。9通りすべてが同じ境界 μ=0.130〜0.155 を返している。 その理由を、105 レプリケートの質量比から機械的に確かめた（<span class="deadlink">raw/gap-hypothesis.jsonl</span>・元データは <span class="deadlink">S-03 raw/replicates.jsonl</span>）:</p>
+<pre><code>値域        0 〜 9.0727
+最大の隙間  0.9375 → 7.5673（幅 6.6298 = 値域の 73.1%）
+次の隙間    0      → 0.8959（幅 0.8959 = 値域の  9.9%）</code></pre>
+<p>事前登録した生存帯の端は <strong>0.2 / 0.5 / 0.8</strong>（下端）と <strong>1.25 / 2.0 / 5.0</strong>（上端）である。 <strong>下端3つは全部2番目の隙間（0〜0.8959）の中に、上端3つは全部最大の隙間（0.9375〜7.5673）の中に落ちる。</strong> だから<strong>どの帯も同じ集合を切り出す</strong>。これが「9通り同一」の機構にあたる。</p>
+<h3 id="ただし-隙間がある-は腕ごとの性質であって-観測器の性質ではない">ただし「隙間がある」は<strong>腕ごとの性質</strong>であって、観測器の性質ではない</h3>
+<p>ここで本稿は S-03 に1つ足した。<strong>同じ9通りを、S-03 のもう一方の腕（スープ 1500 本の事後解析）へ当て直す</strong> （<span class="deadlink">raw/s03-band-on-soup.jsonl</span>。元データは <span class="deadlink">S-03 raw/posthoc-soup-yield.jsonl</span> の 222 行——1500 本のうち絶滅しなかったもの。絶滅した 1278 本は場が一様なので <code>kernelExcess ≥ 2.0</code> で必ず落ちる）:</p>
+<div class="tw"><table><thead><tr><th>生存帯（3通りとも事前登録済み）</th><th>当たった数</th><th>うち emergent</th><th>うち質量 69〜73（Orbium と同じ不変量）</th></tr></thead><tbody><tr><td>[0.8, 1.25]</td><td><strong>0</strong></td><td>0</td><td>0</td></tr><tr><td>[0.5, 2.0]（レポートが使ったもの）</td><td><strong>13</strong></td><td>0</td><td>0</td></tr><tr><td><strong>[0.2, 5.0]</strong></td><td><strong>134</strong></td><td><strong>43</strong></td><td><strong>41</strong></td></tr></tbody></table></div>
+<p><strong>同じ事前登録の中で、答えが 0 / 13 / 134 と 10 倍以上ぶれる。</strong> しかも<strong>いちばん広い帯は、局在した模様を 41 件拾っていた</strong>—— S-03 が「事前登録した定義は探していたものを1つも拾わなかった」と書いた、その探していたものである。</p>
+<p>理由も同じ機構で説明できる。スープの腕の質量比の最大の隙間は <strong>0.4901 → 1.8692</strong>（幅 1.379）で、 <strong>下端 0.5 と 0.8、上端 1.25 はこの隙間の中に落ちるが、下端 0.2 は落ちない</strong>（下の塊の中に入る）。 <span class="deadlink">raw/s03-band-on-soup.jsonl</span> の <code>bandEndpointsInsideALargeGap</code> がそれを機械判定している:</p>
+<pre><code>0.2 → false    0.5 → true    0.8 → true    1.25 → true    2.0 → false    5.0 → false</code></pre>
+<blockquote><strong>「スケールは噛まなかった」は、その腕のその分布についての事実であって、その観測器についての事実ではない。</strong> 隙間による保護は<strong>データに依存する保護</strong>であり、<strong>設計による保護ではない。</strong></blockquote>
+<h3 id="作り直しのノブは-隙間では守れない-s-02">作り直しのノブは、隙間では守れない（S-02）</h3>
+<p>ここが S-02 と S-03 を分ける。S-02 の連結半径は<strong>切り方のノブではない</strong>——同じ粒子配置から<strong>別の数を作る</strong>。 本稿は S-02 の閾値を半径ごとに 0.05〜0.95 の 91 通り動かして、切り方への頑健性を測った （<span class="deadlink">raw/s02-cut-vs-recompute.jsonl</span>）:</p>
+<div class="tw"><table><thead><tr><th>連結半径</th><th>登録した閾値 0.5 での答え</th><th><strong>答えが変わらない閾値の区間</strong></th><th>幅</th></tr></thead><tbody><tr><td>1.0</td><td>到達せず</td><td>[0.11, 0.95]</td><td>0.84</td></tr><tr><td><strong>1.5（事前登録）</strong></td><td><strong>到達せず</strong></td><td><strong>[0.26, 0.95]</strong></td><td><strong>0.69</strong></td></tr><tr><td>2.0</td><td>到達せず</td><td>[0.36, 0.95]</td><td>0.59</td></tr><tr><td><strong>2.5</strong></td><td><strong>ρ=0.04</strong></td><td><strong>[0.15, 0.55]</strong></td><td><strong>0.40</strong></td></tr><tr><td>3.0</td><td>ρ=0.04</td><td>[0.15, 0.71]</td><td>0.56</td></tr><tr><td>4.0</td><td>ρ=0.04</td><td>[0.15, 0.72]</td><td>0.57</td></tr></tbody></table></div>
+<p><strong>半径を固定すれば、閾値は幅 0.40〜0.84 にわたってどこへ置いても答えが動かない。</strong> S-02 は<strong>切り方には頑健だった</strong>。 <strong>それでも半径を動かすと答えが変わる。</strong></p>
+<blockquote><strong>隙間は、作り直しのノブを守らない。隙間は「いまの値の分布」にあるが、作り直しのノブは値そのものを取り替えるからである。</strong> S-02 では、ρ=0.08 の<strong>同じ1本の配置</strong>が、半径 1.5 で <strong>0.000</strong>、半径 4 で <strong>0.9844</strong> を返す （<span class="deadlink">S-02 raw/posthoc-cluster-radius.jsonl:4</span>）。 <strong>1本の標本が値域の両端を訪れる。隙間は値と一緒に動く。</strong></blockquote>
+<h2 id="結果2-s-02-は反転し-s-04-と-s-03-は反転しなかった-差はどこにあるか-問い2-本稿の中心">結果2: S-02 は反転し、S-04 と S-03 は反転しなかった——差はどこにあるか（問い2・<strong>本稿の中心</strong>）</h2>
+<h3 id="a-まず確認-3本は同じ次元を動かしていない">(a) まず確認: 3本は同じ次元を動かしていない</h3>
+<div class="tw"><table><thead><tr><th>スケッチ</th><th>動かした次元</th><th>動かさなかった次元</th></tr></thead><tbody><tr><td><strong>S-02</strong>（事後）</td><td><strong>作り直し</strong>（連結半径6通り）</td><td>切り方（閾値は 0.5 に固定）</td></tr><tr><td><strong>S-04</strong>（事後・31通り）</td><td><strong>切り方</strong>（閾値8通り × 集約3通り）＋ 量の選択3通り</td><td><strong>作り直し</strong>（<code>posthoc-scale.jsonl</code> に該当する列が無い）</td></tr><tr><td><strong>S-03</strong>（事前登録・9通り）</td><td><strong>切り方</strong>（生存帯3通り）＋ 作り直し（時間窓3通り）</td><td>量の選択（主は kernelExcess 固定）</td></tr></tbody></table></div>
+<p>S-04 の 31 通り（<span class="deadlink">S-04 raw/posthoc-scale.jsonl</span>）が持つ列は、機械で数えると3つだけである（<span class="deadlink">raw/s04-answer-set.jsonl</span>）:</p>
+<pre><code>variable     : speciesEntropyRatio / dominantFraction / masterFraction
+threshold    : 0.05 / 0.1 / 0.2 / 0.3 / 0.4 / 0.5 / 0.6 / 0.7
+aggregation  : mean / median / majority</code></pre>
+<p><strong>S-02 を反転させた「作り直し」の列が無い。</strong> したがって「同じ手続きを踏んだのに片方だけ反転しなかった」は、厳密には成り立たない。</p>
+<h3 id="b-そこで-s-04-が動かさなかった作り直しの次元を本稿が動かした">(b) そこで、S-04 が動かさなかった作り直しの次元を本稿が動かした</h3>
+<p><strong>① 時間窓。</strong> S-04 の観測器にも作り直しの自由度が1つだけあった——<code>criteria.json</code> の <code>scales.measurementWindow</code>（末尾20%）である。 登録はされたが掃引されていない。<span class="deadlink">S-04 raw/trace.jsonl</span>（12 の μ × 60 時点・シード1本）から <strong>時間窓7通り × 閾値5通り＝35 通り</strong>で測り直した（<span class="deadlink">raw/s04-window-sweep.jsonl</span>）:</p>
+<div class="tw"><table><thead><tr><th>時間窓</th><th>末尾10%</th><th><strong>末尾20%（事前登録）</strong></th><th>末尾33%</th><th>末尾50%</th><th>末尾80%</th><th>全区間</th><th>最終点のみ</th></tr></thead><tbody><tr><td>μ\*（閾値 0.5）</td><td>0.002</td><td><strong>0.002</strong></td><td>0.002</td><td>0.002</td><td>0.002</td><td>0.002</td><td>0.002</td></tr></tbody></table></div>
+<p>35 セル全体でも μ\* は <strong>0.001 と 0.002 の2値だけ</strong>（12点の格子の 8.3%）。<strong>動かない理由は定常状態にある</strong>—— μ=0.002 の秩序変数は窓を変えても 0.4526〜0.4727 の幅（0.0201）にしか動かない。</p>
+<p><strong>② 記述の層。</strong> 基層が個体化を与えていても、<strong>与える層が1つとは限らない</strong>。S-04 の記号列は<strong>記号</strong>と<strong>配列</strong>の2層を持ち、 どちらも基層が与える。S-04 はこの2層に<strong>同じ形の観測量</strong>（エントロピー比・帰無値 1.0）を置いていた。 配列の層に据えたので μ\*=0.001 が出たが、<strong>記号の層に据え替えると何が出るか</strong>を計算した （<span class="deadlink">raw/s04-description-level.jsonl</span>・元データは <span class="deadlink">S-04 raw/sweep.jsonl</span>）:</p>
+<div class="tw"><table><thead><tr><th>層</th><th>最小</th><th>最大</th><th>R_control</th><th>閾値 0.3 / 0.4 / 0.5 / 0.6 / 0.7 での μ\*</th></tr></thead><tbody><tr><td><strong>配列（事前登録の主）</strong></td><td>0.000</td><td>0.9587</td><td><strong>0.9587</strong></td><td>0 / 0.001 / 0.001 / 0.001 / 0.002</td></tr><tr><td><strong>記号（副）</strong></td><td><strong>0.6348</strong></td><td>0.9166</td><td><strong>0.2818</strong></td><td><strong>到達せず ×4</strong> / 0.002</td></tr></tbody></table></div>
+<p><strong>記号の層は12点のどこでも 0.5 を下回らない。</strong> この層を主に据えていれば、S-04 の答えは <strong>「どの誤り率でも情報は保たれない（到達せず）」</strong>になり、<strong>S-02 の「到達せず」とまったく同じ形になる。</strong></p>
+<blockquote><strong>S-04 も、反転に相当する答えを出す作り直しのノブを持っていた。</strong> 違いは、それが<strong>連続ではなく、基層が用意した2層のどちらか</strong>だったこと、そして<strong>外れが事前に見分けられる</strong>ことにある—— 記号の層は制御変数にもほとんど反応しない（R_control が配列の層の <strong>1/3.4</strong>）。</blockquote>
+<h3 id="c-量で測る-ノブ感度-制御変数感度">(c) 量で測る——<strong>ノブ感度 ÷ 制御変数感度</strong></h3>
+<p>作り直しのノブについては、1つの数で危険を測れる:</p>
+<pre><code>R_control = 登録したノブ k0 のもとで、制御変数 c を掃引したときの秩序変数の振れ幅
+R_knob    = 代表的な c0 のもとで、k を「もっともらしい範囲」で動かしたときの振れ幅
+感度比    = R_knob / R_control</code></pre>
+<div class="tw"><table><thead><tr><th></th><th>R_control</th><th>R_knob</th><th><strong>感度比</strong></th><th>結果</th></tr></thead><tbody><tr><td><strong>S-02</strong>（連結半径・ρ=0.08）</td><td>0.2578</td><td><strong>0.9844</strong></td><td><strong>3.82</strong></td><td><strong>反転した</strong></td></tr><tr><td><strong>S-04</strong>（時間窓・最悪の μ）</td><td>0.9843</td><td>0.1618</td><td><strong>0.164</strong></td><td>刻み1つ</td></tr><tr><td><strong>S-04</strong>（時間窓・閾値を決める μ=0.002）</td><td>0.9843</td><td>0.0201</td><td><strong>0.020</strong></td><td>刻み1つ</td></tr></tbody></table></div>
+<p><strong>同じ統計量で 23〜190 倍の開きがある。</strong> 向きが決定的で、S-02 は<strong>秩序変数が制御変数にほとんど反応していない</strong> （登録半径 1.5 では ρ を 10 倍にしても 0.044→0.258）のに<strong>ノブには全域で反応する</strong>（0→0.98）。S-04 は正反対である。</p>
+<blockquote><strong>反転の条件は「ノブが効くこと」ではない。「ノブのほうが、調べている当のものより効くこと」である。</strong> 感度比が 1 を超えた時点で、報告している閾値は系の性質ではなく観測器の性質になっている。</blockquote>
+<p><strong>この比は4回の試走で出る</strong>（<span class="deadlink">raw/s02-pilot-4runs.jsonl</span>）:</p>
+<div class="tw"><table><thead><tr><th>試走</th><th>測るもの</th><th>値</th></tr></thead><tbody><tr><td>1・2</td><td>登録半径 1.5 で ρ=0.02 と ρ=0.20</td><td>0.0444 / 0.2578 → R_control = <strong>0.2133</strong></td></tr><tr><td>3・4</td><td>ρ=0.08 で半径 1.5 と 4</td><td>0 / 0.9844 → R_knob = <strong>0.9844</strong></td></tr><tr><td></td><td><strong>感度比</strong></td><td><strong>4.615</strong>（7×6 の全格子で測った 3.82 と同じ判定に着く）</td></tr></tbody></table></div>
+<p><strong>S-02 の反転は、掃引を1回も走らせる前に、4回の試走で分かった。</strong></p>
+<h3 id="d-なぜそうなるのか-基層が個体化を与えているか">(d) なぜそうなるのか——<strong>基層が個体化を与えているか</strong></h3>
+<p>感度比は測れるが、<strong>測る前に予測したい</strong>。6本を並べると規則が出る（<span class="deadlink">raw/cross-sketch.jsonl</span>）:</p>
+<div class="tw"><table><thead><tr><th>スケッチ</th><th>基層</th><th>「何が1つか」を決めるのは</th><th>作り直しのノブ</th><th>結果</th></tr></thead><tbody><tr><td><strong>S-02</strong></td><td>連続空間の粒子</td><td><strong>誰も決めていない</strong></td><td>連結半径（<strong>連続</strong>・[1,4] が全部もっともらしい）</td><td><strong>反転した</strong></td></tr><tr><td>S-01</td><td>反応網（組合せ論）</td><td>系（maxRAF は反復除去の<strong>不動点</strong>で一意）</td><td>無し</td><td>切り方だけが効く</td></tr><tr><td><strong>S-03</strong></td><td>格子上の連続場</td><td>系（核 K がモデルの一部）</td><td>時間窓のみ（定常状態で噛まない）</td><td>量の選択が効く</td></tr><tr><td><strong>S-04</strong></td><td>記号列</td><td><strong>基層</strong>（1分子＝1本の文字列。同種＝記号列の厳密一致）</td><td>記述の層（<strong>離散・2択</strong>）・時間窓</td><td>反転しない</td></tr><tr><td><strong>S-05</strong></td><td>共有メモリの仮想機械</td><td><strong>基層</strong>（「自分のブロック」＝確保記録 <code>start..start+len</code>）</td><td>時間窓のみ</td><td>帰無値が<strong>厳密に 0</strong></td></tr><tr><td><strong>S-06</strong></td><td>2D 格子</td><td><strong>基層</strong>（事象＝点の埋め直し／2×2 は格子の最小単位）</td><td>無し</td><td>特異性が効く</td></tr></tbody></table></div>
+<p><strong>規則</strong>: 基層が<strong>同値関係</strong>（どれとどれが同じものか）または<strong>個体の境界</strong>（どこからどこまでが1つか）を自分で持っていれば、 観測器は粒度を発明せずに済む。持っていなければ、観測器が必ず発明することになり、<strong>その発明の範囲が連続になる</strong>。</p>
+<p><strong>なぜ連続空間だけが持たないのか。</strong> 連続空間の点集合には<strong>正準な連結性が無い</strong>。「近い点どうしは同じ塊」と言うには近さの閾値が要り、 その閾値は空間には書かれていない。しかも S-02 の系は<strong>長さのスケールを複数持つ</strong>——相互作用半径 5、平均粒子間隔（ρ=0.08 で約 3.5）、 塊の内部間隔（約 1）——ので、<strong>「もっともらしい連結半径」の範囲 [1,4] がそれらを跨ぐ</strong>。跨ぐ範囲に浸透（パーコレーション）の転移が入っており、 そこで秩序変数が 0 から 1 まで走る。これが R_knob = 0.98 の正体である。</p>
+<p>記号列にはこれが無い。<code>AAABBBCCC…</code> と <code>AAABBBCCD…</code> が同じ種かどうかは、<strong>基層が「記号列の同一性」という同値関係を持っている</strong>ので、 観測器が半径を選ばずに答えられる。残る自由度は<strong>層の選択（記号 / 配列）という離散の2択</strong>で、外れのほうは R_control で見分けられる。</p>
+<h3 id="e-事前に危ないと言うための手続き">(e) <strong>事前に危ないと言うための手続き</strong></h3>
+<p><code>criteria.json</code> を書く時点で、本番を走らせる前に全部できる:</p>
+<pre><code>0. 秩序変数の候補それぞれについて R_control を測る（試走2回）
+   → 制御変数に反応しない量は、その場で落とす。どんなノブにも負ける
+     （S-04 の記号の層: R_control=0.28 で 12 点のどこでも閾値を跨がない。配列の層は 0.96）
+
+1. ノブを「切り方」と「作り直し」に仕分ける
+   切り方 = 出た数の切り位置（閾値・生存帯・集約規則）
+   作り直し = 数そのものを作り直すもの（粒度・記述の層・時間窓・粗視化）
+
+2. 作り直しのノブには感度比を測る（試走あと2回）
+   感度比 = R_knob / R_control &gt;= 1 なら、掃引の結論を書かず、
+   **ノブの掃引そのものを主の結果として報告する**
+
+3. 切り方のノブには、パイロットのレプリケート分布で
+   「答えが変わらない切り位置の区間」を測り、もっともらしい切り位置が
+   全部その中に入るかを見る。入らなければ、切り位置ごとの答えを全部報告する
+   （S-03 のスープの腕: 0.2 だけが隙間の外にあり、答えが 0 / 13 / 134 と割れた）
+
+4. 手順 3 の判定は**腕ごとにやり直す**。隙間による保護は設計ではなくデータの性質であり、
+   初期条件を変えれば消える（S-03 の2つの腕がそうだった）</code></pre>
+<h3 id="f-言えないこと">(f) <strong>言えないこと</strong></h3>
+<ul><li><strong>S-04 が「観測器の自由度から自由だった」わけではない。</strong> (b)② のとおり、記述の層を替えれば S-02 と同じ「到達せず」が出る。</li></ul>
+<p>言えるのは<strong>「外れの選択が事前に見分けられる形をしていた」</strong>ことまでで、<strong>「選択が結論を決めない」ことではない</strong></p>
+<ul><li><strong>S-04 の「反転しない」はまだ証明されていない。</strong> 本稿が加えたのは時間窓と記述の層だけで、**S-02 の連結半径に真に対応する連続のノブ——</li></ul>
+<p>記号列を「似ていれば同種」とまとめる距離——は未検査のままである。<strong> 必要なデータ（槽の全配列の目録）が生ログに無く、</strong>S-04 の再走行が要る**</p>
+<ul><li><strong>本稿の S-04 時間窓の掃引はシード1本</strong>（<code>trace.jsonl</code> がそう）。本番の掃引は5シードなので揺らぎの幅が違う</li><li><strong>「基層が個体化を与えるか」は6本の観察から立てた規則で、検査していない。</strong> 検証の形ははっきりしている——</li></ul>
+<p><strong>同じ現象を連続空間と離散記号の両方の基層で実装し、同じ問いを立てて感度比を比べる</strong></p>
+<h2 id="結果3-k-9-k-10-k-14-k-15-は1つの構造の4つの面か-問い1">結果3: K-9 / K-10 / K-14 / K-15 は1つの構造の4つの面か（問い1）</h2>
+<h3 id="答え-4つの面ではない-選択-2つと-検査-2つに分かれる">答え: <strong>4つの面ではない。「選択」2つと「検査」2つに分かれる</strong></h3>
+<p>観測器がやることは2種類あり、<strong>性質がまったく違う</strong>。</p>
+<p><strong>A. 観測器が〈選ぶ〉こと</strong>——事前登録で固定できる。選ばなければ先へ進めない:</p>
+<div class="tw"><table><thead><tr><th></th><th>選ぶこと</th><th>実例</th><th>鍵</th></tr></thead><tbody><tr><td><strong>A1</strong></td><td><strong>どの量を測るか</strong></td><td>S-01（pRaf 対 RAF サイズ）／S-03（合成判定 対 kernelExcess 単独で帯が 6 点対 11 点）</td><td>K-9 の前半</td></tr><tr><td><strong>A2</strong></td><td><strong>どう作り直すか</strong>（粒度・記述の層・時間窓）</td><td>S-02（連結半径）／S-04（記号 対 配列）</td><td><strong>K-9 の後半＝病名／K-10＝治療法</strong></td></tr><tr><td><strong>A3</strong></td><td><strong>どこで切るか</strong>（閾値・生存帯・集約規則）</td><td>S-01（中央値）／S-03（生存帯）／S-04（閾値・集約）</td><td>K-9 の後半＋<span class="deadlink">K-3</span></td></tr><tr><td><strong>A4</strong></td><td><strong>何と対比して読むか</strong>（参照点・帰無モデル）</td><td><strong>S-03</strong>（初期状態に対する比 対 直近の過去に対する比）</td><td>どの鍵にも無い</td></tr></tbody></table></div>
+<p><strong>B. 観測器が〈主張している〉こと</strong>——選べない。<strong>検査でしか分からない</strong>:</p>
+<div class="tw"><table><thead><tr><th></th><th>主張</th><th>外れ方</th><th>捕まえ方</th><th>鍵</th></tr></thead><tbody><tr><td><strong>B1</strong></td><td>この量は<strong>目当てでないものには反応しない</strong></td><td><strong>偽陽性</strong></td><td><strong>負コントロールを複数</strong>（「構造はあるが目当てでない系」を別に）</td><td><strong>K-14</strong></td></tr><tr><td><strong>B2</strong></td><td>この量は<strong>目当てのものには反応する</strong></td><td><strong>偽陰性</strong></td><td><strong>本番の判定規則を正コントロールに当てる</strong></td><td><strong>K-15</strong></td></tr></tbody></table></div>
+<p><strong>B1 と B2 は、検出器の特異性と感度という1つの対の両半分である。</strong> どちらも「定義が概念に当たっているか」を問うており、 <strong>事前登録はどちらも保証しない</strong>——事前登録は A を固定する手続きであって、B は固定の対象ですらない。</p>
+<h3 id="親の見立てとの差-4つの独立な自由度か">親の見立てとの差（4つの独立な自由度か）</h3>
+<p>親の暫定的な見立ては「(a) 何を測るか (b) どのスケールで (c) 何と対比して (d) その定義は当たっているか、という4つの独立な自由度があり、 事前登録は (a)(b)(c) を固定できるが (d) は固定できない」だった。<strong>3点で一致し、2点で違う</strong>:</p>
+<ul><li><strong>一致</strong>: (a)=A1、(b)=A2、(c)=A4 は独立な選択であり、事前登録で固定できる。<strong>とくに (c) を独立に立てたのは正しい</strong>——</li></ul>
+<p>本稿は S-03 の生ログでそれを数値として確かめた（次項）</p>
+<ul><li><strong>違い①</strong>: <strong>(d) は自由度ではない。</strong> 自由度とは「選べるもの」だが、定義が当たっているかは<strong>選べない</strong>——</li></ul>
+<p>(a)(b)(c) を選んだ結果として当たっているか外れているかが決まり、<strong>それを知る道は検査しかない</strong>。 「4つ目の自由度」と呼ぶと、<strong>固定する対象がある</strong>ように読めてしまうのが危うい</p>
+<ul><li><strong>違い②</strong>: <strong>(d) は1つではなく2つある。</strong> 偽陽性（K-14・S-06）と偽陰性（K-15・S-03）は別々の検査でしか捕まらない。</li></ul>
+<p>S-06 は B2 を満たしていた（正コントロールの輪は連言を通る: 巡回比 1.97・巻き数比 0.069）が B1 で捕まり、 S-03 は B1 側の問題は出ていないが B2 で捕まった。<strong>片方を満たしても、もう片方は何も保証しない</strong></p>
+<h3 id="c-a4-が独立であることの数値的な裏付け-s-03">(c)=A4 が独立であることの数値的な裏付け（S-03）</h3>
+<p>S-03 の事後解析で「自己維持」の二定義が<strong>互いに素な集合</strong>（13 件と 131 件・重なり 0）を返した。 本稿は<strong>その差がどこから来ているか</strong>を、同じ生ログの2つの列から特定した（<span class="deadlink">raw/s03-reference-point.jsonl</span>）:</p>
+<div class="tw"><table><thead><tr><th></th><th>件数</th><th><strong>massRatio</strong>（初期状態に対する比）</th><th><strong>lateRatio</strong>（直近の過去に対する比）</th><th>supportFraction</th></tr></thead><tbody><tr><td><strong>registered</strong>（事前登録した判定）</td><td>13</td><td><strong>1.8692 – 1.9968</strong>（中央 1.9615）</td><td><strong>0.9906 – 1.0148</strong></td><td>0.2227 – 0.2463</td></tr><tr><td><strong>emergent</strong>（データを見てから作った判定）</td><td>131</td><td><strong>0.1452 – 0.4901</strong>（中央 0.1881）</td><td><strong>0.9604 – 1.0281</strong></td><td>0.0464 – 0.1011</td></tr><tr><td>両方</td><td><strong>0</strong></td><td>—</td><td>—</td><td>—</td></tr></tbody></table></div>
+<p><strong>両群とも <code>lateRatio</code> は 1.0 付近にある。</strong> つまり<strong>どちらの群も「直近の過去に対しては定常」</strong>である。 <strong>分けているのは <code>massRatio</code>——初期状態という参照点だけ</strong>にあたる。</p>
+<blockquote><strong>二定義は「自己維持」の別々の概念ではない。同じ概念の〈参照点違い〉である。</strong> 「保たれたか」は初期状態を参照し、「出てきたか」は直近の過去を参照する。 同じスープから互いに素な集合が出たのは、<strong>参照点という自由度 A4 が、他の3つと独立に結論を決める</strong>ことの実例にあたる。</blockquote>
+<p>そして A4 は、<strong>現在の method.md のどの鍵にも書かれていない</strong>。K-9 の3つ組（秩序変数・スケール・閾値）は A1・A2・A3 を覆うが、 <strong>A4（参照点）を覆わない</strong>。K-10 は「帰無値を持つ量を選べ」と言うが、それは<strong>帰無値の有無</strong>の話で、<strong>参照点の選び方</strong>ではない。</p>
+<p>さらに本稿の <span class="deadlink">raw/s03-band-on-soup.jsonl</span> は、<strong>A4 の外しが A3 と絡むと大きくなる</strong>ことを示している—— 参照点を初期状態にしたうえで、生存帯（A3）をどう取るかで当たりが 0 / 13 / 134 と割れ、<strong>いちばん広い帯なら 41 件の Orbium を拾えた</strong>。 <strong>A4 を外しても、A3 を全部報告していれば気付けた</strong>わけである。</p>
+<h3 id="s-05-の整理-作り直しの自由度が無い-ことと-特異である-ことは別-親の指摘どおり">S-05 の整理——「作り直しの自由度が無い」ことと「特異である」ことは別（親の指摘どおり）</h3>
+<p>本稿の材料表で S-05 を「スケールの自由度が最初から無かった」と書いたが、これは <strong>A2 についての記述だけ</strong>にあたる。 6本を A/B の両方で採点し直すと、こうなる:</p>
+<div class="tw"><table><thead><tr><th></th><th>A2（作り直しの自由度）</th><th>B2（本番の規則が正コントロールを拾うか）</th><th>B1（複数種の負コントロールで偽陽性を検査したか）</th></tr></thead><tbody><tr><td>S-01</td><td>無し</td><td>正コントロールは検出のみ確認（本番の規則は当てていない）</td><td><strong>1種のみ</strong>（触媒ゼロ）</td></tr><tr><td>S-02</td><td><strong>連続のノブあり</strong>（反転した）</td><td>✅ 密な塊を 1 成分として拾う</td><td><strong>1種のみ</strong>（相互作用を切る）</td></tr><tr><td>S-03</td><td>時間窓のみ（噛まなかった）</td><td><strong>腕を替えると外れた</strong>（K-15 の出所）</td><td>3種（定数成長写像・空間シャッフル・純減衰）</td></tr><tr><td>S-04</td><td>離散2択（記述の層）</td><td>✅ 100% 複製子の槽で 0.0000</td><td><strong>2種</strong>（実行を切る・複製子を入れない）</td></tr><tr><td><strong>S-05</strong></td><td><strong>無し（定義から帰無値 0）</strong></td><td>✅ 手組みの借用体に 0.366 で反応</td><td><strong>1種のみ</strong>（誤り率 0）</td></tr><tr><td>S-06</td><td>無し</td><td>✅ 寄生体なしの輪が連言を通る</td><td><strong>2種</strong>（輪なし・空間あり／輪あり・よく混ぜた）</td></tr></tbody></table></div>
+<p><strong>S-05 は A2 を完全に消したうえで、B1 を1種類の負コントロールでしか検査していない。</strong> 「構造はあるが目当てのものではない系」——たとえば<strong>複写命令を隣から取るが増えない個体</strong>や、<strong>単に壊れて命令ポインタが流れ込んだだけの個体</strong>——を 別に走らせていない。S-05 自身の限界節がこれを別の言い方で認めている（「<strong>『寄生体が現れた』とは言っていない</strong>」）。</p>
+<blockquote><strong>S-05 が採ったのは、B1 を検査で潰す道ではなく、〈主張を観測量の字義まで狭める〉道である。</strong> 「命令の取得アドレスが確保記録の外にあった個体が現れた」としか言わなければ、偽陽性は原理的に起きない。 <strong>これは K-14 とは別の、第三の対処にあたる</strong>——負コントロールを増やすか、主張を狭めるか、どちらかでよい。</blockquote>
+<h3 id="統合できるか-言明としては統一でき-鍵としては統合できない">統合できるか——<strong>言明としては統一でき、鍵としては統合できない</strong></h3>
+<p>統一できる部分は一文に尽きる:</p>
+<blockquote><strong>閾値も「構造が出た／出ない」も、系の性質ではなく〈系と観測器の組〉の性質である。</strong></blockquote>
+<p>しかし<strong>鍵を1本にまとめることはできない。治療法が互いに代替しないからである</strong>:</p>
+<ul><li><strong>A2 の治療は「粒度を系から借りる」</strong>（K-10）。A2 は消えるが <strong>B1・B2 には何もしない</strong></li><li><strong>B1 の治療は「偽物の系を複数走らせる」か「主張を狭める」</strong>（K-14 ／ S-05）だけ</li><li><strong>B2 の治療は「本番の判定規則を、使う腕ごとに正コントロールへ当てる」</strong>（K-15）だけ</li><li><strong>A3 の治療は「分布を残す」</strong>（K-3）だけ</li><li><strong>A4 の治療は「参照点を明示して、別の参照点でも測る」</strong>——現在どの鍵にも無い</li></ul>
+<p><strong>S-06 と S-03 がこの非代替性の実証になっている。</strong> S-06 は A2 を最初から完全に潰したうえで B1 に捕まり、 S-03 は A2 を9通り登録して潰したうえで <strong>A4 と B2</strong> に捕まった。</p>
+<p>S-06 の数値（<span class="deadlink">raw/s06-specificity.jsonl</span>）:</p>
+<div class="tw"><table><thead><tr><th>系</th><th>巻き数比</th><th>巡回比</th><th>目当ての現象か</th><th>出所</th></tr></thead><tbody><tr><td>輪あり・空間あり（輪4）</td><td>0.0784</td><td>1.9587</td><td><strong>そう</strong></td><td><span class="deadlink">S-06 raw/sweep.jsonl:2</span></td></tr><tr><td>輪あり・空間あり（輪5）</td><td>0.0509</td><td>2.7335</td><td><strong>そう</strong></td><td>同 :18</td></tr><tr><td><strong>輪なし</strong>・空間あり</td><td><strong>0.0067</strong></td><td>0.9942</td><td>違う</td><td><span class="deadlink">S-06 raw/controls.jsonl:3</span></td></tr><tr><td>輪あり・<strong>よく混ぜた系</strong>（輪5）</td><td>1.0552</td><td><strong>3.0131</strong></td><td>違う</td><td><span class="deadlink">S-06 raw/sweep.jsonl:17</span></td></tr><tr><td>輪あり・よく混ぜた系（輪4）</td><td>1.0071</td><td>1.0113</td><td>違う</td><td>同 :1</td></tr></tbody></table></div>
+<pre><code>巻き数比 単独で目当てと偽物を分けられるか  → false
+巡回比   単独で分けられるか                 → false
+連言（巡回比 &gt;= 1.5 かつ 巻き数比 &lt;= 0.5）  → true（目当て2系すべて通過・偽物3系すべて落ちる）</code></pre>
+<p><strong>A2 を完璧にやっても B1 は1ミリも良くならない。</strong> これが「統合できない」ことの証拠にあたる。</p>
+<h3 id="3つの面のうち-危険を量で測れるのは-a2-だけ">3つの面のうち、危険を量で測れるのは A2 だけ</h3>
+<p>本稿の感度比は <strong>A2 にしか使えない</strong>。A2 のノブは連続量で、動かしても秩序変数の単位が変わらないからである。 A3 のノブ（平均 / 中央値 / 多数決）を動かすと<strong>返る数の単位が変わり</strong>、A4 のノブ（参照点）を動かすと<strong>比べる相手ごと変わり</strong>、 B1・B2 はそもそも量ではなく検査である。A3 には別の物差し（答えが変わらない切り位置の区間の幅）が要り、本稿はそれも測った。 <strong>「1つの現象の複数の面」と言えるのはここまでで、それ以上は同じ扱いにできない。</strong></p>
+<h2 id="結果4-集約の面-a3-と-生ログと本文の食い違い1件">結果4: 集約の面（A3）と、生ログと本文の食い違い1件</h2>
+<p>S-01 の本文は中央値の跳躍を「f=3.125→3.25 で 3→285、95倍」と書いている。これは <span class="deadlink">S-01 raw/sweep.jsonl:26-27</span> の <code>medianRafReactions</code> と一致する。本稿が 40 レプリケートから中央値を取り直すと（偶数個なので 20 番目と 21 番目の平均） <strong>2.5 → 281.5（112.6倍）</strong>になる（<span class="deadlink">raw/s01-answer-set.jsonl</span>）。<strong>中央値の取り方の約束が違うだけで、現象も規模も同じ</strong>である。</p>
+<p>混合比が滑らかであることも独立に確かめた（<span class="deadlink">raw/s01-aggregation.jsonl</span>）。50反応以上のレプリケートの割合:</p>
+<pre><code>f          2.5   2.625  2.75  2.875  3.0   3.125  3.25  3.375  3.5
+大の割合   0.100 0.125  0.225 0.275  0.450 0.475  0.625 0.700  0.650
+中央値     0.5   1      1     1      2     2.5    281.5 362    324</code></pre>
+<p><strong>混合比は 0.475→0.625 と 0.15 しか動いていないのに、中央値は 112 倍動く。</strong> 集約規則を変えると同じ掃引から4つの閾値が出る:</p>
+<div class="tw"><table><thead><tr><th>集約規則</th><th>閾値 f</th></tr></thead><tbody><tr><td>pRaf ≥ 0.5（事前登録）</td><td><strong>2.5</strong></td></tr><tr><td>RAF反応数の平均 ≥ 50</td><td>2.75</td></tr><tr><td>RAF反応数の中央値 ≥ 2</td><td>3.0</td></tr><tr><td>RAF反応数の中央値 ≥ 50</td><td><strong>3.25</strong></td></tr><tr><td>大クラスタの割合 ≥ 0.5</td><td>3.25</td></tr></tbody></table></div>
+<p>制御変数の格子（0〜6 を 49 点）の上では 6 刻み・12.2% しか動かない。<strong>しかし報告される規模は 2 反応から 281 反応へ 140 倍変わる。</strong> <strong>A2 の危険は「閾値の位置」に出るが、A3 の危険は「そこで出たものの大きさ」に出る</strong>——<span class="deadlink">K-6</span>（規模を併記せよ）が A3 の防具でもあることになる。</p>
+<h2 id="文献の中での位置-問い3">文献の中での位置（問い3）</h2>
+<p><strong>結論から言うと、本稿が「穴」と呼んできたものには</strong>、少なくとも4つの分野でそれぞれ<strong>名前が付いている</strong>。 以下、<strong>一次資料に到達できたもの</strong>と<strong>できなかったもの</strong>を分けて記す。<strong>到達できなかったものについては、引用を二次情報と明示する。</strong></p>
+<h3 id="対応表">対応表</h3>
+<div class="tw"><table><thead><tr><th>本稿の用語</th><th>既存の名前</th><th>出典</th><th>一次資料に到達したか</th></tr></thead><tbody><tr><td><strong>A2</strong>（作り直し・粒度）</td><td><strong>Modifiable Areal Unit Problem（MAUP）</strong>の *scale problem* と *aggregation problem*</td><td>Openshaw (1983) CATMOG 38</td><td><strong>✅ 本文を読めた</strong></td></tr><tr><td>「唯一の正しいスケールは無い」</td><td><strong>the problem of pattern and scale</strong></td><td>Levin (1992) *Ecology* 73(6)</td><td>❌ <strong>読めていない</strong>（下記）</td></tr><tr><td><strong>A の多重性を全部報告する</strong></td><td><strong>multiverse analysis</strong>／<strong>specification curve analysis</strong>／<strong>garden of forking paths</strong></td><td>Steegen et al. (2016)／Simonsohn et al.／Gelman &amp; Loken (2013)</td><td>❌ 二次情報のみ</td></tr><tr><td><strong>A4・帰無モデル</strong></td><td><strong>neutral shadow</strong>（進化活性統計）</td><td>Bedau &amp; Packard</td><td>❌ 二次情報のみ（Standish の記述経由）</td></tr><tr><td><strong>A2</strong>（何を component と数えるか）</td><td><strong>component-normalised activity statistics</strong></td><td>Channon</td><td>❌ 題名と二次記述のみ</td></tr><tr><td><strong>B</strong>（妥当性）</td><td><strong>construct validity</strong></td><td>Jacobs &amp; Wallach (2021) ほか</td><td>❌ 二次情報のみ</td></tr><tr><td><strong>B1 / B2</strong></td><td><strong>specificity / sensitivity</strong>（検出論の標準語）</td><td>—</td><td>—</td></tr><tr><td>観測者依存そのもの</td><td>構造の検出は <strong>"inherently subjective"</strong>／<strong>intrinsic emergence</strong></td><td>Crutchfield (1994) *Physica D* 75</td><td><strong>✅ 本文を読めた</strong></td></tr></tbody></table></div>
+<h3 id="地理学の-maup-が-本稿の-a2-と同じ構造である-一次資料に到達">① 地理学の MAUP が、本稿の A2 と同じ構造である（<strong>一次資料に到達</strong>）</h3>
+<p>Openshaw のモノグラフ（CATMOG 38）は、S-02 で起きたことをそのまま記述している。本文から引用する:</p>
+<blockquote>"the areal units (zonal objects) used in many geographical studies are <strong>arbitrary, modifiable, and subject to the whims and fancies of whoever is doing, or did, the aggregating</strong>."</blockquote>
+<blockquote>"The <strong>scale problem</strong> arises because of uncertainty about the number of zones needed for a particular study. The <strong>aggregation problem</strong> arises because of uncertainty about how the data are to be aggregated to form a given number of zones."</blockquote>
+<p><strong>S-02 の連結半径は scale problem そのものにあたる。</strong> 同じ粒子配置を別の粒度で集計すると結論が変わる—— 地理学では 1930 年代から知られ、Openshaw が 1970 年代に再提起した問題である。</p>
+<p><strong>ただし対応は完全ではなく、2点ずれている。ここが本稿の収穫にあたる:</strong></p>
+<ol><li><strong>MAUP の2分割（scale / aggregation）は、どちらも本稿の A2（作り直し）に入る。</strong> MAUP は<strong>切り方のノブ（閾値・生存帯）を扱っていない</strong>——</li></ol>
+<p>地理学では集計単位が問題であって、集計後の値をどこで切るかは別の話題になっている。 <strong>本稿の「切り方 vs 作り直し」という分割は、MAUP の分割と直交する</strong></p>
+<ol><li><strong>Openshaw は「aggregation problem のほうが scale problem より大きい」と書いている</strong>（同じ粒度でも境界の置き方で結果が変わり、その組合せ数は膨大になる）。</li></ol>
+<p><strong>本稿の6本は、この aggregation の側をまったく試していない</strong>——S-02 は半径（scale）しか振っておらず、 <strong>同じ半径で「何を1つと数えるか」の定義を変える</strong>（たとえば連結成分でなく密度の等高線で切る）試みが無い。 <strong>これは本稿の限界であり、次の実験の候補にあたる</strong></p>
+<h3 id="levin-1992-到達できなかった">② Levin 1992——<strong>到達できなかった</strong></h3>
+<p>指示にあった通り、生態学の「スケール問題」は本件と同じ構造の議論である。よく引かれる一文は:</p>
+<blockquote>"there is no single natural scale at which ecological phenomena should be studied; systems generally show characteristic variability on a range of spatial, temporal, and organizational scales."</blockquote>
+<p><strong>ただしこれは一次資料で確認できていない。</strong> Wiley は 403 を返し、Columbia と seaturtle.org にある PDF は <strong>JBIG2 圧縮の走査画像</strong>で、本文を取り出せなかった（<span class="deadlink">work/2026-08-30-pdf-text-extractor.py</span> は Openshaw では成功したが、走査画像には効かない）。<strong>上の引用は検索結果からの二次情報であり、原典で照合していない。</strong> したがって本稿は Levin の議論を<strong>引用したのであって、読んだのではない</strong>。</p>
+<p>とはいえ「系は複数のスケールで特徴的な変動を示す」という主張は、S-02 の実測と直接噛み合う—— ρ=0.08 の系は相互作用半径 5・平均粒子間隔 約 3.5・塊の内部間隔 約 1 という<strong>3つの長さのスケール</strong>を同時に持っており、 「もっともらしい連結半径」の範囲 [1,4] がそれらを跨いでいた。</p>
+<h3 id="統計学側には-s-04-の-31-通しに名前が付いていた">③ 統計学側には、S-04 の 31 通しに<strong>名前が付いていた</strong></h3>
+<div class="tw"><table><thead><tr><th>名前</th><th>定義（出典の枠組みで）</th><th>本稿の中の対応</th></tr></thead><tbody><tr><td><strong>multiverse analysis</strong>（Steegen, Tuerlinckx, Gelman, Vanpaemel 2016, *Perspectives on Psychological Science*）</td><td>データ処理の各決定に複数の妥当な選択肢があることを認め、<strong>その全組合せでデータ集合と解析を作り、全部の結果を示す</strong></td><td><strong>S-04 の 31 通り・S-03 の 9 通り・本稿の 35 通りと 91 通りは、すべてこれにあたる</strong></td></tr><tr><td><strong>specification curve analysis</strong>（Simonsohn, Simmons, Nelson）</td><td>①理論的に正当で統計的に妥当な非冗長な仕様の集合を挙げ ②結果を図示して<strong>どの決定が結果を変えるか</strong>を見え、③全体として帰無仮説と矛盾するかを検定する</td><td>S-02 の半径ごとの答え・S-04 の閾値ごとの μ\* の表</td></tr><tr><td><strong>garden of forking paths</strong>（Gelman &amp; Loken 2013）</td><td><strong>p-hacking をしていなくても</strong>、データに応じて解析の細部が決まる限り、実際には辿らなかった多数の経路が偽陽性率を押し上げる</td><td>K-11 が守ろうとしているもの</td></tr></tbody></table></div>
+<p><strong>S-04 と S-03 がやったことには、10 年前から名前がある。</strong> 本サブプロジェクトの <span class="deadlink">K-11</span>（事後解析を別枠にする）は garden of forking paths への対処であり、<strong>「31 通り測り直す」は multiverse analysis である</strong>。 <strong>この対応づけ自体が method.md への収穫にあたる</strong>——既存の文献に手続きの詳細があるので、自前で工夫し続けなくてよい。</p>
+<p>ただし<strong>本稿の感度比は multiverse とは別のもの</strong>である。multiverse は「全部やって全部見せる」手続きで、<strong>やった後の話</strong>にあたる。 感度比は「<strong>やる前に、全部やる価値があるかを 4 回の試走で決める</strong>」ためのもので、時点が違う。 <strong>文献の中に感度比に相当するものを見つけられなかったが、探し方が足りないだけの可能性が高い。</strong></p>
+<h3 id="alife-内部-帰無モデルは既にあり-閾値の恣意性も既に自覚されていた">④ ALife 内部——<strong>帰無モデルは既にあり、閾値の恣意性も既に自覚されていた</strong></h3>
+<p>K-10 の「理論的な帰無値を持つ量を主にする」に対応するものが、ALife には 1990 年代からある:</p>
+<ul><li><strong>Bedau と Packard の進化活性統計</strong>は、<strong>neutral shadow</strong>（選択だけを切った影の系）を並走させ、</li></ul>
+<p><strong>実系と影の活性分布の交差点を閾値に取る</strong>。「その活性は適応によるものか」を影との比較で決める</p>
+<ul><li><strong>これは K-10 と同じ発想だが、作り方が逆である。</strong> K-10 は帰無値を<strong>理論から出す</strong>（S-05 の厳密な 0、S-03・S-04・S-06 の厳密な 1.0）。</li></ul>
+<p>neutral shadow は帰無を<strong>走らせて経験的に作る</strong>。<strong>理論から出せる系のほうが例外的</strong>なので、 ALife の主流が経験的な影を採ったのは自然にあたる</p>
+<ul><li>そして<strong>閾値が2つの分布の交差点として経験的に決まる</strong>点は、<strong>本稿の A3（切り方）そのもの</strong>である。</li></ul>
+<p>交差点は分布の形で動くので、<strong>S-03 の「隙間があれば切り位置は噛まない」という判定が、そのまま適用できる</strong></p>
+<ul><li><strong>Channon の "component-normalised activity statistics"</strong> は、<strong>何を component と数えるかで分類が変わる</strong>ことへの対処にあたる——</li></ul>
+<p>つまり <strong>ALife 側も A2（何を1つと数えるか）に既にぶつかっている</strong></p>
+<p><strong>到達状況</strong>: 上記はいずれも<strong>二次情報</strong>である。Standish の *An Ecolab Perspective on the Bedau Evolutionary Statistics*（<a href="https://arxiv.org/abs/nlin/0004026">arXiv:nlin/0004026</a>）の 要旨は ar5iv で読めたが、<strong>Bedau と Packard の原典にも、Channon の ECAL 2001 論文にも到達していない</strong>（後者は SSL の名前不一致で接続できなかった）。</p>
+<h3 id="oee-の評価指標をめぐる論争-本文に到達できなかった">⑤ OEE の評価指標をめぐる論争——<strong>本文に到達できなかった</strong></h3>
+<p>指示にあった手掛かりのうち、次は<strong>読めていない</strong>:</p>
+<ul><li>**Taylor et al. (2016) "Open-Ended Evolution: Perspectives from the OEE Workshop in York", *Artificial Life* 22(3)** — MIT Press が 403</li><li>**Dolson, Vostinar, Wiser, Ofria (2019) "The MODES Toolbox", *Artificial Life* 25(1):50–73** — 同じく 403。</li></ul>
+<p>公開リポジトリの説明頁（emilydolson.github.io）は読めたが、<strong>実装の説明だけで、指標の恣意性への言及は無かった</strong></p>
+<ul><li><strong>Bohm, Zhang, Dolson (2024) "Assessing the ability of the MODES toolbox to detect hallmarks of open-endedness", ALIFE 2024</strong> — 同じく 403。</li></ul>
+<p><strong>題名からして「指標が主張どおりのものを検出しているか」の検査であり、本稿の B（妥当性）に真正面から当たる。ここに到達できなかったのは本稿のいちばん大きな欠落にあたる</strong></p>
+<p>読めた範囲（<a href="https://arxiv.org/abs/1909.04430">arXiv:1909.04430</a> の要旨。Packard・Bedau・Channon・Ikegami・Rasmussen・Stanley・Taylor による OEE II 特集号の序文）には、 <strong>指標の恣意性についての記述は要旨の中に無かった</strong>。本文は arXiv の HTML 版へ辿れなかった。</p>
+<h3 id="観測者依存そのものには-alife-に近い場所で名前が付いている-一次資料に到達">⑥ 観測者依存そのものには、ALife に近い場所で名前が付いている（<strong>一次資料に到達</strong>）</h3>
+<p>Crutchfield の *The Calculi of Emergence*（1994, *Physica D* 75, 11–54）から:</p>
+<blockquote>"<strong>Defining structure and detecting the emergence of complexity in nature are inherently subjective, though essential, scientific activities.</strong>"</blockquote>
+<p>観測者が何を秩序・乱雑・複雑と見るかは、その観測者が持つ計算資源——測定データの量・記憶・推論に使える時間——に依存し、 <strong>観測者が選んだ（あるいは暗黙に前提した）計算モデルの類（model class） が "an overwhelming determinant in finding regularity in data" になる</strong>、と述べている。 そのうえで Crutchfield は <strong>intrinsic emergence</strong>（内在的創発）を、<strong>観測者を系の内側へ押し込む</strong>ことで定義する—— 「新しさ」の評価を外部の観測者ではなく系の中の部分系が行う形にすれば、観測者の恣意性を閉じられる、という筋である。</p>
+<p><strong>本稿の言い方に直すと</strong>: A1〜A4 は Crutchfield のいう "model class" の選択にあたり、 <strong>intrinsic emergence は「A を外部から選ばずに済ませる」ための提案</strong>である。 本サブプロジェクトの <span class="deadlink">K-10</span>（粒度を系から借りる）は、<strong>その弱い版</strong>にあたる—— 観測者を系の中へ入れはしないが、<strong>粒度だけは系から取る</strong>。</p>
+<h3 id="本稿が文献の中に見つけられなかったもの">本稿が文献の中に見つけられなかったもの</h3>
+<p>探した範囲では、次の2つに対応する名前が見つからなかった。<strong>見つからなかっただけで、無いとは言えない</strong>:</p>
+<ol><li><strong>「切り方のノブ」と「作り直しのノブ」を分け、〈分布の隙間は前者だけを無効化する〉という区別。</strong></li></ol>
+<p>MAUP は作り直しの側だけを、multiverse は両方を区別せずに扱っている</p>
+<ol><li><strong>感度比</strong>（R_knob / R_control）という<strong>本番前の 1 つの数</strong>。</li></ol>
+<p>multiverse も specification curve も「全部やって全部見せる」手続きで、<strong>やる前に篩う</strong>ためのものではない</p>
+<h2 id="method-md-への修正提案-問い4-本稿は-method-md-を編集していない">method.md への修正提案（問い4・<strong>本稿は method.md を編集していない</strong>）</h2>
+<p>親が採否を判断する。提案は<strong>6件</strong>。</p>
+<h3 id="提案-k-9-に-観測器の選択は4つある-ことを書き-a4-参照点-を加える">提案①: K-9 に「観測器の選択は4つある」ことを書き、<strong>A4（参照点）を加える</strong></h3>
+<p>K-9 の現在の3つ組（秩序変数・スケール・閾値）は A1・A2・A3 を覆うが、<strong>A4（何と対比して読むか）を覆っていない</strong>。 S-03 はそこで互いに素な集合を出した。</p>
+<blockquote><strong>K-9 への追記案</strong></blockquote>
+<p>&gt;</p>
+<blockquote>```text <strong>観測器は4つを選んでいる。事前登録の対象はこの4つである</strong>——   A1 どの量を測るか   A2 どう作り直すか（粒度・記述の層・時間窓）   A3 どこで切るか（閾値・生存帯・集約規則。集約は K-3 が受け持つ）   A4 <strong>何と対比して読むか（参照点・帰無モデル）</strong></blockquote>
+<p>&gt;</p>
+<blockquote><strong>A4 の見落としは S-03 で出た。</strong> 「自己維持」を初期状態に対する比で測るか、 直近の過去に対する比で測るかで、同じ 1500 本のスープから<strong>互いに素な集合</strong>が出た （13 件と 131 件・重なり 0）。<strong>両群とも直近の過去に対しては定常</strong>で、 分けていたのは参照点だけだった。<strong>参照点を <code>criteria.json</code> に明示し、 できれば別の参照点でも測って両方を報告する。</strong> ```</blockquote>
+<h3 id="提案-k-9-に-ノブは2種類ある-ことと-それぞれの本番前の測り方を足す">提案②: K-9 に「ノブは2種類ある」ことと、それぞれの本番前の測り方を足す</h3>
+<p>現在の K-9 は「スケールも登録せよ」で止まっており、<strong>登録した値が妥当かを確かめる方法が無い</strong>。 本稿の6本の突き合わせでは、ノブは2種類あり、危険の測り方が違う。</p>
+<blockquote><strong>K-9 への追記案</strong></blockquote>
+<p>&gt;</p>
+<blockquote>```text <strong>観測器のノブは2種類あり、無効化される条件が違う。</strong></blockquote>
+<p>&gt;</p>
+<blockquote>  切り方のノブ  出た数の切り位置を変える（閾値・生存帯・集約規則）                 → <strong>レプリケートの分布に隙間があり、もっともらしい切り位置が                    全部その隙間に入れば噛まない</strong>   作り直しのノブ 数そのものを作り直す（粒度・記述の層・時間窓・粗視化）                 → <strong>作り直しても値が動かなければ噛まない</strong>（定常状態・系が粒度を与える）</blockquote>
+<p>&gt;</p>
+<blockquote><strong>隙間は作り直しのノブを守らない。</strong> 隙間は「いまの値の分布」にあるが、 作り直しのノブは値そのものを取り替えるからである。S-02 では ρ=0.08 の<strong>同じ1本の配置</strong>が 半径 1.5 で 0.000、半径 4 で 0.9844 を返した——<strong>1本の標本が値域の両端を訪れる。</strong></blockquote>
+<p>&gt;</p>
+<blockquote><strong>本番の前に、4回＋αの試走で測れる:</strong>   0. 秩序変数の候補ごとに R_control（制御変数の両端での振れ幅）を測る。      <strong>制御変数に反応しない量はその場で落とす</strong>（S-04 の記号の層: R_control=0.28 で      12 点のどこでも閾値を跨がない。配列の層は 0.96）   1. 作り直しのノブ: 感度比 = R_knob / R_control。<strong>1 を超えたら掃引の結論を書かず、      ノブの掃引そのものを主の結果として報告する</strong>      （実測: S-02 = 3.82〜4.62 で反転した／S-04 の時間窓 = 0.02〜0.16 で刻み1つ）   2. 切り方のノブ: パイロットの分布で「答えが変わらない切り位置の区間」を測り、      もっともらしい切り位置が全部その中に入るかを見る。入らなければ全部報告する ```</blockquote>
+<h3 id="提案-k-10-の標題を-スケールを含まない-から-粒度を系から借りる-へ改める">提案③: K-10 の標題を「スケールを含まない」から「粒度を系から借りる」へ改める</h3>
+<p>K-10 の現在の標題は「<strong>スケールの選択を含まない</strong>測り方を優先する」である。<strong>厳密には、含まないのではなく、系が既に持っているものを使っている</strong>:</p>
+<div class="tw"><table><thead><tr><th>観測量</th><th>使っているスケール</th><th>出どころ</th></tr></thead><tbody><tr><td>S-02 の超過比</td><td><strong>相互作用半径 5</strong></td><td>系の規則</td></tr><tr><td>S-03 の kernelExcess</td><td><strong>核 K そのもの</strong></td><td>モデルの定義</td></tr><tr><td>S-06 の巻き数比</td><td><strong>隣接4点（2×2）</strong></td><td>格子の最小単位</td></tr><tr><td>S-05 の外部取得率</td><td><strong>確保記録 <code>start..start+len</code></strong></td><td>仮想機械</td></tr><tr><td>S-04 の種エントロピー比</td><td><strong>記号列の厳密一致</strong></td><td>化学の同一性</td></tr></tbody></table></div>
+<p>言い換えには実益がある。<strong>「スケールを含まない量を探せ」は探し方が分からないが、「系が既に持っている境界を探せ」は具体的に探せる。</strong></p>
+<blockquote><strong>K-10 の標題と本文の改案</strong></blockquote>
+<p>&gt;</p>
+<blockquote>```text ### K-10: 粒度は自分で発明せず、系から借りる（S-02・S-03・S-04・S-05・S-06）</blockquote>
+<p>&gt;</p>
+<blockquote>観測量が要る「何を1つと数えるか」は、可能なかぎり<strong>系が既に持っている境界</strong>から取る—— 規則に出てくる相互作用半径・モデルの核・格子の最小単位・仮想機械の確保記録・記号列の同一性。 借りられれば作り直しの自由度は消え、しばしば<strong>帰無値が理論から出る</strong> （S-05 は厳密に 0、S-03・S-04・S-06 は厳密に 1.0）。</blockquote>
+<p>&gt;</p>
+<blockquote><strong>借りられるかどうかは基層で決まる。</strong> 記号列・仮想機械・格子・場は同値関係や個体の境界を 自分で持っているが、<strong>連続空間の点集合は持っていない</strong>——「近い点どうしは同じ塊」と 言うには閾値が要り、その閾値は空間のどこにも書かれていない。 <strong>借りる先が無い基層を選んだ時点で、作り直しの危険は構造的に避けられない</strong>（S-02）。</blockquote>
+<p>&gt;</p>
+<blockquote><strong>借りても、層の選択は残ることがある。</strong> S-04 の記号列は記号と配列の2層を持ち、 どちらも基層が与える。記号の層に据えていれば答えは「どの誤り率でも到達せず」になった。 <strong>離散の2択なので、R_control で外れのほうを落とせる。</strong> ```</blockquote>
+<h3 id="提案-k-14-に-k-10-とは別の面の話である-ことと-第三の対処を明記する">提案④: K-14 に「K-10 とは別の面の話である」ことと、第三の対処を明記する</h3>
+<blockquote><strong>K-14 への追記案</strong></blockquote>
+<p>&gt;</p>
+<blockquote>```text <strong>K-10 と K-14 は同じ面の強弱ではなく、別の面にある。</strong> K-10 は〈選択〉への治療法で、 K-14 は〈検査〉である。<strong>選択を完璧にやっても偽陽性は1ミリも減らない。</strong> S-06 は粒度の自由度を持たない観測量を2つ用意したうえで捕まった。</blockquote>
+<p>&gt;</p>
+<blockquote><strong>第三の対処がある——主張を観測量の字義まで狭める。</strong> S-05 は負コントロールを 1種類しか持たないが、「寄生体が現れた」とは言わず 「命令の取得アドレスが確保記録の外にあった個体が現れた」としか言っていない。 <strong>狭めた主張なら偽陽性は原理的に起きない。</strong> 負コントロールを増やすか主張を狭めるか、 どちらかでよい。<strong>どちらもやらないまま生物学の語で結論を書くのが、いちばん危うい。</strong> ```</blockquote>
+<h3 id="提案-k-15-に-腕ごとにやり直す-ことを明記する-本稿がいちばん強く勧める1件">提案⑤: K-15 に「腕ごとにやり直す」ことを明記する（<strong>本稿がいちばん強く勧める1件</strong>）</h3>
+<p>K-15 は「本番の判定規則が正コントロールを拾うか」を事前登録の一部にせよと言う。<strong>これに「腕ごとに」を足したい。</strong> S-03 の事前登録した規則は、<strong>mu-orbium の腕では正コントロールを正しく拾っている</strong>（質量比 0.90〜0.93 が帯 [0.8,1.25] に入り、kernelExcess 50〜55）。 外れたのは<strong>スープの腕</strong>で、そこでは参照点（初期質量）の意味が変わっていた。</p>
+<blockquote><strong>K-15 への追記案</strong></blockquote>
+<p>&gt;</p>
+<blockquote>```text <strong>「本番の判定規則を正コントロールに当てる」は、腕ごとにやる。</strong> S-03 の事前登録した規則は、種を置いた腕では正コントロールを正しく拾った。 外れたのは<strong>スープの腕</strong>で、そこでは参照点（初期質量）の意味が変わっていた。 <strong>腕が変われば同じ規則が別のことを問う。</strong></blockquote>
+<p>&gt;</p>
+<blockquote><strong>さらに、事前登録したスケールは腕ごとに全部当て直す。</strong> S-03 は 9 通りを登録したが、<strong>それを全部当てたのは片方の腕だけ</strong>だった。 本稿がもう一方の腕へ当て直すと、同じ 3 つの生存帯が <strong>0 / 13 / 134</strong> と 10 倍以上の開きを返し、 <strong>いちばん広い帯 [0.2, 5.0] は局在した模様を 41 件拾っていた</strong>—— 「事前登録した定義が1つも拾わなかった」対象である。 <strong>定義が外れていても、登録したスケールを全部報告していれば気付けた。</strong></blockquote>
+<p>&gt;</p>
+<blockquote><strong>「スケールが噛まない」は腕ごとの性質であって、観測器の性質ではない。</strong> 隙間による保護はデータに依存する保護であり、設計による保護ではない。 ```</blockquote>
+<h3 id="提案-知見の並べ方を-選択-と-検査-で分ける">提案⑥: 知見の並べ方を「選択」と「検査」で分ける</h3>
+<p>現在 K-9・K-10・K-11・K-14・K-15 は発見順に並んでおり、<strong>どれをやれば何が済むのかが読み取りにくい</strong>。 番号を振り直さずに、<strong>節の頭に対応表を1つ置く</strong>だけで済む。</p>
+<blockquote><strong>§2 の冒頭への追加案</strong></blockquote>
+<p>&gt;</p>
+<blockquote>```text <strong>観測器まわりの知見は「選択」と「検査」に分かれる。治療法は互いに代替しない。</strong></blockquote>
+<p>&gt;</p>
+<blockquote>  〈選択〉事前登録で固定できる     A1 どの量を測るか ......... K-9     A2 どう作り直すか ......... K-9（病名）・K-10（治療法）     A3 どこで切るか ........... K-9・K-3（分布を残す）     A4 何と対比して読むか ..... （新設・S-03）   〈検査〉事前登録では固定できない     B1 偽陽性が無いか ......... K-14（負コントロールを複数／主張を狭める）     B2 偽陰性が無いか ......... K-15（本番の規則を正コントロールに、腕ごとに当てる）</blockquote>
+<p>&gt;</p>
+<blockquote><strong>K-11（事後解析は別枠）はこの表の外にある</strong>——選択でも検査でもなく、報告の仕方の規律にあたる。 ```</blockquote>
+<h3 id="提案しないこと">提案しないこと</h3>
+<ul><li><strong>K-3 を観測器の鍵へ移すこと</strong>は提案しない。K-3 は「生ログの取り方」として既に働いており、置き場所を変えると経緯が読めなくなる。提案⑥の対応表から参照すれば足りる</li><li><strong>K-9・K-10・K-14・K-15 を1本へ統合すること</strong>は提案しない。治療法が代替しないので、1本にすると「どれをやれば済むか」が読めなくなる</li><li><strong>番号の振り直し</strong>は提案しない。既存のレポートが K-9 等を名指しで参照しており、振り直すとリンクが静かに壊れる</li></ul>
+<h2 id="本家サブプロジェクトへの含意-候補-要件化はしていない">本家サブプロジェクトへの含意（候補。要件化はしていない）</h2>
+<p><span class="deadlink">artificial-life</span> の <strong>A1（観測器の定義）</strong> への入力候補。<strong>採否はあちらで判断する</strong>:</p>
+<ol><li><strong>「観測器は基層に依存しない」に、限定が要るかもしれない。</strong> <span class="deadlink">overview</span> は A1（観測器）を A3（基層）より先に置く根拠の第1に</li></ol>
+<p>「観測器は基層に依存しない」を挙げている。本稿の6本はこれに<strong>部分的な反例</strong>を出す——観測量の<strong>定義</strong>は基層を知らずに書けるが、 <strong>それを計算できるかどうかは基層に依存する</strong>。「塊に属する粒子の割合」は基層を知らずに定義できるが、 <strong>連続空間ではその計算に観測器が半径を発明する必要があり、記号列では必要がない。</strong> したがって A1 を先に置く順序はそのままで良いが、<strong>A1 で定義した各観測量に「この量は基層から粒度を借りられるか」という欄を持たせ、 A3（基層の選定）の比較項目に「その基層は個体化（同値関係・個体の境界）を自分で与えるか」を加える</strong>のが候補にあたる</p>
+<ol><li><strong>梯子の各段の4つ組に「参照点」を足す。</strong> <span class="deadlink">spec-method §3.1</span> の4つ組（秩序変数・制御変数・正コントロール・負コントロール）は、</li></ol>
+<p><strong>何に対する比なのか</strong>を持っていない。S-03 は同じ 1500 本のスープから、参照点の違いだけで<strong>互いに素な集合</strong>（13 件と 131 件・重なり 0）を得た。 <strong>「自己維持」「増殖」「新規性」はいずれも参照点を含む概念</strong>であり、梯子の段ごとに明示する対象になる</p>
+<ol><li><strong>正コントロールの使い方を「検出器が反応するか」から「本番の判定規則が拾うか」へ強める。</strong> しかも<strong>梯子の段ごと・腕ごと</strong>にやる。</li></ol>
+<p>S-03 の規則は種を置いた腕では正コントロールを拾い、スープの腕では拾わなかった</p>
+<ol><li><strong>事前登録の対象に「感度比」を加える。</strong> 閾値・秩序変数・スケールを登録しても、<strong>登録した値が妥当かどうか</strong>は登録の対象外である。</li></ol>
+<p>感度比を測って書くところまでを含めると、S-02 型の反転は掃引の前に捕まる</p>
+<ol><li><strong>上位概念を核から締め出すことと、粒度を系から借りることは、実際には同じ操作になっている。</strong></li></ol>
+<p>上位概念（細胞・個体・種）はたいてい粒度の発明を含むからである。S-05 は「寄生体」を核にも観測器にも置かず 「命令の取得アドレスが確保記録の外にあったか」だけを数え、結果として帰無値が定義から 0 になった</p>
+<h2 id="限界-この考察が言えないこと">限界（この考察が言えないこと）</h2>
+<h3 id="材料そのものの限界">材料そのものの限界</h3>
+<ul><li><strong>6本はすべて同じ書き手が、同じ手順（method.md）に従って作ったものである。</strong> 「同じ穴が繰り返し出た」ことの一部は、</li></ul>
+<p><strong>同じ穴を掘る癖が繰り返された</strong>ことかもしれない。独立な書き手の実験では違う面が出る可能性がある</p>
+<ul><li><strong>6本は本サブプロジェクトの制約（依存ゼロ・Node v16・1セッション）で作られた小さな実験である。</strong> 系のサイズも走行時間も小さく、</li></ul>
+<p><strong>閾値の位置そのものは系の性質として主張されていない</strong>（各レポートの限界節が明記している）。本稿が使うのは 「同じデータを測り直したら答えがどれだけ動いたか」という<strong>相対的な量</strong>だけなので影響は小さいはずだが、ゼロとは言えない</p>
+<ul><li><strong>S-07・S-08・S-09 は本稿の執筆時点で未完了</strong>で、材料に入っていない。とくに S-08（Turing パターン）は</li></ul>
+<p><strong>パターンの波長に理論値がある</strong>題材なので、A4（参照点）に新しい材料を出す可能性が高い</p>
+<h3 id="中心の主張の限界">中心の主張の限界</h3>
+<ul><li><strong>Openshaw のいう aggregation problem（zoning）を、6本は1本も試していない。</strong> S-02 が振ったのは半径（scale）だけで、</li></ul>
+<p><strong>同じ半径のまま「何を1つと数えるか」の定義を替える</strong>（連結成分でなく密度の等高線で切る、など）試みが無い。 Openshaw は <strong>aggregation のほうが scale より効く</strong>と書いており、<strong>もしそれが本件でも当てはまるなら、本稿は危険を過小に見積もっている</strong></p>
+<ul><li><strong>「基層が個体化を与えるか」は6本の観察から立てた規則であり、検査していない。</strong> 本稿は<strong>予測を出したが、検証する実験を走らせていない</strong>。</li></ul>
+<p>検証の形ははっきりしている——<strong>同じ現象を連続空間と離散記号の両方の基層で実装し、同じ問いを立てて感度比を比べる</strong></p>
+<ul><li><strong>感度比は A2 にしか使えない。</strong> A3 には別の物差し（答えが変わらない切り位置の区間）を使ったが、</li></ul>
+<p><strong>A1（どの量を測るか）と A4（参照点）には量的な物差しを持てていない</strong>。この2つは「別の候補でも測って両方報告する」という手続きでしか扱えていない</p>
+<ul><li><strong>感度比の閾値「1」に理論的な根拠は無い。</strong> 実測の2点（3.82 と 0.02〜0.16）は 1 を大きく挟んでいるので、この2本を分けるのに境界の精度は要らなかった、というだけである</li><li><strong>S-04 の「反転しない」はまだ証明されていない。</strong> 本稿が加えたのは時間窓と記述の層だけで、</li></ul>
+<p><strong>S-02 の連結半径に真に対応する連続のノブ——記号列を「似ていれば同種」とまとめる距離——は未検査のままである。</strong> 必要なデータ（槽の全配列の目録）が生ログに無く、<strong>S-04 の再走行が要る。次にやるべき実験はこれである</strong></p>
+<ul><li><strong>本稿の S-04 時間窓の掃引はシード1本</strong>（<code>trace.jsonl</code> がそう）。本番の掃引は5シードなので揺らぎの幅が違う</li><li><strong>S-03 のスープの腕の再計上は、記録された 222 行に対して行っている</strong>（1500 本のうち絶滅しなかったもの）。</li></ul>
+<p>絶滅した 1278 本は場が一様で <code>kernelExcess ≥ 2.0</code> を通らないので結果は変わらないはずだが、<strong>生ログで直接確かめてはいない</strong></p>
+<ul><li><strong>A/B の切り分け自体が、6本を見てから立てた枠組みである。</strong> 7本目以降で収まらない事例が出れば作り直しになる</li></ul>
+<h3 id="文献についての限界">文献についての限界</h3>
+<ul><li><strong>Levin 1992 の原典に到達していない</strong>（Wiley 403・PDF が走査画像）。引用は二次情報である</li><li><strong>MODES toolbox（2019）と、その検査（Bohm・Zhang・Dolson 2024）、Taylor et al.（2016）の本文に到達していない</strong>（MIT Press が 403）。</li></ul>
+<p><strong>とくに 2024 年の検査論文は本稿の B（妥当性）に真正面から当たるもので、ここに到達できなかったのがいちばん大きな欠落にあたる</strong></p>
+<ul><li><strong>Bedau と Packard の原典、Channon の ECAL 2001 論文、Jacobs &amp; Wallach の原典にも到達していない</strong>。</li></ul>
+<p>進化活性統計と neutral shadow についての記述は、Standish の要旨と二次情報に基づく</p>
+<ul><li><strong>「見つからなかった」と書いた2つ（切り方／作り直しの区別・感度比）は、探し方が足りないだけの可能性が高い。</strong></li></ul>
+<p>探したのは英語の検索と、到達できた数本だけである</p>
+<h3 id="種別そのものの限界">種別そのものの限界</h3>
+<ul><li><strong>アプリが無いので <code>selftest.js</code> が無い。</strong> 代わりに「引用する数値をすべて生ログから機械的に作り直す」ことを課したが、</li></ul>
+<p><strong>再計算の器（<code>recount.js</code>）自体を検算する正/負コントロールは無い</strong>。読み違いがあれば本稿の数値ごと間違う。 緩和として、再計算を既作レポートの本文と突き合わせ、<strong>食い違った1件を明示した</strong>（S-01 の中央値の取り方）</p>
+<ul><li><strong>文献・考察系のスケッチはダッシュボードに載らない。</strong> <span class="deadlink">build.js</span> は</li></ul>
+<p><code>apps/alife-sketches/</code> 配下のディレクトリを走査して対応するレポートを探す作りなので、<strong>アプリを持たない本稿は一覧に現れない</strong>。 <strong>文献・考察系を今後も出すなら、build.js 側に「アプリの無いスケッチ」の経路が要る</strong></p></article><p class="src">原典: <code>docs/subprojects/alife-sketches/sketches/S-10-observer-design/reports/main.md</code></p></section><section class="pane" data-pane="comments" hidden><div class="comments" data-slug="S-10-observer-design" data-run="" data-readonly><div id="clist" class="clist">読み込み中…</div><script type="application/json" id="cdata">{"version":1,"sketch":"S-10-observer-design","comments":[]}</script></div></section></div></div></div><button class="fab" id="fab" title="メニュー" aria-label="メニュー">☰</button><div class="menu" id="menu" hidden><div class="menuhead">人工生命スケッチ</div><a href="../../index.html">🏠 ホーム（スケッチ一覧）</a><a href="../../reports/index.html">📄 レポート一覧</a></div><script src="../../assets/menu.js"></script><script src="../../assets/overlay.js"></script><script src="../../assets/comments-ui.js"></script></body></html>

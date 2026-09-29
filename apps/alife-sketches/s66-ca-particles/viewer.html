@@ -1,0 +1,294 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-66 — 1次元CAの創発粒子（ECA 54 の領域・粒子・反応）</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0;max-width:1000px}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  select,input[type=number]{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  input[type=number]{width:7em}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;background:#05060a;image-rendering:pixelated}
+  table{border-collapse:collapse;font-size:12px;width:100%}
+  th,td{padding:3px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  td{font-variant-numeric:tabular-nums;min-width:6ch}
+  .col{display:flex;flex-direction:column;gap:14px;flex:1;min-width:280px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:1000px}
+  @media(max-width:760px){.wrap{flex-direction:column}}
+</style>
+
+<header>
+  <h1>S-66 — 1次元CAの創発粒子: ECA 54 の領域・粒子・反応を、上位の単位を書かずに同定する</h1>
+  <p class="sub">力学（規則表）には領域・粒子・反応という語彙が一切無い——上位の段は観測器の側にある。
+    同じ時空の配列に、3通りの観測器（O-lang=領域の言語を人が書き込む／O-sym=場から対称と瓦を自動で見つける／
+    O-lcs=局所因果状態の場から対称を見つける）を重ね、どこまで同じ答えを返すかを見る。
+    この画面は探索用の簡易表示（重い O-lcs はボタンで任意に実行）——判定に使う正式な値は run.js の生ログにある。</p>
+</header>
+
+<div class="bar">
+  <button id="run">再生 / 一時停止</button>
+  <button id="reset">初期化</button>
+  <button id="step">1歩</button>
+  <label>腕
+    <select id="arm">
+      <option value="E54" selected>E54（主。規則54）</option>
+      <option value="E54d20">E54-d20（密度0.2）</option>
+      <option value="E18">E18（隠れた対称）</option>
+      <option value="K1">K1（設計された規則）</option>
+      <option value="NCrowshuffle">NC-rowshuffle（行を無作為にずらす）</option>
+      <option value="NCE30">NC-E30（規則30）</option>
+      <option value="NCfrozen">NC-frozen（恒等）</option>
+    </select>
+  </label>
+  <label>広さ N<input type="number" id="N" value="512" step="32" min="128" max="2048"></label>
+  <label>密度<input type="number" id="rho0" value="0.5" step="0.05" min="0.05" max="0.95"></label>
+  <label>seed<input type="number" id="seed" value="6601" step="1"></label>
+  <label>重ね
+    <select id="overlay">
+      <option value="none">無し（素の時空）</option>
+      <option value="olang" selected>O-lang（言語を書き込む）</option>
+      <option value="osym">O-sym（対称を自動探索）</option>
+    </select>
+  </label>
+  <button id="lcsBtn">O-lcs を短い窓で試す（重い）</button>
+</div>
+
+<div class="wrap">
+  <div class="col" style="flex:2">
+    <div class="panel">
+      <h2>時空図（下向きに時間が進む。左端が折り返す円環）</h2>
+      <canvas id="spacetime" width="512" height="480"></canvas>
+    </div>
+    <div class="panel" id="lcsPanel" style="display:none">
+      <h2>O-lcs（短い窓での再確認）</h2>
+      <div id="lcsOut" style="font-size:12px;color:var(--dim)"></div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="panel">
+      <h2>実況</h2>
+      <table>
+        <tr><th>t</th><td class="num" id="statT">0</td></tr>
+        <tr><th>f_dom（重ねの領域割合）</th><td class="num" id="statFdom">—</td></tr>
+        <tr><th>欠陥の塊（この行）</th><td class="num" id="statBlobs">0</td></tr>
+        <tr><th>厳密な粒子の型 K_P（窓内累積）</th><td class="num" id="statKP">0</td></tr>
+        <tr><th>反応の事象（窓内累積）</th><td class="num" id="statEvents">0</td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>凡例</h2>
+      <p class="sub" style="margin:0">
+        暗い縞=領域のセル。明るい色のセル=欠陥（O-lang/O-symの重ねが有効なとき）。<br>
+        色相は正準形のハッシュから割り当てる（同じ色=同じ型の可能性が高いが、この画面では正式な型判定はしない）。
+      </p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  ファイル: <code>core.js</code>（規則・乱数）・<code>olang.js</code>（O-lang）・<code>symmetry.js</code>+<code>osym.js</code>（O-sym）・
+  <code>olcs.js</code>（O-lcs）・<code>particles.js</code>（塊・鎖・厳密な粒子）を素のスクリプトとして読み込む。
+  正式な判定（規則①〜⑨・段の数K・観測者の一致・H-strict・αの減衰など）は <code>run.js</code> の生ログで行う——
+  この画面は「どう見えるか」を確かめる探索窓であり、事前登録は持たない（origin: screen 相当の使い方）。
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="olang.js"></script>
+<script src="symmetry.js"></script>
+<script src="osym.js"></script>
+<script src="olcs.js"></script>
+<script src="particles.js"></script>
+<script>
+(function () {
+  'use strict';
+  var canvas = document.getElementById('spacetime');
+  var ctx = canvas.getContext('2d');
+  var img = null;
+
+  var RULE_OF = {
+    E54: { kind: 'eca', num: 54, r: 1 }, E54d20: { kind: 'eca', num: 54, r: 1 },
+    E18: { kind: 'eca', num: 18, r: 1 }, K1: { kind: 'k1', num: 2614700074, r: 2 },
+    NCrowshuffle: { kind: 'eca', num: 54, r: 1 }, NCE30: { kind: 'eca', num: 30, r: 1 }, NCfrozen: { kind: 'eca', num: 204, r: 1 },
+  };
+
+  var state = null; // { n, rows:[], rule, defectHistory, blobRows, chains, allSegs, registry, rowIdx }
+  var playing = false;
+
+  function paramsFromDom() {
+    return {
+      arm: document.getElementById('arm').value,
+      N: Math.max(32, Math.round(Number(document.getElementById('N').value) / 32) * 32),
+      rho0: Number(document.getElementById('rho0').value),
+      seed: Number(document.getElementById('seed').value),
+      overlay: document.getElementById('overlay').value,
+    };
+  }
+
+  function buildRule(arm) {
+    var def = RULE_OF[arm];
+    return S66.makeRule(def.kind, def.kind === 'k1' ? BigInt(def.num) : def.num);
+  }
+
+  function reset() {
+    var p = paramsFromDom();
+    var n = p.N;
+    canvas.width = n; canvas.height = Math.max(240, Math.min(720, Math.round(n * 0.9)));
+    img = ctx.createImageData(canvas.width, canvas.height);
+    var rng = S66.subRng(p.seed, 'init');
+    var initRow;
+    var rows = [];
+    if (p.arm === 'NCrowshuffle') {
+      var e54Rule = S66.makeRule('eca', 54);
+      initRow = S66.initRow(n, 0.5, rng);
+      var e54Grid = S66.evolveGrid(initRow, e54Rule, canvas.height - 1);
+      var shiftRng = S66.subRng(p.seed, 'rowshuffle');
+      rows = e54Grid.map(function (row) {
+        var shift = Math.floor(shiftRng() * n); var out = new Uint8Array(n);
+        for (var i = 0; i < n; i++) out[i] = row[((i - shift) % n + n) % n];
+        return out;
+      });
+    } else {
+      var rule = buildRule(p.arm);
+      initRow = S66.initRow(n, p.rho0, rng);
+      rows = S66.evolveGrid(initRow, rule, canvas.height - 1);
+    }
+    state = { n: n, rows: rows, arm: p.arm, overlay: p.overlay, rowIdx: 0, domainCount: 0, totalCount: 0, kpSet: {}, kpCount: 0, eventCount: 0 };
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById('statT').textContent = '0';
+    document.getElementById('statFdom').textContent = '—';
+    document.getElementById('statBlobs').textContent = '0';
+    document.getElementById('statKP').textContent = '0';
+    document.getElementById('statEvents').textContent = '0';
+  }
+
+  function colorForLabel(key) {
+    if (key == null) return [235, 110, 70];
+    var h = S66.fnv1a(String(key)) % 360;
+    var c = hsl2rgb(h / 360, 0.55, 0.55);
+    return c;
+  }
+  function hsl2rgb(h, s, l) {
+    function f(n) { var k = (n + h * 12) % 12; var a = s * Math.min(l, 1 - l); return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); }
+    return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
+  }
+
+  function drawRow(y, row, overlayInfo) {
+    var w = canvas.width, data = img.data;
+    for (var x = 0; x < w; x++) {
+      var idx = (y * w + x) * 4;
+      var r, g, b;
+      if (overlayInfo && overlayInfo.domain) {
+        if (overlayInfo.domain[x]) { var base = row[x] ? 70 : 30; r = base; g = base + 20; b = base + 35; }
+        else { var c = colorForLabel(overlayInfo.labelKey ? overlayInfo.labelKey[x] : null); r = c[0]; g = c[1]; b = c[2]; }
+      } else {
+        var v = row[x] ? 225 : 20;
+        r = v; g = v; b = v;
+      }
+      data[idx] = r; data[idx + 1] = g; data[idx + 2] = b; data[idx + 3] = 255;
+    }
+  }
+
+  function stepOnce() {
+    if (!state || state.rowIdx >= state.rows.length) return;
+    var row = state.rows[state.rowIdx];
+    var overlayInfo = null;
+    if (state.overlay === 'olang') {
+      var tiles = S66Olang.TILE_SPECS[state.arm] || S66Olang.TILE_SPECS.E54;
+      var res = S66Olang.analyzeRow(row, S66Olang.buildTemplates(tiles), 9, 1);
+      overlayInfo = res;
+      var dom = 0; for (var i = 0; i < row.length; i++) dom += res.domain[i];
+      state.domainCount += dom; state.totalCount += row.length;
+    } else if (state.overlay === 'osym' && state.rowIdx > 20) {
+      // O-symは複数行の履歴が要るので、直近64行の窓に対して簡易に当てる（重いので低頻度に間引く）
+      if (state.rowIdx % 8 === 0) {
+        var lo = Math.max(0, state.rowIdx - 63);
+        var windowGrid = state.rows.slice(lo, state.rowIdx + 1);
+        var field = S66Symmetry.makeField(windowGrid, row.length);
+        var rng = S66.subRng(state.rowIdx, 'viewer-osym');
+        var gen = S66Symmetry.searchGenerators(field, [0, windowGrid.length], rng, { sampleCount: 4000, dtMax: 12, dxMax: 12 });
+        state._lastOsymGen = gen;
+      }
+      if (state._lastOsymGen && state._lastOsymGen.hasBoth) {
+        var s = state._lastOsymGen.spatialGen.dx;
+        var tiling = S66Symmetry.findTiles(S66Symmetry.makeField(state.rows.slice(Math.max(0, state.rowIdx - 63), state.rowIdx + 1), row.length), s, [0, Math.min(64, state.rowIdx + 1)], {});
+        if (tiling.foundTiles.length) {
+          var templates = S66Olang.buildTemplates(tiling.foundTiles.map(function (t) { return t.symbols; }));
+          overlayInfo = S66Olang.analyzeRow(row, templates, 4, 1);
+        }
+      }
+    }
+    drawRow(state.rowIdx, row, overlayInfo);
+    ctx.putImageData(img, 0, 0);
+
+    document.getElementById('statT').textContent = String(state.rowIdx);
+    if (state.overlay === 'olang' && state.totalCount) document.getElementById('statFdom').textContent = (state.domainCount / state.totalCount).toFixed(3);
+    if (overlayInfo) {
+      var blobs = S66Particles.findRowBlobs(overlayInfo.domain.map(function (d) { return d ? 0 : 1; }), row.length, 1);
+      document.getElementById('statBlobs').textContent = String(blobs.length);
+    }
+    state.rowIdx++;
+  }
+
+  function loop() {
+    if (!playing) return;
+    for (var k = 0; k < 2; k++) stepOnce();
+    if (state.rowIdx < state.rows.length) requestAnimationFrame(loop);
+    else playing = false;
+  }
+
+  document.getElementById('run').addEventListener('click', function () { playing = !playing; if (playing) loop(); });
+  document.getElementById('reset').addEventListener('click', reset);
+  document.getElementById('step').addEventListener('click', stepOnce);
+  document.getElementById('lcsBtn').addEventListener('click', function () {
+    var panel = document.getElementById('lcsPanel'); panel.style.display = 'block';
+    document.getElementById('lcsOut').textContent = '計算中…';
+    setTimeout(function () {
+      var p = paramsFromDom();
+      var n = Math.min(p.N, 512);
+      var rule = buildRule(p.arm === 'NCrowshuffle' ? 'E54' : p.arm);
+      var rng = S66.subRng(p.seed, 'lcs-viewer');
+      var initRow = S66.initRow(n, p.rho0, rng);
+      var grid = S66.evolveGrid(initRow, rule, 127);
+      var rDef = RULE_OF[p.arm];
+      var rngA = S66.subRng(p.seed, 'lcs-viewer-analyze');
+      var res = S66Olcs.analyze(grid, n, [16, 128], rDef.r, rngA, { hMinus: rDef.r === 2 ? 2 : 3, hPlus: rDef.r === 2 ? 1 : 2, sampleCount: 8000 });
+      document.getElementById('lcsOut').textContent = '状態数=' + res.stateCount + ' 稀な過去割合=' + res.rareShare.toFixed(3) +
+        ' 領域あり=' + res.hasDomain + ' f_dom=' + res.fDom.toFixed(3) + '（N=' + n + '・128行の短い窓での簡易確認）';
+    }, 30);
+  });
+
+  Harness.mount({
+    id: 'S-66', version: '1.0.0',
+    inputs: ['arm', 'N', 'rho0', 'seed', 'overlay'],
+    canvases: ['spacetime'],
+    resize: function (scale) {
+      var nInput = document.getElementById('N');
+      nInput.value = Math.max(128, Math.round((512 * scale) / 32) * 32);
+      reset();
+    },
+    onRestore: function () { reset(); },
+    paramNames: {
+      arm: { category: 's', code: 'arm', full: 'arm' },
+      N: { category: 's', code: 'n', full: 'N' },
+      rho0: { category: 'p', code: 'rho0', full: 'rho0' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      overlay: { category: 's', code: 'ov', full: 'overlay' },
+    },
+  });
+
+  reset();
+})();
+</script>

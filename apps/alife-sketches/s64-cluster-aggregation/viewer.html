@@ -1,0 +1,316 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-64 — クラスタ–クラスタ凝集（DLCA）</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0;max-width:1000px}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  select,input[type=number]{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  input[type=number]{width:7em}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;background:#05060a}
+  table{border-collapse:collapse;font-size:12px;width:100%}
+  th,td{padding:3px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  td{font-variant-numeric:tabular-nums;min-width:6ch}
+  .col{display:flex;flex-direction:column;gap:14px;flex:1;min-width:280px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:1000px}
+  @media(max-width:760px){.wrap{flex-direction:column}}
+</style>
+
+<header>
+  <h1>S-64 — クラスタ–クラスタ凝集（DLCA）: 粒子ごとのブラウン運動と切れない結合だけで作る階層</h1>
+  <p class="sub">円板 N 個が過減衰 Langevin（熱浴つき）で独立に拡散し、接触（r&lt;1σ）で切れない結合を作る。
+    塊の動きを直接書く規則は無い——塊の拡散は粒子ごとの雑音の和から出る（主 M-rigid: 接触の角を局所で固める。
+    M-flex: 固めない）。色は結合の生成の記録から作る合体の木の Horton–Strahler 次数。
+    右の※参照（R0/R-0.7/R-1/R-1rot）は塊を剛体として大きさの冪 γ で直接動かす、比較のための腕。</p>
+</header>
+
+<div class="bar">
+  <button id="run">開始</button>
+  <button id="reset">配置をやり直す</button>
+  <label>腕
+    <select id="arm">
+      <option value="M-rigid" selected>M-rigid（主）</option>
+      <option value="M-flex">M-flex（角を固めない）</option>
+      <option value="R0">R0（※参照 γ=0）</option>
+      <option value="R-0.7">R-0.7（※参照 γ=-0.7）</option>
+      <option value="R-1">R-1（※参照 γ=-1）</option>
+      <option value="R-1rot">R-1rot（※参照 γ=-1+回転）</option>
+      <option value="NC-DLA">NC-DLA（負対照: 塊は動かない）</option>
+      <option value="NC-nobond">NC-nobond（負対照: 結合なし）</option>
+      <option value="NC-ghost">NC-ghost（負対照: 結合は帳簿だけ）</option>
+      <option value="M-rigid2">M-rigid2（reg2主: F1+F2+F3・角のばね）</option>
+      <option value="M-flex2">M-flex2（reg2: F1+F2のみ・角の拘束なし）</option>
+      <option value="M-stiff">M-stiff（reg2: 剛さ4倍）</option>
+      <option value="NC-DLA2">NC-DLA2（reg2負対照: 種つき付着）</option>
+      <option value="M-rigid3">M-rigid3（reg3主: 剛体円板・結合の窓・角の窓Δθ=0.1・射影つきBrownian）</option>
+      <option value="M-flex3">M-flex3（reg3: 角の窓なし）</option>
+      <option value="M-stiff3">M-stiff3（reg3: 角の窓Δθ=0.03）</option>
+      <option value="NC-DLA3">NC-DLA3（reg3負対照: 種つき付着）</option>
+      <option value="NC-nobond3">NC-nobond3（reg3負対照: 結合なし）</option>
+      <option value="NC-ghost3">NC-ghost3（reg3負対照: 結合は帳簿だけ）</option>
+    </select>
+  </label>
+  <label>φ<select id="phi"><option value="0.05">0.05</option><option value="0.10" selected>0.10</option><option value="0.20">0.20</option></select></label>
+  <label>N<input type="number" id="N" value="512" step="16" min="16" max="2048"></label>
+  <label>seed<input type="number" id="seed" value="6401" step="1"></label>
+</div>
+
+<div class="wrap">
+  <div class="col" style="flex:2">
+    <div class="panel">
+      <h2>粒子と塊（色 = 結合の生成から作る合体の木の Horton–Strahler 次数）</h2>
+      <canvas id="mainCanvas" width="640" height="640"></canvas>
+      <div style="margin-top:8px;font-size:11px;color:var(--dim)">次数0（単粒子・灰）→ 次数が上がるほど暖色</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="panel">
+      <h2>いま</h2>
+      <table>
+        <tr><th>量</th><th>値</th></tr>
+        <tr><td>時刻 t (τ_B)</td><td class="num" id="statT">0</td></tr>
+        <tr><td>成分数</td><td class="num" id="statComp">–</td></tr>
+        <tr><td>S_w（重み平均の大きさ）</td><td class="num" id="statSw">0</td></tr>
+        <tr><td>結合の数</td><td class="num" id="statBonds">0</td></tr>
+        <tr><td>K_G（合体の階層の深さ）</td><td class="num" id="statKG">0</td></tr>
+        <tr><td>貫通（ゲル化）</td><td class="num" id="statGel">–</td></tr>
+        <tr><td>|ΣF|/Σ|F| 最大</td><td class="num" id="statSigmaF">0</td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>このスケッチについて</h2>
+      <p style="color:var(--dim);margin:0">問い・登録の全文は <code>criteria.json</code>。主張は本番走行（S3）の生ログから S4 が判定する——
+      このビューアは「動く主題」の提示であって、ここで見た形だけでは主張にならない。</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  ファイル: <code>core.js</code>（力学・結合・R腕のKMC）・<code>detectors.js</code>（Strahler次数・対の密度の段・H-strict等）・
+  <code>protocol.js</code>（腕の一覧）・<code>replicate.js</code>（1走行を駆動）・<code>run.js</code>（本番の並列実行）・
+  <code>synthetic.js</code>（検出器較正用の合成構造）。reg2（2本目）は <code>*2.js</code>、
+  reg3（3本目・剛体円板を射影つきBrownian刻みで進める力学）は <code>core3.js</code>・<code>protocol3.js</code>・
+  <code>replicate3.js</code>・<code>controls3.js</code>・<code>run3.js</code>。動かし方は <span class="deadlink">README.md</span>。
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="core3.js"></script>
+<script>
+  // detectors.js は Node 専用（require/module.exports を使う CommonJS）なので、
+  // file:// で開く古典スクリプトの viewer には読み込まない（読めばここで例外になる）。
+  // 表示に要る最小限（大きさ分布・Strahler次数・貫通判定）は下で window.D64 として作り直す。
+</script>
+<script>
+(function () {
+  'use strict';
+  var canvas = document.getElementById('mainCanvas');
+  var ctx = canvas.getContext('2d');
+  var armSel = document.getElementById('arm'), phiSel = document.getElementById('phi');
+  var nInput = document.getElementById('N'), seedInput = document.getElementById('seed');
+  var runBtn = document.getElementById('run'), resetBtn = document.getElementById('reset');
+
+  var sys = null, p = null, rng = null, gaussian = null, cfg = null, kcfg = null;
+  var running = false, rafId = null;
+  var stepsPerFrame = 40;
+
+  var REG2_ARMS = { 'M-rigid2': 1, 'M-flex2': 1, 'M-stiff': 1, 'NC-DLA2': 1 };
+  var REG3_ARMS = { 'M-rigid3': 1, 'M-flex3': 1, 'M-stiff3': 1, 'NC-DLA3': 1, 'NC-nobond3': 1, 'NC-ghost3': 1 };
+  function currentArmKind() {
+    var arm = armSel.value;
+    if (arm === 'R0' || arm === 'R-0.7' || arm === 'R-1' || arm === 'R-1rot') return 'R';
+    if (REG3_ARMS[arm]) return 'Gp'; // reg3（3本目）: 射影つきBrownian刻み・stepGp3で駆動
+    if (REG2_ARMS[arm]) return 'BD2'; // reg2（2本目）: F1+F2(+F3)・stepBD2で駆動
+    return 'BD';
+  }
+  function gammaOf(arm) { return arm === 'R0' ? 0 : (arm === 'R-0.7' ? -0.7 : -1); }
+
+  function reset() {
+    var N = Math.max(16, Math.min(2048, Number(nInput.value) || 512));
+    var phi = Number(phiSel.value) || 0.10;
+    var seed = Number(seedInput.value) || 6401;
+    var arm = armSel.value;
+    p = S64.defaultParams({ N: N, phi: phi, seed: seed, arm: arm === 'R0' || arm === 'R-0.7' || arm === 'R-1' || arm === 'R-1rot' ? 'M-rigid' : arm });
+    sys = S64.initReplicate(p);
+    var kind = currentArmKind();
+    if (kind === 'BD' || kind === 'BD2') {
+      rng = S64.subStream(seed, 1); gaussian = S64.gaussianFactory(rng);
+      cfg = S64.armConfigFor(arm);
+    } else if (kind === 'Gp') {
+      rng = S64.subStream(seed, 1); gaussian = S64.gaussianFactory(rng);
+      cfg = S64Gp.armConfigFor3(arm);
+      if (arm === 'NC-DLA3') {
+        var frac = 0.01, nSeed = Math.max(1, Math.round(sys.N * frac));
+        var seedRng = S64.subStream(seed, 6), frozenSet = new Set();
+        while (frozenSet.size < nSeed) frozenSet.add(Math.floor(seedRng() * sys.N));
+        sys._seedSet = frozenSet;
+      }
+    } else {
+      rng = S64.subStream(seed, 2);
+      kcfg = { gamma: gammaOf(arm), rot: arm === 'R-1rot', delta: 0.1 };
+    }
+    draw();
+    updateStats();
+  }
+
+  function stepMany(n) {
+    var kind = currentArmKind();
+    if (kind === 'BD') {
+      for (var i = 0; i < n; i++) { if (sys.componentCount <= 4) break; S64.stepBD(sys, p, rng, gaussian, cfg); }
+    } else if (kind === 'BD2') {
+      for (var i2 = 0; i2 < n; i2++) { if (sys.componentCount <= 4) break; S64.stepBD2(sys, p, rng, gaussian, cfg); }
+    } else if (kind === 'Gp') {
+      for (var i3 = 0; i3 < n; i3++) { if (sys.componentCount <= 4) break; S64Gp.stepGp3(sys, p, rng, gaussian, cfg); }
+    } else {
+      for (var j = 0; j < n; j++) { if (sys.componentCount <= 4) break; var r = S64.stepKMC(sys, p, rng, kcfg); if (r.noEvent) break; }
+    }
+  }
+
+  function degreeColor(deg) {
+    var palette = ['#4b5563', '#60a5fa', '#34d399', '#fbbf24', '#f97316', '#ef4444', '#a78bfa', '#ec4899', '#f472b6'];
+    return palette[Math.min(deg, palette.length - 1)];
+  }
+
+  function draw() {
+    var W = canvas.width, H = canvas.height;
+    ctx.fillStyle = '#05060a'; ctx.fillRect(0, 0, W, H);
+    if (!sys) return;
+    var scale = Math.min(W, H) / sys.L;
+    // 結合を先に描く
+    ctx.strokeStyle = 'rgba(140,150,170,0.35)'; ctx.lineWidth = 1;
+    for (var b = 0; b < sys.bondList.length; b++) {
+      var bd = sys.bondList[b];
+      var dx = S64.minImageD(sys.x[bd.i] - sys.x[bd.j], sys.L), dy = S64.minImageD(sys.y[bd.i] - sys.y[bd.j], sys.L);
+      if (Math.abs(dx) > sys.L / 2 || Math.abs(dy) > sys.L / 2) continue; // 周期像をまたぐ線は省略
+      ctx.beginPath();
+      ctx.moveTo(sys.x[bd.i] * scale, sys.y[bd.i] * scale);
+      ctx.lineTo((sys.x[bd.i] - dx) * scale, (sys.y[bd.i] - dy) * scale);
+      ctx.stroke();
+    }
+    for (var i = 0; i < sys.N; i++) {
+      var root = S64.ufFind(sys, i);
+      var deg = sys.ufDegree[root];
+      ctx.fillStyle = degreeColor(deg);
+      ctx.beginPath();
+      ctx.arc(sys.x[i] * scale, sys.y[i] * scale, Math.max(1.2, 0.5 * scale), 0, 2 * Math.PI);
+      ctx.fill();
+    }
+  }
+
+  function updateStats() {
+    if (!sys) return;
+    document.getElementById('statT').textContent = sys.t.toFixed(2);
+    document.getElementById('statComp').textContent = sys.componentCount;
+    var sizeDist = D64.sizeDistribution(sys);
+    document.getElementById('statSw').textContent = D64.weightedMeanSize(sizeDist).toFixed(2);
+    document.getElementById('statBonds').textContent = sys.bondList.length;
+    var strah = D64.strahlerSummary(sys, {});
+    document.getElementById('statKG').textContent = strah.K_G;
+    var gel = D64.gelationCheck(sys);
+    document.getElementById('statGel').textContent = gel.percolates ? 'あり' : 'なし';
+    document.getElementById('statSigmaF').textContent = (sys.sigmaFmax || 0).toExponential(2);
+  }
+
+  function loop() {
+    if (!running) return;
+    stepMany(stepsPerFrame);
+    draw(); updateStats();
+    if (sys.componentCount <= 4) { running = false; runBtn.textContent = '開始'; return; }
+    rafId = requestAnimationFrame(loop);
+  }
+
+  runBtn.addEventListener('click', function () {
+    running = !running;
+    runBtn.textContent = running ? '止める' : '開始';
+    if (running) loop();
+  });
+  resetBtn.addEventListener('click', function () { running = false; runBtn.textContent = '開始'; reset(); });
+  [armSel, phiSel, nInput, seedInput].forEach(function (el) { el.addEventListener('change', function () { running = false; runBtn.textContent = '開始'; reset(); }); });
+
+  // detectors.js は Node 専用（module.exports のみ）なので、ブラウザではここで軽い再実装を読み込む代わりに
+  // 同じ関数をラップする（core.js は UMD、detectors.js は Node 専用のため、ブラウザ向けに必要な部分だけを
+  // window.D64 として直接定義する——CORS制約で <script src="detectors.js"> はNodeのrequireが無く動かないため）。
+  window.D64 = window.D64 || (function () {
+    function sizeDistribution(sys) {
+      var roots = new Set();
+      for (var i = 0; i < sys.N; i++) roots.add(S64.ufFind(sys, i));
+      var counts = new Map();
+      roots.forEach(function (r) { var s = sys.ufSize[r]; counts.set(s, (counts.get(s) || 0) + 1); });
+      var out = [];
+      counts.forEach(function (n, s) { out.push({ s: s, n: n }); });
+      return out;
+    }
+    function weightedMeanSize(sizeDist) {
+      var num = 0, den = 0;
+      for (var k = 0; k < sizeDist.length; k++) { num += sizeDist[k].s * sizeDist[k].s * sizeDist[k].n; den += sizeDist[k].s * sizeDist[k].n; }
+      return den > 0 ? num / den : 0;
+    }
+    function strahlerSummary(sys) {
+      var roots = new Set();
+      for (var i = 0; i < sys.N; i++) roots.add(S64.ufFind(sys, i));
+      var maxDeg = 0;
+      roots.forEach(function (r) { maxDeg = Math.max(maxDeg, sys.ufDegree[r]); });
+      return { K_G: maxDeg };
+    }
+    function gelationCheck(sys) {
+      var roots = new Set();
+      for (var i = 0; i < sys.N; i++) roots.add(S64.ufFind(sys, i));
+      var any = false;
+      roots.forEach(function (r) {
+        var members = sys.compMembers.get(r);
+        if (!members || members.length < 3) return;
+        var pos = new Map(), visited = new Set([members[0]]), queue = [members[0]];
+        pos.set(members[0], [sys.x[members[0]], sys.y[members[0]]]);
+        var inSet = new Set(members);
+        while (queue.length) {
+          var cur = queue.shift(); var cp = pos.get(cur);
+          var nbrs = sys.bondNbrs[cur];
+          for (var k = 0; k < nbrs.length; k++) {
+            var nb = nbrs[k]; if (!inSet.has(nb)) continue;
+            var dx = S64.minImageD(sys.x[nb] - sys.x[cur], sys.L), dy = S64.minImageD(sys.y[nb] - sys.y[cur], sys.L);
+            var cand = [cp[0] + dx, cp[1] + dy];
+            if (!visited.has(nb)) { visited.add(nb); pos.set(nb, cand); queue.push(nb); }
+            else { var ep = pos.get(nb); if (Math.abs(ep[0] - cand[0]) > sys.L / 2 || Math.abs(ep[1] - cand[1]) > sys.L / 2) any = true; }
+          }
+        }
+      });
+      return { percolates: any };
+    }
+    return { sizeDistribution: sizeDistribution, weightedMeanSize: weightedMeanSize, strahlerSummary: strahlerSummary, gelationCheck: gelationCheck };
+  })();
+
+  Harness.mount({
+    id: 'S-64', version: '1.1.0',
+    inputs: ['arm', 'phi', 'N', 'seed'],
+    canvases: ['mainCanvas'],
+    resize: function (scale) {
+      var size = Math.round(640 * scale);
+      canvas.width = size; canvas.height = size;
+      draw();
+    },
+    onRestore: function () { reset(); },
+    pause: function () { running = false; runBtn.textContent = '開始'; },
+    paramNames: {
+      arm: { category: 's', code: 'arm', full: 'arm' },
+      phi: { category: 'p', code: 'phi', full: 'phi' },
+      N: { category: 's', code: 'n', full: 'N' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+    },
+  });
+
+  reset();
+})();
+</script>

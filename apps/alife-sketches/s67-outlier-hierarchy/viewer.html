@@ -1,0 +1,245 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-67 — Outlier規則の自己複製する階層</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0;max-width:1000px}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  select,input[type=number]{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  input[type=number]{width:7em}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;background:#05060a;image-rendering:pixelated}
+  table{border-collapse:collapse;font-size:12px;width:100%}
+  th,td{padding:3px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  td{font-variant-numeric:tabular-nums;min-width:6ch}
+  .col{display:flex;flex-direction:column;gap:14px;flex:1;min-width:280px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:1000px}
+  @media(max-width:760px){.wrap{flex-direction:column}}
+</style>
+
+<header>
+  <h1>S-67 — Outlier規則（2値2次元CA）の自己複製する階層</h1>
+  <p class="sub">力学は512通りの参照表だけ（塊・formation・complexという語彙は力学に無い）。
+    このページは塊（U1）を型ごとに色分けして見せる探索用の画面——同じ色が繰り返し現れることが
+    「塊が再帰する」ことの目視の手がかりになる。判定に使う正式な値（D-R・D-Sの検出器・①〜⑧・H-strict）は
+    run.js の生ログで行う（origin: factory の main。このページ自体は補助表示であり主張はしない）。</p>
+</header>
+
+<div class="bar">
+  <button id="run">再生 / 一時停止</button>
+  <button id="reset">初期化</button>
+  <button id="step">1歩</button>
+  <label>規則
+    <select id="rule">
+      <option value="outlier" selected>Outlier（本編）</option>
+      <option value="nbflip">NB-flip（1類を反転）</option>
+      <option value="life">ライフゲーム（負コントロール）</option>
+      <option value="frozen">恒等規則（負コントロール）</option>
+    </select>
+  </label>
+  <label>NB-flipの類<input type="number" id="flipClass" value="0" min="0" max="139" step="1"></label>
+  <label>初期条件
+    <select id="initKind">
+      <option value="random" selected>乱数（密度D0）</option>
+      <option value="seed">種 c0（1点）</option>
+    </select>
+  </label>
+  <label>広さ L<input type="number" id="L" value="256" step="32" min="64" max="512"></label>
+  <label>密度 D0<input type="number" id="D0" value="0.08" step="0.01" min="0.01" max="0.5"></label>
+  <label>seed<input type="number" id="seed" value="6701" step="1"></label>
+  <label>速さ<input type="number" id="speed" value="1" step="1" min="1" max="8"></label>
+</div>
+
+<div class="wrap">
+  <div class="col" style="flex:2">
+    <div class="panel">
+      <h2>格子（明るい色=塊の型ごとの色。同じ色の繰り返しが再帰の手がかり）</h2>
+      <canvas id="grid" width="256" height="256"></canvas>
+    </div>
+  </div>
+  <div class="col">
+    <div class="panel">
+      <h2>実況</h2>
+      <table>
+        <tr><th>t</th><td class="num" id="statT">0</td></tr>
+        <tr><th>生セル数</th><td class="num" id="statLive">0</td></tr>
+        <tr><th>塊（U1）の数</th><td class="num" id="statComps">0</td></tr>
+        <tr><th>直近に型が再帰した回数（窓200歩）</th><td class="num" id="statRepeat">0</td></tr>
+        <tr><th>これまでに見た型の数</th><td class="num" id="statTypes">0</td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>凡例・注記</h2>
+      <p class="sub" style="margin:0">
+        色相は塊の正準形ハッシュ（並進・回転を除いた型）から割り当てる。白に近いセルは登録の大きさの範囲外
+        （小さすぎる/大きすぎる）成分。「再帰した回数」は同じ型が以前にも現れたことを表示用に数える簡易な指標で、
+        run.js の D-R（登録簿・再帰の対・山の検出）とは別物（探索の目安）。
+      </p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  ファイル: <code>core.js</code>（規則・乱数・格子・U1連結成分・正準形。Node/ブラウザ共用のUMD）。
+  D-R/D-S（<code>detectR.js</code>/<code>detectS.js</code>）はNode専用（<code>require</code>を使う）なのでこの画面では読み込まない——
+  正式な検出は <code>run.js</code> が生ログへ書く。
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var canvas = document.getElementById('grid');
+  var ctx = canvas.getContext('2d');
+  var img = null;
+  var state = null;
+  var playing = false;
+
+  function paramsFromDom() {
+    return {
+      rule: document.getElementById('rule').value,
+      flipClass: Number(document.getElementById('flipClass').value),
+      initKind: document.getElementById('initKind').value,
+      L: Math.max(64, Math.round(Number(document.getElementById('L').value) / 32) * 32),
+      D0: Number(document.getElementById('D0').value),
+      seed: Number(document.getElementById('seed').value),
+      speed: Math.max(1, Math.round(Number(document.getElementById('speed').value))),
+    };
+  }
+
+  var ROTATION_CLASSES = null;
+  var OUTLIER_TABLE = null;
+  function ensureTables() {
+    if (!OUTLIER_TABLE) OUTLIER_TABLE = S67Core.decodeHexToTable();
+    if (!ROTATION_CLASSES) ROTATION_CLASSES = S67Core.buildRotationClasses();
+  }
+  function tableFor(p) {
+    ensureTables();
+    if (p.rule === 'outlier') return OUTLIER_TABLE;
+    if (p.rule === 'life') return S67Core.lifeTable();
+    if (p.rule === 'frozen') return S67Core.identityTable();
+    if (p.rule === 'nbflip') return S67Core.flipClassTable(OUTLIER_TABLE, Math.max(0, Math.min(139, p.flipClass)), ROTATION_CLASSES);
+    return OUTLIER_TABLE;
+  }
+
+  function reset() {
+    var p = paramsFromDom();
+    var L = p.L;
+    canvas.width = L; canvas.height = L;
+    img = ctx.createImageData(L, L);
+    var grid = S67Core.createGrid(L);
+    if (p.initKind === 'seed') S67Core.setSeedC0(grid, L);
+    else S67Core.randomInit(grid, L, p.D0, S67Core.makeRng(p.seed));
+    state = {
+      p: p, L: L, grid: grid, table: tableFor(p), stepper: S67Core.makeStepper(L), t: 0,
+      seenTypes: new Map(), // hash -> last seen t
+      repeatWindow: [], // 直近200歩ぶんの「この歩で再帰した数」
+      repeatCount: 0,
+    };
+    render();
+  }
+
+  function colorForHash(hash) {
+    var n = parseInt(hash.slice(0, 8), 16);
+    var h = n % 360;
+    return hsl2rgb(h / 360, 0.6, 0.55);
+  }
+  function hsl2rgb(h, s, l) {
+    function f(n) { var k = (n + h * 12) % 12; var a = s * Math.min(l, 1 - l); return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); }
+    return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
+  }
+
+  function render() {
+    var L = state.L, data = img.data, grid = state.grid;
+    for (var i = 0; i < L * L; i++) {
+      var v = grid[i] ? 40 : 8;
+      data[i * 4] = v; data[i * 4 + 1] = v; data[i * 4 + 2] = v + 4; data[i * 4 + 3] = 255;
+    }
+    var comps = S67Core.findComponents(grid, L, '8', 2000);
+    var compCountRegistrable = 0, repeats = 0;
+    for (var c = 0; c < comps.length; c++) {
+      var comp = comps[c];
+      if (comp.size < 3 || comp.size > 400) continue;
+      compCountRegistrable++;
+      var can = S67Core.canonicalizeComponent(comp.cellsFlat, L, true);
+      var isRepeat = state.seenTypes.has(can.hash);
+      if (isRepeat) repeats++;
+      state.seenTypes.set(can.hash, state.t);
+      var col = colorForHash(can.hash);
+      for (var k = 0; k < comp.cellsFlat.length; k += 2) {
+        var idx = (comp.cellsFlat[k + 1] * L + comp.cellsFlat[k]) * 4;
+        data[idx] = col[0]; data[idx + 1] = col[1]; data[idx + 2] = col[2]; data[idx + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+
+    state.repeatWindow.push(repeats);
+    if (state.repeatWindow.length > 200) state.repeatWindow.shift();
+    var repeatSum = state.repeatWindow.reduce(function (a, b) { return a + b; }, 0);
+
+    document.getElementById('statT').textContent = String(state.t);
+    document.getElementById('statLive').textContent = String(S67Core.liveCount(grid));
+    document.getElementById('statComps').textContent = String(compCountRegistrable);
+    document.getElementById('statRepeat').textContent = String(repeatSum);
+    document.getElementById('statTypes').textContent = String(state.seenTypes.size);
+  }
+
+  function stepOnce() {
+    if (!state) return;
+    state.grid = state.stepper.step(state.grid, state.table);
+    state.t++;
+    render();
+  }
+
+  function loop() {
+    if (!playing) return;
+    var n = state.p.speed;
+    for (var i = 0; i < n; i++) stepOnce();
+    requestAnimationFrame(loop);
+  }
+
+  document.getElementById('run').addEventListener('click', function () { playing = !playing; if (playing) loop(); });
+  document.getElementById('reset').addEventListener('click', function () { playing = false; reset(); });
+  document.getElementById('step').addEventListener('click', function () { playing = false; stepOnce(); });
+  ['rule', 'flipClass', 'initKind', 'L', 'D0', 'seed'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function () { playing = false; reset(); });
+  });
+
+  Harness.mount({
+    id: 'S-67', version: '1.0.0',
+    inputs: ['rule', 'flipClass', 'initKind', 'L', 'D0', 'seed', 'speed'],
+    canvases: ['grid'],
+    resize: function (scale) {
+      var lInput = document.getElementById('L');
+      lInput.value = Math.max(64, Math.round((256 * scale) / 32) * 32);
+      reset();
+    },
+    pause: function () { playing = false; },
+    onRestore: function () { reset(); },
+    paramNames: {
+      rule: { category: 'p', code: 'rule', full: 'rule' },
+      flipClass: { category: 'p', code: 'fc', full: 'flip_class' },
+      initKind: { category: 's', code: 'init', full: 'init_kind' },
+      L: { category: 's', code: 'l', full: 'L' },
+      D0: { category: 'p', code: 'd0', full: 'D0' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      speed: { category: 's', code: 'sp', full: 'speed' },
+    },
+  });
+
+  reset();
+})();
+</script>

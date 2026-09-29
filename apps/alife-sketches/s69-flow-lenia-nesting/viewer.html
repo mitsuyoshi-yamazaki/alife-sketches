@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-69 Flow-Lenia の入れ子</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #111; color: #eee; margin: 0; padding: 12px; }
+  h1 { font-size: 16px; margin: 0 0 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+  label { font-size: 12px; }
+  select, input[type=number] { font-size: 12px; }
+  canvas { image-rendering: pixelated; background: #000; border: 1px solid #444; max-width: 100%; }
+  #stats { font-size: 11px; white-space: pre-wrap; color: #9c9; min-width: 20ch; }
+  button { font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>S-69 Flow-Lenia の入れ子 — 要素の水準の力学だけから、上位の単位を書かずに膜・核を持つ生き物が出るか</h1>
+<div class="row">
+  <label>腕 <select id="arm">
+    <option value="M-rand">M-rand（単一種・無作為）</option>
+    <option value="M-rand2">M-rand2（単一種・2チャネル）</option>
+    <option value="NC-nodrive">NC-nodrive（負・駆動なし）</option>
+    <option value="M-mix">M-mix（多種・混合）</option>
+    <option value="M-field">M-field（多種・薄い場）</option>
+    <option value="R-terr">R-terr（参照・区画ごとに1種）</option>
+    <option value="M-food">M-food（食物・開いた系）</option>
+    <option value="NC-neutral">NC-neutral（負・中立）</option>
+    <option value="NC-avg">NC-avg（負・平均混合）</option>
+  </select></label>
+  <label>seed <input id="seed" type="number" value="6901" step="1"></label>
+  <label>速さ <input id="speed" type="range" min="1" max="20" value="4"></label>
+  <label><input id="overlay" type="checkbox" checked> 生き物の枠</label>
+  <button id="playPause">⏸ 一時停止</button>
+  <button id="stepOnce">1歩</button>
+  <button id="reset">最初から</button>
+</div>
+<div class="row">
+  <canvas id="main" width="384" height="384"></canvas>
+  <div id="stats">読み込み中…</div>
+</div>
+<div class="row" style="font-size:11px;color:#999;">
+  灰: 物質の密度(A_Σ)。多種の腕は色相で種(名札)を重ねる。緑の枠: D-M の生き物候補（面積≥9・質量≥20）。
+  枠の右上の数字は D-iso（単一種）/D-param（多種）の K（部品→生き物の段数、簡略なその場計算）。
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="engine.js"></script>
+<script src="protocol.js"></script>
+<script src="observer.js"></script>
+<script>
+(function () {
+  'use strict';
+  var S69 = window.S69, Engine = window.S69Engine, Protocol = window.S69Protocol, Obs = window.S69Observer;
+  var N = Engine.N;
+  var canvas = document.getElementById('main'), ctx = canvas.getContext('2d');
+  var img = ctx.createImageData(N, N);
+  var statsEl = document.getElementById('stats');
+  var armSel = document.getElementById('arm'), seedInp = document.getElementById('seed'), speedInp = document.getElementById('speed');
+  var overlayChk = document.getElementById('overlay');
+  var playing = true, realized = null, t = 0, frameCount = 0, lastDetail = null;
+
+  function buildSpec() { return { arm: armSel.value, seed: Number(seedInp.value) || 6901, T: 100000, dye: false }; }
+
+  function resetSim() {
+    realized = Protocol.realize(buildSpec());
+    t = 0; frameCount = 0; lastDetail = null;
+    render();
+  }
+
+  function hue2rgb(h) {
+    // h in [0,1) -> [r,g,b] 0..255（簡易HSVのS=V=1）
+    var i = Math.floor(h * 6), f = h * 6 - i, q = 1 - f, arr;
+    switch (i % 6) {
+      case 0: arr = [1, f, 0]; break; case 1: arr = [q, 1, 0]; break; case 2: arr = [0, 1, f]; break;
+      case 3: arr = [0, q, 1]; break; case 4: arr = [f, 0, 1]; break; default: arr = [1, 0, q];
+    }
+    return [arr[0] * 255, arr[1] * 255, arr[2] * 255];
+  }
+
+  function render() {
+    var st = realized.state, C = st.C;
+    var multi = st.multiSpecies;
+    var data = img.data;
+    var maxVal = 0.01;
+    var ASigma = new Float64Array(N * N);
+    for (var c = 0; c < C; c++) for (var i = 0; i < N * N; i++) ASigma[i] += st.A[c][i];
+    for (var i2 = 0; i2 < N * N; i2++) if (ASigma[i2] > maxVal) maxVal = ASigma[i2];
+    for (var y = 0; y < N; y++) {
+      for (var x = 0; x < N; x++) {
+        var idx = y * N + x, v = Math.min(1, ASigma[idx] / maxVal);
+        var r, g, b;
+        if (multi && v > 0.03) {
+          var sp = st.label[idx];
+          var rgb = hue2rgb(((sp >= 0 ? sp : 0) % 8) / 8);
+          var k = Math.pow(v, 0.6);
+          r = rgb[0] * k; g = rgb[1] * k; b = rgb[2] * k;
+        } else {
+          var gscale = Math.pow(v, 0.6) * 255;
+          r = gscale; g = gscale; b = gscale;
+          if (C === 2) { g = Math.pow(Math.min(1, st.A[0][idx] / maxVal), 0.6) * 255; b = Math.pow(Math.min(1, (C > 1 ? st.A[1][idx] : 0) / maxVal), 0.6) * 255; r = 0.5 * (g + b); }
+        }
+        var p = idx * 4;
+        data[p] = r; data[p + 1] = g; data[p + 2] = b; data[p + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+
+    var candidates = [];
+    if (overlayChk.checked) {
+      var det = Obs.detectCreatureCandidates(ASigma);
+      candidates = det.candidates;
+      ctx.strokeStyle = '#3f3'; ctx.lineWidth = 1;
+      candidates.forEach(function (cand) {
+        var minX = N, maxX = 0, minY = N, maxY = 0;
+        cand.cells.forEach(function (c) { var cx = c % N, cy = (c / N) | 0; if (cx < minX) minX = cx; if (cx > maxX) maxX = cx; if (cy < minY) minY = cy; if (cy > maxY) maxY = cy; });
+        ctx.strokeRect(minX - 1, minY - 1, (maxX - minX) + 2, (maxY - minY) + 2);
+      });
+      if (candidates.length && frameCount % 15 === 0) {
+        var big = candidates.reduce(function (a, b) { return b.size > a.size ? b : a; }, candidates[0]);
+        var iso = multi ? Obs.buildDParam(big.cells, st, st.mixMode === 'average' ? 'average' : 'softmax') : Obs.buildDIso(big.cells, ASigma);
+        lastDetail = { K: multi ? (iso.length > 1 ? 2 : 1) : iso.K, n: candidates.length };
+      }
+    }
+
+    var massTotal = 0; for (var c2 = 0; c2 < C; c2++) massTotal += Engine.totalMass(st.A[c2]);
+    statsEl.textContent = '腕: ' + armSel.value + '\nseed: ' + seedInp.value + '\n歩: ' + t +
+      '\n総質量: ' + massTotal.toFixed(2) + '\n生き物候補: ' + candidates.length +
+      (lastDetail ? '\nK(主検出器,簡略): ' + lastDetail.K : '') +
+      (st.hasFood ? '\n貯え: ' + st.Rsv.toFixed(2) : '');
+  }
+
+  var dynRng = null;
+  function stepN(n) {
+    if (!realized) return;
+    if (!dynRng || dynRng._seed !== realized.dynRng) { /* noop: realized.dynRng は既にRNG関数そのもの */ }
+    for (var i = 0; i < n; i++) { Protocol.stepSpec(realized); t++; }
+    frameCount++;
+    render();
+  }
+
+  var rafId = null;
+  function loop() {
+    if (playing) stepN(Number(speedInp.value) || 1);
+    rafId = requestAnimationFrame(loop);
+  }
+
+  document.getElementById('playPause').addEventListener('click', function () {
+    playing = !playing;
+    this.textContent = playing ? '⏸ 一時停止' : '▶ 再開';
+  });
+  document.getElementById('stepOnce').addEventListener('click', function () { stepN(1); });
+  document.getElementById('reset').addEventListener('click', resetSim);
+  armSel.addEventListener('change', resetSim);
+  seedInp.addEventListener('change', resetSim);
+
+  resetSim();
+  rafId = requestAnimationFrame(loop);
+
+  Harness.mount({
+    id: 'S-69', version: '1.0.0',
+    inputs: ['arm', 'seed', 'speed'],
+    canvases: ['main'],
+    paramNames: {
+      arm: { category: 's', code: 'arm', full: 'arm' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      speed: { category: 's', code: 'spd', full: 'speed' },
+    },
+    resize: function (scale) {
+      var size = Math.round(384 * scale);
+      canvas.style.width = size + 'px'; canvas.style.height = size + 'px';
+    },
+    // K-80: 乱数(規則の抽出)は系の振る舞いそのものを決めるので、生成後の値(核・成長・hの実数値)を
+    // そのままexportする（seedだけをexportしない——実装が変われば同じseedでも別の値になりうるため）。
+    getParams: function () {
+      var base = { arm: armSel.value, seed: Number(seedInp.value), speed: Number(speedInp.value) };
+      if (realized && realized.rule) {
+        base.generatedRule = {
+          R: realized.rule.R,
+          kernels: realized.rule.kernels.map(function (k) { return { r: k.r, a: k.a, b: k.b, w: k.w, mu: k.mu, sigma: k.sigma, c0: k.c0, c1: k.c1 }; }),
+          h: realized.rule.h ? Array.from(realized.rule.h) : null,
+          speciesH: realized.rule.speciesH ? realized.rule.speciesH.map(function (v) { return Array.from(v); }) : null,
+        };
+      }
+      return base;
+    },
+    setParams: function (p) {
+      if (p.arm) armSel.value = p.arm;
+      if (p.seed !== undefined) seedInp.value = p.seed;
+      if (p.speed !== undefined) speedInp.value = p.speed;
+      resetSim();
+      // 生成済みの規則が付いていれば、抽出をやり直さずそのまま差し替える（K-80: 出発点でなく振る舞いそのもの）
+      if (p.generatedRule && realized && realized.rule) {
+        var g = p.generatedRule;
+        realized.rule.R = g.R;
+        g.kernels.forEach(function (k, i) { Object.assign(realized.rule.kernels[i], k); });
+        if (g.h) realized.rule.h = Float64Array.from(g.h);
+        if (g.speciesH) realized.rule.speciesH = g.speciesH.map(function (v) { return Float64Array.from(v); });
+        Engine.attachRule(realized.state, realized.rule);
+        render();
+      }
+    },
+    pause: function () { playing = false; document.getElementById('playPause').textContent = '▶ 再開'; },
+  });
+})();
+</script>
+</body>
+</html>

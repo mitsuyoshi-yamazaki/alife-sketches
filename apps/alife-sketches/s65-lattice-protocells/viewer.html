@@ -1,0 +1,272 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-65 — Ono–Ikegami の格子原始細胞</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:15px}
+  .sub{color:var(--dim);font-size:12px;margin:0;max-width:980px}
+  .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  select,input[type=number]{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px;font-size:12px}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;background:#05060a;image-rendering:pixelated}
+  table{border-collapse:collapse;font-size:12px;width:100%}
+  th,td{padding:3px 8px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  .col{display:flex;flex-direction:column;gap:14px;flex:1;min-width:260px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:980px}
+  footer b{color:var(--fg)}
+  @media(max-width:760px){.wrap{flex-direction:column}}
+</style>
+
+<header>
+  <h1>S-65 — 一様な化学のスープから、膜の断片・閉じた細胞・細胞の群れが現れるか（Ono–Ikegami の格子原始細胞）</h1>
+  <p class="sub">三角格子のサイトごとに水・自己触媒 A・資源 X・廃物 Y・向きを持つ膜分子 M を置き、
+    ホッピング・回転・反応を Metropolis で受理し、太陽が Y を X へ戻すだけの系。上位の単位（膜・細胞・群れ）は
+    書かず、検出器の側で場から数える。判定基準は <code>criteria.json</code>、実装の注記は <code>raw/notes.md</code>。</p>
+</header>
+
+<div class="bar">
+  <button id="run">開始</button>
+  <button id="reset">配置をやり直す</button>
+  <label>供給<select id="supply"><option value="hi" selected>高い(S_hi)</option><option value="lo">低い(S_lo)</option><option value="0">無し(NC-dark)</option></select></label>
+  <label>斥力<select id="iso"><option value="aniso" selected>非等方</option><option value="iso">等方</option></select></label>
+  <label>初期<select id="init"><option value="uniform" selected>一様</option><option value="random">無作為</option><option value="cell">置いた細胞</option><option value="gap">欠けた細胞</option></select></label>
+  <label>寄生 P<select id="sel"><option value="none" selected>無し</option><option value="parasite">寄生あり</option></select></label>
+  <label>較正<select id="hotrot"><option value="normal" selected>通常</option><option value="hotrot">回転だけ熱い(E-hotrot)</option></select></label>
+  <label>速さ<select id="speed"><option value="1">標準</option><option value="4" selected>速い</option><option value="10">最速</option></select></label>
+  <label>seed<input type="number" id="seed" value="6501" step="1"></label>
+</div>
+
+<div class="wrap">
+  <div class="col">
+    <div class="panel">
+      <h2>場（左: μ 膜と向き／右: a 代謝と細胞の塗り分け・群れの輪郭）</h2>
+      <canvas id="fieldCanvas" width="480" height="240"></canvas>
+    </div>
+  </div>
+  <div class="col">
+    <div class="panel">
+      <h2>いま</h2>
+      <div>t=<b id="t">0</b> 刻み</div>
+      <table style="margin-top:6px">
+        <tr><th></th><th>今</th></tr>
+        <tr><td>段の数 n_T（障壁）</td><td id="nT">―</td></tr>
+        <tr><td>段の数 n_C（中身）</td><td id="nC">―</td></tr>
+        <tr><td>膜の断片 U1</td><td id="nu1">―</td></tr>
+        <tr><td>細胞 U2</td><td id="ncells">―</td></tr>
+        <tr><td>群れ U3</td><td id="ncol">―</td></tr>
+        <tr><td>活性サイト数</td><td id="active">―</td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>台帳</h2>
+      <table>
+        <tr><td>Sun</td><td id="sun">―</td></tr>
+        <tr><td>H</td><td id="H">―</td></tr>
+        <tr><td>閉じの残差</td><td id="closure">―</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p><b>読み方</b>: 高い供給・非等方・一様な初期から始めると、一様な状態は分離に対して線形に不安定
+  （<code>criteria.json staticPrecomputation</code>）なので、M が非等方の斥力で線に並び、線が交わって
+  区画を閉じ、区画の中で代謝（A）が続くかを見る。<b>この画面は本物の力学をそのまま動かす</b>
+  （<code>core.js</code>・<code>detectors.js</code> を直接ブラウザで走らせる。近似は無い）。
+  ただし年齢の資格判定は簡略化（U1は多数決の継続、細胞は面積30%以上の重なりで系譜を継ぐ）。
+  <b>ここで見たものは判定に使わない</b>——主張は事前登録した本番走行（<code>run.js</code>）の生ログだけが担う。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="detectors.js"></script>
+<script src="stats.js"></script>
+<script src="tracking.js"></script>
+<script>
+'use strict';
+var $ = function (id) { return document.getElementById(id); };
+var canvas = $('fieldCanvas'), ctx = canvas.getContext('2d');
+var S = window.S65Core, D = window.S65Detectors, TR = window.S65Tracking;
+
+var running = false;
+var sim = null;
+
+var U0 = [30, 9, 6, 6, 3, 3, 3];
+var SEL_INIT = [30, 7, 6, 6, 3, 3, 3, 2]; // W,A,X,Y,M0,M1,M2,P
+
+function cellComposition(L, gap) {
+  var bg = [30, 0, 20, 10, 0, 0, 0];
+  var interior = [30, 10, 2, 10, 3, 3, 2];
+  var cx = Math.floor(L / 2), cy = Math.floor(L / 2);
+  return function (i, j) {
+    var di = i - cx, dj = j - cy, x = di, z = dj, y = -x - z;
+    var dist = Math.max(Math.abs(x), Math.abs(y), Math.abs(z));
+    if (dist <= 5) return interior;
+    if (dist === 6) {
+      var angle = Math.atan2(0.8660254 * dj, di + 0.5 * dj);
+      var sector = Math.round((angle + Math.PI) / (Math.PI / 3)) % 6;
+      var h = sector % 3;
+      var wall = [6, 0, 3, 3, 0, 0, 0];
+      wall[4 + h] = 48;
+      if (gap && sector === 0 && Math.abs(di) <= 1) return bg;
+      return wall;
+    }
+    return bg;
+  };
+}
+
+function buildSim() {
+  var L = 48;
+  var supply = $('supply').value, iso = $('iso').value === 'iso', init = $('init').value;
+  var selMode = $('sel').value;
+  var hotRot = $('hotrot').value === 'hotrot';
+  var seed = parseInt($('seed').value, 10) || 1;
+  var SX = supply === 'hi' ? 0.004 : (supply === 'lo' ? 0.0014 : 0);
+  var hasP = selMode === 'parasite';
+  var composition;
+  if (init === 'cell') composition = cellComposition(L, false);
+  else if (init === 'gap') composition = cellComposition(L, true);
+  else if (init === 'random') {
+    var PR_total = hasP ? SEL_INIT : U0;
+    var total = PR_total.reduce(function (a, b) { return a + b; }, 0);
+    composition = function (i, j, rng) {
+      var remaining = total, out = new Array(PR_total.length).fill(0), pRemain = 1;
+      for (var s = 0; s < PR_total.length - 1; s++) {
+        var p = (PR_total[s] / total) / pRemain;
+        var k = 0; for (var t = 0; t < remaining; t++) if (rng() < p) k++;
+        out[s] = k; remaining -= k; pRemain -= PR_total[s] / total;
+      }
+      out[PR_total.length - 1] = remaining;
+      return out;
+    };
+  } else composition = hasP ? SEL_INIT : U0;
+
+  var st = S.initState({ L: L, hasP: hasP, iso: iso, norep: false, SX: SX, seed: seed, composition: composition, chemMode: hasP ? 'selM' : 'normal' });
+  st.hotRot = hotRot;
+  var closure0 = st.ledger.Sun + S.computeH(st).H;
+  return { state: st, closure0: closure0, prevU1: [], prevCells: [], trackState: { nextId: 1 } };
+}
+
+function trackAges(prevList, currList) {
+  currList.forEach(function (c) {
+    var best = null, bestScore = 0;
+    prevList.forEach(function (p) {
+      var ov = 0; c.members.forEach(function (x) { if (p.memberSet[x]) ov++; });
+      var fracC = ov / c.size, fracP = ov / p.size;
+      if (fracC >= 0.5 && fracP >= 0.5 && fracC > bestScore) { best = p; bestScore = fracC; }
+    });
+    c.age = best ? best.age + 1 : 0;
+  });
+  return currList;
+}
+
+var knobs = { thetaMu: 0.5, thetaA: 3, aMin: 7, g3: 3, n3: 3, fCov: 0.5, tauAge: 5 };
+
+function analyze() {
+  var st = sim.state, lat = st.lat;
+  var mu = S.muField(st), a = S.aField(st), cM = new Int32Array(st.nSites);
+  for (var x = 0; x < st.nSites; x++) cM[x] = S.countAt(st, S.S_M0, x) + S.countAt(st, S.S_M1, x) + S.countAt(st, S.S_M2, x);
+  var mm = D.membraneMask(lat, mu, knobs.thetaMu);
+  var orient = D.orientField(st);
+  var u1 = D.computeU1(lat, mm.mask, cM, orient);
+  u1.forEach(function (c) { c.members.forEach(function (xx) { c.memberSet[xx] = true; }); });
+  trackAges(sim.prevU1, u1);
+  var u2c = D.computeU2Candidates(lat, mm.mask, a, knobs.thetaA, knobs);
+  var qualified = u2c.filter(function (c) { return c.qualifies; });
+  var matched = TR.matchFrame(sim.prevCells, qualified, sim.trackState, st.t);
+  matched.curr.forEach(function (c) { if (c.bornThisFrame) c.age = 0; else { var prior = sim.prevCells.find(function (p) { return p.lineageId === c.lineageId; }); c.age = prior ? prior.age + 1 : 1; } });
+  var agedCells = matched.curr.filter(function (c) { return c.age >= knobs.tauAge; });
+  var u3 = agedCells.length ? D.computeU3(lat, agedCells, knobs.g3, knobs.n3) : [];
+  var totalM = 0; for (x = 0; x < st.nSites; x++) totalM += cM[x];
+  var mInU1 = u1.reduce(function (s, c) { return s + c.totalM; }, 0);
+  var L1 = totalM > 0 && (mInU1 / totalM) >= knobs.fCov;
+  var totalA = 0; for (x = 0; x < st.nSites; x++) totalA += a[x];
+  var aInCells = agedCells.reduce(function (s, c) { return s + c.members.reduce(function (ss, xx) { return ss + a[xx]; }, 0); }, 0);
+  var L2 = agedCells.length >= 3 && totalA > 0 && (aInCells / totalA) >= knobs.fCov;
+  var nT = L1 ? (L2 ? (u3.length >= 1 ? 3 : 2) : 1) : 0;
+  var am = D.activeMask(lat, a, knobs.thetaA);
+  var cdet = D.computeC(lat, am, knobs);
+  var nC = cdet.c1.length >= 3 ? (cdet.c2.length >= 1 ? 2 : 1) : 0;
+  var activeSites = 0; for (x = 0; x < st.nSites; x++) if (a[x] >= knobs.thetaA) activeSites++;
+
+  sim.prevU1 = u1; sim.prevCells = matched.curr; sim.mu = mu; sim.a = a; sim.orient = orient; sim.agedCells = agedCells; sim.u3 = u3; sim.mask = mm.mask;
+
+  var h = S.computeH(st);
+  var qc = st.ledger.Qc, qcSum = Object.keys(qc).reduce(function (s, k) { return s + qc[k]; }, 0);
+  var closure = st.ledger.Sun + h.H + qcSum;
+
+  $('t').textContent = st.t;
+  $('nT').textContent = nT; $('nC').textContent = nC; $('nu1').textContent = u1.length;
+  $('ncells').textContent = agedCells.length; $('ncol').textContent = u3.length; $('active').textContent = activeSites;
+  $('sun').textContent = st.ledger.Sun.toExponential(3); $('H').textContent = h.H.toFixed(0);
+  $('closure').textContent = (closure - sim.closure0).toFixed(3);
+}
+
+function draw() {
+  var st = sim.state, L = st.L;
+  var cw = canvas.width, ch = canvas.height, cell = Math.min(cw / (2 * L), ch / L);
+  ctx.clearRect(0, 0, cw, ch);
+  var colorFor = {}; sim.agedCells.forEach(function (c, idx) { var hue = (idx * 137.5) % 360; c.members.forEach(function (x) { colorFor[x] = hue; }); });
+  for (var i = 0; i < L; i++) for (var j = 0; j < L; j++) {
+    var x = st.lat.idx(i, j);
+    var px1 = j * cell + (i % 2) * cell * 0.5, py1 = i * cell * 0.87;
+    // 左パネル: μ（膜）と向き
+    var mu = sim.mu[x];
+    var g = Math.round(255 * mu);
+    ctx.fillStyle = 'rgb(' + g + ',' + Math.round(g * 0.3) + ',' + Math.round(255 - g) + ')';
+    ctx.fillRect(px1, py1, cell + 1, cell + 1);
+    // 右パネル: a（代謝）と細胞の塗り分け
+    var px2 = px1 + cw / 2;
+    if (colorFor[x] !== undefined) ctx.fillStyle = 'hsl(' + colorFor[x] + ',70%,45%)';
+    else { var av = Math.min(1, sim.a[x] / 15); var gg = Math.round(255 * av); ctx.fillStyle = 'rgb(0,' + gg + ',' + Math.round(gg * 0.4) + ')'; }
+    ctx.fillRect(px2, py1, cell + 1, cell + 1);
+    if (sim.mask[x] === 1) { ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(px2, py1, cell + 1, cell + 1); }
+  }
+}
+
+var STEPS_PER_FRAME_BASE = 1;
+function loop() {
+  if (running) {
+    var speed = parseFloat($('speed').value);
+    for (var s = 0; s < speed; s++) S.sweep(sim.state);
+    if (sim.state.t % 5 === 0) analyze();
+    draw();
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function reset() { sim = buildSim(); analyze(); draw(); }
+$('reset').addEventListener('click', reset);
+$('run').addEventListener('click', function () { running = !running; $('run').textContent = running ? '止める' : '開始'; });
+['supply', 'iso', 'init', 'sel', 'hotrot', 'seed'].forEach(function (id) { $(id).addEventListener('change', reset); });
+
+reset();
+
+Harness.mount({
+  id: 'S-65', version: '1.0.0',
+  inputs: ['supply', 'iso', 'init', 'sel', 'hotrot', 'speed', 'seed'],
+  canvases: ['fieldCanvas'],
+  onRestore: function () { reset(); },
+  pause: function () { running = false; $('run').textContent = '開始'; },
+  paramNames: {
+    supply: { category: 'p', code: 'sx', full: 'supply' },
+    iso: { category: 'p', code: 'iso', full: 'isotropy' },
+    init: { category: 's', code: 'init', full: 'initial' },
+    sel: { category: 'p', code: 'sel', full: 'selection' },
+    hotrot: { category: 'p', code: 'hr', full: 'hotrot' },
+    speed: { category: 's', code: 'sp', full: 'speed' },
+    seed: { category: 's', code: 'seed', full: 'seed' },
+  },
+});
+</script>

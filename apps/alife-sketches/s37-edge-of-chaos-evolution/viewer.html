@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-37 カオスの縁への進化の再検証 — λ の分布は、どの登録の下で2つの山になるか</title>
+<style>
+  :root{
+    --bg:#0c0f14; --panel:#151a22; --line:#272f3c; --fg:#d8dee8; --dim:#7d8798;
+    --hot:#ff7a59; --cool:#5aa9ff; --good:#4ade80; --warn:#fbbf24; --crit:#c084fc;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1100px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:10px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070b;border:1px solid var(--line);border-radius:4px;
+         max-width:100%;height:auto;image-rendering:pixelated}
+  aside{width:326px;min-width:286px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 13px;margin-bottom:12px}
+  .box h2{margin:0 0 9px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.06em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:108px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  select,input[type=number]{background:#0a0d13;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  .val{width:60px;text-align:right;flex:none;
+       font:12px ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+  button{background:#1d2430;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#27303e}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  button.primary:hover{background:#2557e6}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #1d2430}
+  table.stat td.k{color:var(--dim);width:56%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:9ch}
+  .banner{margin-top:9px;padding:8px 10px;border-radius:4px;font-size:12px;
+          border:1px solid var(--line);background:#101419;color:var(--dim)}
+  .banner.pk{border-color:var(--crit);background:#1d1428;color:#e7d6ff}
+  .banner.nh{border-color:var(--good);background:#0f2019;color:#c8f5dc}
+  .banner.uni{border-color:var(--cool);background:#0f1a26;color:#c7e0ff}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;color:var(--dim);font-size:11px;margin-top:4px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .cap{color:var(--dim);font-size:11px;margin:0 0 2px}
+  .note{color:var(--dim);font-size:11px;margin-top:8px}
+  code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#a5b4fc}
+  b.hi{color:#fff}
+  @media(max-width:860px){aside{width:auto;min-width:0}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-37 カオスの縁への進化の再検証</h1>
+  <p>遺伝的アルゴリズムが、1次元2状態セルオートマトン（半径 3・遷移表 128 桁）を
+     <b class="hi">密度分類課題</b>（1 が半分より多ければ全 1 へ、少なければ全 0 へ）を解くよう進化させる。
+     Packard (1988) は、進化した規則の <code>λ</code>（遷移表のうち 1 を出す桁の割合）が
+     <span style="color:var(--crit)">臨界値 0.23 と 0.83 の両側に2つの山</span>を作ると報告した。
+     左で CA の時空図が、右で集団の λ 分布が<b class="hi">同時に動く</b>。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <p class="cap">最良の規則の時空図（上が初期配置・下へ時間。<span style="color:var(--good)">緑枠</span>＝正しく分類した）</p>
+    <canvas id="space" width="420" height="300"></canvas>
+    <div class="legend">
+      <span><span class="sw" style="background:#243044"></span>0</span>
+      <span><span class="sw" style="background:#8fbce8"></span>1</span>
+      <span><span class="sw" style="background:#4ade80"></span>正しい最終状態</span>
+      <span><span class="sw" style="background:#ff7a59"></span>誤った最終状態</span>
+    </div>
+    <p class="cap">世代ごとの点と平均 λ（<span style="color:var(--warn)">黄</span>＝最良点・<span style="color:var(--cool)">青</span>＝平均 λ）</p>
+    <canvas id="trace" width="420" height="150"></canvas>
+  </div>
+
+  <div class="col">
+    <p class="cap">集団の λ の分布（<span style="color:var(--crit)">紫の縦線</span>＝Packard の臨界値・白の縦線＝0.5）</p>
+    <canvas id="hist" width="340" height="270"></canvas>
+    <p class="cap">走行ごとの最終分布を積む（1 行 1 走行。混ぜる前の姿）</p>
+    <canvas id="perrun" width="340" height="150"></canvas>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>系</h2>
+      <label><span class="k">課題</span>
+        <select id="task">
+          <option value="density">密度分類（本番）</option>
+          <option value="or">1 が1つでもあれば全 1（対照）</option>
+          <option value="identity">そのまま写す（対照）</option>
+        </select></label>
+      <label><span class="k">選択</span>
+        <select id="selection">
+          <option value="on">点の順に選ぶ</option>
+          <option value="off">籤で選ぶ（選択を切る）</option>
+        </select></label>
+      <label><span class="k">点の付け方</span>
+        <select id="fitness">
+          <option value="proportional">正しいマスの割合</option>
+          <option value="performance">全マス正解なら 1</option>
+        </select></label>
+      <label><span class="k">初期配置</span>
+        <select id="dist">
+          <option value="mhc">ρ を均す（MHC）</option>
+          <option value="mu1">1 の個数が一様</option>
+          <option value="muD">p が一様</option>
+          <option value="muB">各マス 1/2</option>
+        </select></label>
+      <label><span class="k">集団</span><input type="range" id="pop" min="20" max="100" step="10" value="50">
+        <span class="val" id="popv">50</span></label>
+      <label><span class="k">課題の本数</span><input type="range" id="ncase" min="4" max="40" step="2" value="12">
+        <span class="val" id="ncasev">12</span></label>
+      <label><span class="k">種</span><input type="number" id="seed" value="20260913"></label>
+      <label><span class="k">速さ</span><input type="range" id="speed" min="1" max="8" step="1" value="3">
+        <span class="val" id="speedv">3</span></label>
+      <div class="row">
+        <button class="primary" id="go">走らせる</button>
+        <button id="stop">止める</button>
+        <button id="reset">やり直す</button>
+        <button id="keep">この走行を積む</button>
+      </div>
+      <div class="note">「広さ」＝ <b class="hi">格子の長さ N</b>。ハーネスの ⇲ で変えられる（既定 99・本番は 149）。</div>
+    </div>
+
+    <div class="box">
+      <h2>観測器（λ の定義と区間幅）</h2>
+      <label><span class="k">λ の定義</span>
+        <select id="def">
+          <option value="d0">静止状態=0（1 の割合）</option>
+          <option value="d1">静止状態=1（0 の割合）</option>
+          <option value="dfold">0↔1 で畳む</option>
+          <option value="dstrong">強い静止条件（126 桁）</option>
+        </select></label>
+      <label><span class="k">区間幅</span>
+        <select id="width">
+          <option value="0.0667">0.0667（Packard の 15 区間）</option>
+          <option value="0.05">0.05</option>
+          <option value="0.1">0.1</option>
+          <option value="0.0078125">1/128（桁の刻み）</option>
+        </select></label>
+      <label><span class="k">母集団</span>
+        <select id="popsel">
+          <option value="all">最終世代の全部</option>
+          <option value="elite">上位半分だけ</option>
+        </select></label>
+      <div class="note">系は動かさずに観測器だけ替えられる。<b class="hi">同じ走行が別の答えを返す</b>ところが本スケッチの主題。</div>
+    </div>
+
+    <div class="box">
+      <h2>いま出ている値</h2>
+      <table class="stat">
+        <tr><td class="k">格子の長さ N</td><td class="v" id="sN">99</td></tr>
+        <tr><td class="k">世代</td><td class="v" id="sGen">0</td></tr>
+        <tr><td class="k">最良点</td><td class="v" id="sBest">—</td></tr>
+        <tr><td class="k">平均 λ</td><td class="v" id="sLam">—</td></tr>
+        <tr><td class="k">峰の数</td><td class="v" id="sPeaks">—</td></tr>
+        <tr><td class="k">峰の位置</td><td class="v" id="sPos">—</td></tr>
+        <tr><td class="k">谷比</td><td class="v" id="sDip">—</td></tr>
+        <tr><td class="k">積んだ走行</td><td class="v" id="sRuns">0</td></tr>
+        <tr><td class="k">混ぜた判定</td><td class="v" id="sMerged">—</td></tr>
+        <tr><td class="k">表の束の指紋</td><td class="v" id="sHash">—</td></tr>
+      </table>
+      <div class="banner" id="verdict">走らせると判定が出る</div>
+      <div class="note">GKL 規則の λ は <code>64/128 = 0.5</code> ちょうど（規則の対称性から解析的に決まる）。</div>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="stats.js"></script>
+<script>
+(function () {
+  'use strict';
+  var el = function (id) { return document.getElementById(id); };
+  var C = window.S37, ST = window.S37stats;
+
+  var REG = {
+    dipCut: 1.5, minPeakShare: 0.02, prominenceShare: 0.15, tolBins: 1.5,
+    lambdaC: [0.233, 0.833],
+  };
+
+  var baseN = 99, nScale = 1, N = baseN;
+  var rng = null, R = null, tables = [], fits = [], order = [];
+  var gen = 0, running = false, traceBest = [], traceLam = [];
+  var spaceRows = [], spaceCorrect = null, kept = [];
+
+  function num(id, v, w) { Harness.num(el(id), v, w); }
+  function iv(id) { return Number(el(id).value); }
+  function sv(id) { return el(id).value; }
+
+  // ------------------------------------------------------------- 準備
+
+  function reset() {
+    N = Math.max(31, Math.round(baseN * nScale) | 1);
+    rng = C.makeRng((iv('seed') >>> 0) || 1);
+    R = new C.Runner(N);
+    tables = [];
+    for (var i = 0; i < iv('pop'); i++) tables.push(C.tableUniformOverOnes(rng));
+    fits = tables.map(function () { return 0; });
+    order = tables.map(function (_, j) { return j; });
+    gen = 0; traceBest = []; traceLam = []; spaceRows = []; spaceCorrect = null;
+    step(true);
+  }
+
+  // ------------------------------------------------------------- 1 世代
+
+  function step(firstOnly) {
+    var task = sv('task'), sel = sv('selection') === 'on', fitMode = sv('fitness');
+    var cases = ST.makeCases(rng, iv('ncase'), N, sv('dist'));
+    var targets = cases.map(function (r) { return ST.targetOf(task, r); });
+    var i;
+    for (i = 0; i < tables.length; i++) {
+      fits[i] = sel ? ST.evaluate(R, tables[i], cases, targets, fitMode, 2 * N) : 0;
+    }
+    order = fits.map(function (_, j) { return j; })
+      .sort(function (a, b) { return fits[b] - fits[a] || a - b; });
+
+    // 時空図は最良の規則を 1 本の初期配置に当てて描く
+    drawSpace(tables[order[0]], cases[0], targets[0]);
+
+    traceBest.push(fits[order[0]]);
+    traceLam.push(mean(tables.map(function (t) { return ST.lambdaOf(t, 'd0'); })));
+
+    if (!firstOnly) {
+      tables = C.nextGeneration(tables, order, rng, {
+        eliteCount: tables.length >> 1, parents: 'all', crossover: 'single',
+        pairYield: 1, mutMean: 3.8, minDistance: 0, shuffleElite: !sel,
+      }).tables;
+      gen++;
+    }
+    render();
+  }
+
+  function mean(a) { var s = 0, i; for (i = 0; i < a.length; i++) s += a[i]; return a.length ? s / a.length : NaN; }
+
+  function currentLambdas(pool) {
+    var def = sv('def'), src = pool || tables;
+    if (!pool && sv('popsel') === 'elite') {
+      src = order.slice(0, tables.length >> 1).map(function (j) { return tables[j]; });
+    }
+    return src.map(function (t) { return ST.lambdaOf(t, def); });
+  }
+
+  // ------------------------------------------------------------- 描画
+
+  function drawSpace(table, row0, target) {
+    var cv = el('space'), g = cv.getContext('2d');
+    var rows = Math.min(150, cv.height - 20), i, s;
+    var cur = Uint8Array.from(row0), nx = new Uint8Array(N);
+    spaceRows = [Uint8Array.from(cur)];
+    for (s = 1; s < rows; s++) {
+      C.stepRow(table, cur, nx);
+      var sw = cur; cur = nx; nx = sw;
+      spaceRows.push(Uint8Array.from(cur));
+    }
+    var res = R.run(table, row0, 2 * N);
+    spaceCorrect = ST.scoreRow(res.row, target, 'performance') === 1;
+
+    var w = cv.width, h = cv.height;
+    g.fillStyle = '#05070b'; g.fillRect(0, 0, w, h);
+    var px = w / N, py = (h - 12) / rows;
+    for (s = 0; s < spaceRows.length; s++) {
+      var r = spaceRows[s];
+      for (i = 0; i < N; i++) {
+        if (!r[i]) continue;
+        g.fillStyle = '#8fbce8';
+        g.fillRect(i * px, s * py, Math.max(1, px), Math.max(1, py));
+      }
+    }
+    g.fillStyle = spaceCorrect ? '#4ade80' : '#ff7a59';
+    g.fillRect(0, h - 10, w, 8);
+  }
+
+  function drawHist() {
+    var cv = el('hist'), g = cv.getContext('2d'), w = cv.width, h = cv.height;
+    var def = sv('def'), width = Number(sv('width'));
+    var vals = currentLambdas();
+    var hist = ST.histogram(vals, def, width);
+    var v = ST.verdict(vals, def, width, REG, null);
+    var lo = hist.lo, hi = ST.LAMBDA_DEFS[def].hi, span = hi - lo;
+    g.fillStyle = '#05070b'; g.fillRect(0, 0, w, h);
+    var pad = 26, bw = (w - pad - 8) / hist.counts.length;
+    var mx = Math.max(1, Math.max.apply(null, hist.counts));
+    var i;
+    // 臨界値の縦線
+    REG.lambdaC.forEach(function (lc) {
+      var x = def === 'd1' ? 1 - lc : (def === 'dfold' ? Math.min(lc, 1 - lc) : lc);
+      var px = pad + (x - lo) / span * (w - pad - 8);
+      g.strokeStyle = '#c084fc'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(px, 6); g.lineTo(px, h - 18); g.stroke();
+    });
+    var xHalf = pad + ((def === 'dfold' ? 0.5 : 0.5) - lo) / span * (w - pad - 8);
+    g.strokeStyle = 'rgba(255,255,255,.35)';
+    g.beginPath(); g.moveTo(xHalf, 6); g.lineTo(xHalf, h - 18); g.stroke();
+    for (i = 0; i < hist.counts.length; i++) {
+      var bh = (hist.counts[i] / mx) * (h - 30);
+      var isPk = v.peakBins.indexOf(i) >= 0;
+      g.fillStyle = isPk ? '#fbbf24' : '#5aa9ff';
+      g.fillRect(pad + i * bw + 0.5, h - 18 - bh, Math.max(1, bw - 1), bh);
+    }
+    g.fillStyle = '#7d8798'; g.font = '10px ui-monospace,Menlo,monospace';
+    g.fillText(lo.toFixed(2), pad - 8, h - 5);
+    g.fillText(hi.toFixed(2), w - 26, h - 5);
+    g.fillText('n=' + vals.length, 4, 12);
+    return v;
+  }
+
+  function drawTrace() {
+    var cv = el('trace'), g = cv.getContext('2d'), w = cv.width, h = cv.height;
+    g.fillStyle = '#05070b'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(255,255,255,.18)';
+    g.beginPath(); g.moveTo(0, h / 2); g.lineTo(w, h / 2); g.stroke();
+    var n = Math.max(2, traceBest.length);
+    function line(arr, col) {
+      g.strokeStyle = col; g.lineWidth = 1.4; g.beginPath();
+      for (var i = 0; i < arr.length; i++) {
+        var x = (i / (n - 1)) * (w - 4) + 2, y = h - 4 - arr[i] * (h - 8);
+        if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+      }
+      g.stroke();
+    }
+    line(traceBest, '#fbbf24');
+    line(traceLam, '#5aa9ff');
+    g.fillStyle = '#7d8798'; g.font = '10px ui-monospace,Menlo,monospace';
+    g.fillText('0', 3, h - 3); g.fillText('1', 3, 11);
+    g.fillText('世代 ' + gen, w - 54, 11);
+  }
+
+  function drawPerRun() {
+    var cv = el('perrun'), g = cv.getContext('2d'), w = cv.width, h = cv.height;
+    var def = sv('def'), width = Number(sv('width'));
+    g.fillStyle = '#05070b'; g.fillRect(0, 0, w, h);
+    if (!kept.length) {
+      g.fillStyle = '#7d8798'; g.font = '11px -apple-system,sans-serif';
+      g.fillText('「この走行を積む」を押すと、混ぜる前の姿が1行ずつ溜まる', 8, 22);
+      return;
+    }
+    var rowsH = Math.min(18, (h - 6) / kept.length);
+    for (var r = 0; r < kept.length; r++) {
+      var hist = ST.histogram(kept[r].map(function (t) { return ST.lambdaOf(t, def); }), def, width);
+      var mx = Math.max(1, Math.max.apply(null, hist.counts));
+      var bw = (w - 8) / hist.counts.length;
+      for (var i = 0; i < hist.counts.length; i++) {
+        var a = hist.counts[i] / mx;
+        if (a <= 0) continue;
+        g.fillStyle = 'rgba(90,169,255,' + (0.15 + 0.85 * a) + ')';
+        g.fillRect(4 + i * bw, 3 + r * rowsH, Math.max(1, bw - 0.5), Math.max(1, rowsH - 1.5));
+      }
+    }
+  }
+
+  function render() {
+    var v = drawHist();
+    drawTrace(); drawPerRun();
+    num('sN', N, 4);
+    num('sGen', gen, 4);
+    num('sBest', traceBest.length ? traceBest[traceBest.length - 1].toFixed(4) : '—', 7);
+    num('sLam', traceLam.length ? traceLam[traceLam.length - 1].toFixed(4) : '—', 7);
+    num('sPeaks', v.nPeaks, 3);
+    num('sPos', v.peakPos.map(function (x) { return x.toFixed(3); }).join(' ') || '—', 13);
+    num('sDip', isFinite(v.dipRatio) ? v.dipRatio.toFixed(2) : '∞', 6);
+    num('sRuns', kept.length, 3);
+    num('sHash', C.poolHash(tables), 9);
+
+    var b = el('verdict'), cls = 'banner';
+    var text = { packard: 'packard — λ_c の両側に2つの山（Packard の主張の形）',
+                 'near-half-bimodal': 'near-half-bimodal — 0.5 のすぐ両側に2つの山（MHC の形）',
+                 'bimodal-other': 'bimodal-other — 2つの山だが λ_c でも 0.5 でもない',
+                 'unimodal-half': 'unimodal-half — 山は 1 つ、0.5 の近く',
+                 'unimodal-critical': 'unimodal-critical — 山は 1 つ、λ_c の近く',
+                 other: 'other — 上のどれでもない' }[v.label] || v.label;
+    if (v.label === 'packard') cls += ' pk';
+    else if (v.label === 'near-half-bimodal') cls += ' nh';
+    else if (v.label.indexOf('unimodal') === 0) cls += ' uni';
+    b.className = cls; b.textContent = text;
+
+    if (kept.length) {
+      var merged = [];
+      kept.forEach(function (k) { merged = merged.concat(k.map(function (t) { return ST.lambdaOf(t, sv('def')); })); });
+      var vm = ST.verdict(merged, sv('def'), Number(sv('width')), REG, null);
+      num('sMerged', vm.label, 20);
+    } else num('sMerged', '—', 20);
+  }
+
+  // ------------------------------------------------------------- 進行
+
+  var acc = 0;
+  function tick() {
+    if (!running) return;
+    for (var i = 0; i < iv('speed'); i++) step(false);
+    requestAnimationFrame(tick);
+  }
+
+  el('go').onclick = function () { if (!running) { running = true; tick(); } };
+  el('stop').onclick = function () { running = false; };
+  el('reset').onclick = function () { running = false; reset(); };
+  el('keep').onclick = function () {
+    kept.push(tables.map(function (t) { return Uint8Array.from(t); }));
+    if (kept.length > 12) kept.shift();
+    // 次の走行は種を進めてやり直す
+    el('seed').value = String((iv('seed') + 1) >>> 0);
+    reset();
+  };
+
+  ['pop', 'ncase', 'speed'].forEach(function (id) {
+    el(id).addEventListener('input', function () { num(id + 'v', iv(id), 4); });
+  });
+  ['task', 'selection', 'fitness', 'dist', 'pop', 'seed'].forEach(function (id) {
+    el(id).addEventListener('change', function () { running = false; reset(); });
+  });
+  ['def', 'width', 'popsel'].forEach(function (id) {
+    el(id).addEventListener('change', render);
+  });
+
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { document.getElementById('stop').click(); },
+    id: 'S-37', version: '1.0.0',
+    inputs: ['task', 'selection', 'fitness', 'dist', 'pop', 'ncase', 'seed', 'speed', 'def', 'width', 'popsel'],
+    paramNames: {
+      task: { category: 'p', code: 'task', full: 'task' },
+      selection: { category: 'p', code: 'sel', full: 'selection' },
+      fitness: { category: 'p', code: 'fit', full: 'fitness_mode' },
+      dist: { category: 'p', code: 'dist', full: 'init_distribution' },
+      pop: { category: 's', code: 'pop', full: 'population' },
+      ncase: { category: 's', code: 'ncase', full: 'case_count' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+      def: { category: 's', code: 'def', full: 'lambda_def' },
+      width: { category: 's', code: 'width', full: 'bin_width' },
+      popsel: { category: 's', code: 'popsel', full: 'population_select' },
+    },
+    canvases: ['space', 'hist', 'trace', 'perrun'],
+    resize: function (scale) { nScale = scale; running = false; reset(); },
+    onRestore: function () { running = false; reset(); },
+  });
+
+  ['pop', 'ncase', 'speed'].forEach(function (id) { num(id + 'v', iv(id), 4); });
+  reset();
+})();
+</script>
+</body>
+</html>

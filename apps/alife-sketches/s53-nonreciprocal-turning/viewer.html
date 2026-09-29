@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-53 非相反な転回する鎖 — 波面が速く・減衰しにくく伝わるか</title>
+<style>
+  :root{ --bg:#0c0f14; --panel:#151a22; --line:#262d39; --fg:#d8dee9; --dim:#78829a; --good:#4ade80; --warn:#fbbf24; --bad:#f87171; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1000px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:10px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070b;border:1px solid var(--line);border-radius:4px;max-width:100%;height:auto}
+  aside{width:340px;min-width:280px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:11px 12px;margin-bottom:11px}
+  .box h2{margin:0 0 8px;font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.07em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:130px;color:var(--dim);flex:none}
+  select,input[type=number]{background:#0a0d13;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  input[type=range]{flex:1;min-width:0}
+  button{background:#1d2430;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#27303e}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #1d2430}
+  table.stat td.k{color:var(--dim);width:56%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:8ch}
+  .banner{margin-top:8px;padding:7px 9px;border-radius:4px;font-size:12px;border:1px solid var(--line);background:#10141b;color:var(--dim)}
+  .note{color:var(--dim);font-size:11px;margin-top:7px;line-height:1.5}
+  @media(max-width:860px){aside{width:auto;min-width:0}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-53 非相反にした転回する鎖 — 作用と反作用を割ると、転回の情報は速く・減衰しにくく伝わるか</h1>
+  <p>1次元の慣性スピン鎖（式(2)/(3)。arXiv:2604.23808）。添字0（左端・太い矢印）だけが外から転回プロトコルを
+     与えられる駆動端で、他の個体はその角度差から生じるトルクだけで動く。<b>非相反性 δ_A</b> を上げると、左隣からの
+     結合 k(1+δ_A) と右隣からの結合 k(1−δ_A) が非対称になり、駆動端から遠い側（右）へ選択的に転回が伝わりやすくなる
+     ——δ_A を動かして波面の速さと色の伝わり方がどう変わるかを見られる。色は θ_i を θ_I（灰）→θ_FT（緑）で塗る。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <canvas id="chain" width="720" height="120"></canvas>
+    <canvas id="profile" width="720" height="220"></canvas>
+    <div class="banner" id="phase">「初期化」→「走らせる」で始まる</div>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>力学（p。criteria.borrowedConstants の χ・k・α・γ は固定）</h2>
+      <label><span class="k">非相反性 δ_A</span>
+        <input type="range" id="deltaA" min="-1" max="1" step="0.01" value="0.3">
+        <output class="num" id="deltaAOut" style="min-width:5ch">0.30</output></label>
+      <label><span class="k">転回角速度 ω̃0（無次元）</span>
+        <select id="omega0Tilde">
+          <option value="0.0581" selected>0.0581（実験条件）</option>
+          <option value="1.118">1.118</option>
+          <option value="44.72">44.72</option>
+          <option value="223.6">223.6（高角速度）</option>
+        </select></label>
+      <label><span class="k">境界（右端）</span>
+        <select id="boundary"><option value="free" selected>自由端</option><option value="fixed">固定端（θ_I）</option></select></label>
+    </div>
+
+    <div class="box">
+      <h2>計算の土台（s）</h2>
+      <label><span class="k">母集団 N</span>
+        <select id="N"><option value="50">50</option><option value="100" selected>100</option><option value="200">200</option></select></label>
+      <label><span class="k">結線</span>
+        <select id="topology"><option value="chain" selected>鎖（既定）</option><option value="random2regular">無作為2-正則（NC3）</option></select></label>
+      <label><span class="k">結線シード</span><input type="number" id="wiringSeed" value="1"></label>
+      <label><span class="k">積分法</span>
+        <select id="integrator"><option value="semiImplicit" selected>半陰的Euler（既定）</option><option value="rk4">RK4</option></select></label>
+      <label><span class="k">初期角ノイズ σ（rad）</span><input type="number" id="icNoise" value="0" step="0.001" min="0"></label>
+      <label><span class="k">ノイズ・シード</span><input type="number" id="icNoiseSeed" value="1"></label>
+      <label><span class="k">駆動</span>
+        <select id="driven"><option value="true" selected>転回プロトコルを与える</option><option value="false">切る（NC1）</option></select></label>
+      <label><span class="k">伝達路</span>
+        <select id="coupling"><option value="true" selected>結合あり</option><option value="false">切る（NC2）</option></select></label>
+      <div class="row">
+        <button class="primary" id="init">初期化</button>
+        <button id="run">走らせる</button>
+        <button id="one">1歩</button>
+      </div>
+      <label><span class="k">速さ（1フレームの歩数）</span><input type="range" id="speed" min="1" max="120" value="20"><output class="num" id="speedOut" style="min-width:4ch">20</output></label>
+    </div>
+
+    <div class="box">
+      <h2>状態</h2>
+      <table class="stat" id="stat"></table>
+    </div>
+    <div class="note">
+      光円錐の注記: この実装では駆動端の値を「1ステップ前の時刻」で評価するため、数値上の因果律は
+      厳密には arrival[i] ≥ i+1（i は添字距離）である。さらに、θ の基準値（θ_I≈1.57）に対する超微小な
+      振幅は float64 の ULP（≈2.2e-16）未満で消え、遠い個体では「厳密に1ステップ1個体」の光円錐が
+      有効桁の限界で崩れる（本質は数値精度の問題であり、因果律の上限そのものは破られない）。詳細は
+      raw/notes.md。
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var E = {};
+  ['deltaA', 'omega0Tilde', 'boundary', 'N', 'topology', 'wiringSeed', 'integrator', 'icNoise', 'icNoiseSeed', 'driven', 'coupling', 'speed']
+    .forEach(function (id) { E[id] = document.getElementById(id); });
+  var chainCv = document.getElementById('chain'), chainCx = chainCv.getContext('2d');
+  var profCv = document.getElementById('profile'), profCx = profCv.getContext('2d');
+  var phaseEl = document.getElementById('phase'), statEl = document.getElementById('stat');
+
+  var st = null, timer = null;
+  var arrival2pct = null, arrivalEps0 = null, tolSpan = 0;
+
+  function paramsFromUI() {
+    var omega0Tilde = parseFloat(E.omega0Tilde.value);
+    var base = S53.withDefaults({});
+    var omega0 = omega0Tilde / S53.sqrtChiOverK(base);
+    return S53.withDefaults({
+      N: parseInt(E.N.value, 10),
+      deltaA: parseFloat(E.deltaA.value),
+      omega0: omega0,
+      boundary: E.boundary.value,
+      topology: E.topology.value,
+      wiringSeed: parseInt(E.wiringSeed.value, 10) || 0,
+      integrator: E.integrator.value,
+      icNoise: parseFloat(E.icNoise.value) || 0,
+      icNoiseSeed: parseInt(E.icNoiseSeed.value, 10) || 0,
+      driven: E.driven.value === 'true',
+      coupling: E.coupling.value === 'true',
+      tolerances: [0.02],
+    });
+  }
+
+  function initSim() {
+    if (timer) { clearInterval(timer); timer = null; }
+    var p = paramsFromUI();
+    var s = S53.createState(p);
+    if (!s.ok) { Harness.say('無作為2-正則結線が' + (s.tries || '?') + '回で作れなかった', true); return; }
+    st = s;
+    var n = st.n;
+    arrival2pct = new Float64Array(n).fill(NaN);
+    arrivalEps0 = new Int32Array(n).fill(-1);
+    tolSpan = Math.abs(p.thetaFT - p.thetaI);
+    sampleArrivals();
+    phaseEl.textContent = '初期化した（N=' + n + '・δ_A=' + p.deltaA.toFixed(2) + '）。「走らせる」または「1歩」';
+    draw();
+  }
+
+  function sampleArrivals() {
+    var p = st.p, from = st.links.dynamicFrom;
+    for (var i = from; i < st.n; i++) {
+      if (arrivalEps0[i] < 0 && st.theta[i] !== p.thetaI) arrivalEps0[i] = st.step;
+      var errFrac = Math.abs(st.theta[i] - p.thetaFT) / tolSpan;
+      if (isNaN(arrival2pct[i]) && errFrac <= 0.02) arrival2pct[i] = S53.physicalToTildeTime(st.t, p);
+    }
+  }
+
+  function stepN(n) {
+    if (!st) return;
+    var fn = st.p.integrator === 'rk4' ? S53.stepRK4 : S53.stepSemiImplicit;
+    var dt = st.p.dt * (st.p.dtScale || 1);
+    for (var k = 0; k < n; k++) {
+      fn(st, dt, st.p.torqueForm || 'eq3');
+      sampleArrivals();
+      if (S53.checkDivergence(st)) { Harness.say('数値発散で打ち切った（ceilings C3）', true); pauseSim(); break; }
+    }
+  }
+
+  function pauseSim() { if (timer) { clearInterval(timer); timer = null; } }
+
+  function draw() {
+    if (!st) return;
+    var p = st.p, n = st.n, from = st.links.dynamicFrom;
+    // 鎖の可視化: 個体を横一列の矢印で、θ_I→灰・θ_FT→緑の補間色で塗る
+    var w = chainCv.width, h = chainCv.height;
+    chainCx.fillStyle = '#05070b'; chainCx.fillRect(0, 0, w, h);
+    var pad = 10, cellW = (w - pad * 2) / n, cy = h / 2, r = Math.min(cellW * 0.42, 10);
+    for (var i = 0; i < n; i++) {
+      var cx = pad + cellW * (i + 0.5);
+      var eta = Math.max(0, Math.min(1, (st.theta[i] - p.thetaI) / (p.thetaFT - p.thetaI)));
+      var g = Math.round(120 + 110 * eta), rr = Math.round(120 - 60 * eta), bb = Math.round(140 - 80 * eta);
+      chainCx.strokeStyle = 'rgb(' + rr + ',' + g + ',' + bb + ')';
+      chainCx.lineWidth = i === 0 ? 3 : 1.6;
+      chainCx.beginPath();
+      chainCx.moveTo(cx, cy);
+      chainCx.lineTo(cx + r * Math.cos(st.theta[i]), cy - r * Math.sin(st.theta[i]) * 0 - r * Math.sin(0));
+      // 矢印は角度 theta を「垂直=θ_I」からの回転として描く（θ_I=π/2 が真上）
+      var ang = st.theta[i] - Math.PI / 2;
+      chainCx.moveTo(cx, cy);
+      chainCx.lineTo(cx + r * Math.sin(ang), cy - r * Math.cos(ang));
+      chainCx.stroke();
+    }
+
+    // 効率プロファイル η_i（生値）と θ_i の折れ線
+    var w2 = profCv.width, h2 = profCv.height;
+    profCx.fillStyle = '#05070b'; profCx.fillRect(0, 0, w2, h2);
+    profCx.strokeStyle = '#262d39'; profCx.beginPath();
+    var midY = h2 * 0.62;
+    profCx.moveTo(0, midY); profCx.lineTo(w2, midY); profCx.stroke();
+    profCx.strokeStyle = '#4ade80'; profCx.beginPath();
+    for (var i2 = from; i2 < n; i2++) {
+      var etaRaw = (st.theta[i2] - p.thetaI) / (p.thetaFT - p.thetaI);
+      var px = (i2 / (n - 1)) * w2;
+      var py = midY - etaRaw * (h2 * 0.5);
+      if (i2 === from) profCx.moveTo(px, py); else profCx.lineTo(px, py);
+    }
+    profCx.stroke();
+    profCx.fillStyle = '#78829a'; profCx.font = '11px ui-monospace,monospace';
+    profCx.fillText('η_i(生値・切り詰めなし)。横軸=個体番号 i（0=駆動端）', 6, 14);
+    profCx.fillText('1.0', 4, midY - h2 * 0.5 + 10);
+    profCx.fillText('0.0', 4, midY - 2);
+  }
+
+  function fmt(v, d) { return (typeof v === 'number' && isFinite(v)) ? v.toFixed(d == null ? 3 : d) : String(v); }
+
+  function liveObservers() {
+    var from = st.links.dynamicFrom, n = st.n;
+    var ts = [], ds = [], reached = 0, reachedEps0 = 0;
+    for (var i = from; i < n; i++) {
+      if (!isNaN(arrival2pct[i])) { reached++; ts.push(arrival2pct[i]); ds.push(i - from); }
+      if (arrivalEps0[i] >= 0) reachedEps0++;
+    }
+    var enough = reached >= 5;
+    var frontSpeedPaper = enough ? S53.instantaneousSpeedAvg(ts, ds) : 0;
+    var frontCorr = enough ? S53.pearsonCorrelation(ts, ds) : false;
+    var cx = 0, cy = 0;
+    for (var j = from; j < n; j++) { cx += Math.cos(st.theta[j]); cy += Math.sin(st.theta[j]); }
+    var align = Math.sqrt(cx * cx + cy * cy) / (n - from);
+    var pop = n - from;
+    return {
+      tTilde: S53.physicalToTildeTime(st.t, st.p), reached: reached, pop: pop,
+      frontSpeedPaper: frontSpeedPaper, frontCorr: frontCorr, align: align,
+      reachedFractionEps0: reachedEps0 / pop,
+    };
+  }
+
+  function updateStats() {
+    if (!st) { statEl.innerHTML = ''; return; }
+    var o = liveObservers();
+    var rows = [
+      ['t̃', fmt(o.tTilde, 2)], ['歩', st.step],
+      ['2%到達（今まで）', o.reached + '/' + o.pop],
+      ['c̄̃（原典の速さ）', fmt(o.frontSpeedPaper)],
+      ['波面相関', o.reached >= 5 ? fmt(o.frontCorr) : '（到達5未満）'],
+      ['整列度', fmt(o.align)],
+      ['数値光円錐 到達率(eps0)', fmt(o.reachedFractionEps0)],
+      ['発散', st.diverged ? 'はい' : 'いいえ'],
+    ];
+    statEl.innerHTML = rows.map(function (r) { return '<tr><td class="k">' + r[0] + '</td><td class="v">' + r[1] + '</td></tr>'; }).join('');
+  }
+
+  function tick() { stepN(parseInt(E.speed.value, 10)); draw(); updateStats(); }
+
+  document.getElementById('init').onclick = function () { initSim(); updateStats(); };
+  document.getElementById('one').onclick = function () { if (!st) initSim(); stepN(1); draw(); updateStats(); };
+  document.getElementById('run').onclick = function () {
+    if (!st) initSim();
+    if (timer) { pauseSim(); this.textContent = '走らせる'; Harness.say('停止した'); }
+    else { timer = setInterval(tick, 60); this.textContent = '止める'; }
+  };
+  E.speed.oninput = function () { document.getElementById('speedOut').textContent = E.speed.value; };
+  E.deltaA.oninput = function () { document.getElementById('deltaAOut').textContent = parseFloat(E.deltaA.value).toFixed(2); };
+
+  function getParams() {
+    return {
+      deltaA: E.deltaA.value, omega0Tilde: E.omega0Tilde.value, boundary: E.boundary.value,
+      N: E.N.value, topology: E.topology.value, wiringSeed: E.wiringSeed.value,
+      integrator: E.integrator.value, icNoise: E.icNoise.value, icNoiseSeed: E.icNoiseSeed.value,
+      driven: E.driven.value, coupling: E.coupling.value,
+    };
+  }
+  function setParams(v) {
+    Object.keys(v || {}).forEach(function (k) { if (E[k] && v[k] != null) E[k].value = v[k]; });
+    document.getElementById('speedOut').textContent = E.speed.value;
+    document.getElementById('deltaAOut').textContent = parseFloat(E.deltaA.value).toFixed(2);
+  }
+
+  Harness.mount({
+    id: 'S-53', version: '1.0.0',
+    getParams: getParams, setParams: setParams,
+    onRestore: function () { initSim(); updateStats(); },
+    pause: function () { if (timer) { pauseSim(); document.getElementById('run').textContent = '走らせる'; } },
+    resize: function (scale) {
+      // 「広さ」は空間ではなく母集団の規模に対応させる（K-80。criteria の N={50,100,200} 軸そのもの）。
+      var base = 100;
+      var target = Math.round(base * scale);
+      var candidates = [50, 100, 200];
+      var nearest = candidates.reduce(function (a, b) { return Math.abs(b - target) < Math.abs(a - target) ? b : a; });
+      E.N.value = String(nearest);
+      initSim(); updateStats();
+      Harness.say('母集団を N=' + nearest + ' にした');
+    },
+    paramNames: {
+      deltaA: { category: 'p', code: 'da', full: 'delta_a' },
+      omega0Tilde: { category: 'p', code: 'w0', full: 'omega0_tilde' },
+      boundary: { category: 'p', code: 'bc', full: 'boundary' },
+      driven: { category: 'p', code: 'drv', full: 'driven' },
+      coupling: { category: 'p', code: 'cpl', full: 'coupling' },
+      N: { category: 's', code: 'n', full: 'population' },
+      topology: { category: 's', code: 'topo', full: 'topology' },
+      wiringSeed: { category: 's', code: 'wseed', full: 'wiring_seed' },
+      integrator: { category: 's', code: 'int', full: 'integrator' },
+      icNoise: { category: 's', code: 'noise', full: 'ic_noise' },
+      icNoiseSeed: { category: 's', code: 'nseed', full: 'ic_noise_seed' },
+    },
+    canvases: ['chain', 'profile'],
+  });
+
+  initSim();
+  updateStats();
+})();
+</script>
+</body>
+</html>

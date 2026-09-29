@@ -1,0 +1,383 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-44 閾値の自己導出監査</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--ok:#4ade80;--warn:#d29922;--bad:#f87171}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0;max-width:900px}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button,select{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 12px;font:inherit;cursor:pointer;max-width:100%;min-width:0}
+  button:hover,select:hover{border-color:var(--acc)}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px;min-width:0;max-width:100%}
+  .bar{min-width:0}
+  .bar > *{min-width:0}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0;max-width:100%}
+  .tblwrap{overflow-x:auto;max-width:100%}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;background:#0b0d13}
+  table{border-collapse:collapse;font-size:12px}
+  th,td{padding:4px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left}
+  td{font-variant-numeric:tabular-nums}
+  .num{font-variant-numeric:tabular-nums;display:inline-block;min-width:6ch;text-align:right}
+  .legend{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.9}
+  .sw{display:inline-block;width:22px;height:2px;vertical-align:2px;margin-right:5px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:900px}
+  footer b{color:var(--fg)}
+  @media(max-width:700px){.wrap{flex-direction:column}}
+</style>
+
+<header>
+  <h1>S-44 — 閾値の自己導出監査</h1>
+  <p class="sub">
+    S-02・S-08・S-21 が既に登録した「人間が選んだ検出閾値」（S-21だけは解析的理論値）は、
+    対象自身の状態量のヒストグラムが示す構造（2成分GMM+BICの谷・Otsu法）と一致するか。
+    ここに埋め込んだ値は各対象の生ログから抽出した固定のスナップショット（可視化専用）。
+    監査そのもの（正式な数値）は <code>node run.js</code> と <code>node selftest.js</code> が
+    生ログを直接読んで計算する。
+  </p>
+</header>
+
+<div class="bar">
+  <label>対象
+    <select id="arm">
+      <option value="s02">A-S02: clusterFraction（人間の閾値0.5）</option>
+      <option value="s08lin">A-S08: patternAmplitude 線形（人間の閾値0.05）</option>
+      <option value="s08log">A-S08: patternAmplitude log10</option>
+      <option value="s21">A-S21: master頻度（理論値 μ_c^0(20)≈0.109 と比較）</option>
+      <option value="pc">PC-synthetic: 合成した分離二峰（正コントロール）</option>
+      <option value="nc">NC-synthetic: 合成した単峰（負コントロール）</option>
+      <option value="ncScramble">NC-S08scramble: 劣臨界+並べ替え（負コントロール）</option>
+    </select>
+  </label>
+  <button id="emGo">▶ EMの収束を見る</button>
+  <button id="emReseed">🎲 別の初期値で</button>
+  <span style="flex:1"></span>
+  <span class="legend" style="margin:0">
+    <span class="sw" style="background:#60a5fa"></span>Otsu
+    <span class="sw" style="background:#f0883e"></span>GMMの谷
+    <span class="sw" style="background:#4ade80;border-top:2px dashed #4ade80;background:none"></span>人間/理論の閾値
+  </span>
+</div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2 id="histTitle">周辺分布（掃引順を忘れたヒストグラム）</h2>
+    <canvas id="hist" width="620" height="320"></canvas>
+    <div class="legend" id="histLegend"></div>
+  </div>
+
+  <div class="panel">
+    <h2>自動導出 vs 人間/理論の閾値</h2>
+    <div class="tblwrap"><table id="tbl"></table></div>
+    <div class="legend" id="notes"></div>
+  </div>
+
+  <div class="panel" id="sweepPanel">
+    <h2>掃引順を保った参照（A-S21のみ: 頻度の谷をμへ逆算する）</h2>
+    <canvas id="sweep" width="620" height="220"></canvas>
+    <div class="legend" id="sweepLegend"></div>
+  </div>
+</div>
+
+<footer>
+  <p><b>読み方</b>: 主はGMM(k=2)+BICゲート——k=1が勝てば「棄権」であり、それ自体を結果として扱う
+  （本サブプロジェクトは「失敗」という区分を持たない）。Otsuは二峰性を検査せず常に1点を返すため、
+  対照としてのみ使う。d&le;0.10=一致・0.10&lt;d&le;0.25=部分一致・d&gt;0.25=不一致
+  （criteria.json decisionRule）。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+/* 各対象の状態量を、生ログから1度だけ抽出して埋め込んだスナップショット（可視化専用）。
+   正式な数値は run.js / selftest.js が生ログを直接読んで計算する。 */
+var EMBED = {"s02":{"values":[0,0,0,0,0,0.044444444444444446,0,0,0,0,0,0,0,0.014814814814814815,0,0,0,0.011111111111111112,0.011111111111111112,0,0.009777777777777778,0,0.008888888888888889,0,0.008888888888888889,0,0,0.007407407407407408,0,0.022222222222222223,0,0,0.006349206349206349,0,0,0,0,0,0,0,0,0,0,0.0044444444444444444,0,0,0,0.007407407407407408,0,0,0,0,0,0,0,0.2577777777777778,0.16866666666666666,0.21866666666666668,0.14755555555555555,0.16755555555555557],"tHuman":0.5},"s08":{"values":[3.383926367377797e-15,3.4123960296377365e-15,3.430047217111949e-15,3.384338830238275e-15,9.818222356398874e-15,9.765749471179952e-15,9.823889621619553e-15,9.72245175161032e-15,3.0392869436801975e-14,3.049858323720541e-14,3.069291388735172e-14,3.0527753448792723e-14,6.372735479590526e-14,6.370545886687662e-14,6.375560575047708e-14,6.356370856655697e-14,0.0000561796311695963,0.000057130009510890356,0.000057817848414786815,0.00005801404007674468,0.2620189022511194,0.2633012297308122,0.2631361010191976,0.26444739231048636,0.3111980623818137,0.31185869339788796,0.31207023908059145,0.31312172914565967,0.42455924560578623,0.42332796704472003,0.42550892380717914,0.42481547828835464,0.5349914146186557,0.5336614819353885,0.5341722720516621,0.5340186485000464,0.6992327737040562,0.6995356012220733,0.6982992185228367,0.6986715722716026,0.8236040552508732,0.8246358377581959,0.823552349182825,0.8236309830959276,0.9127976425991368,0.913640306740645,0.9130809542560594,0.9122575077203632],"tHuman":0.05},"s21":{"values":[1,1,1,1,0.8852573999999995,0.8855530000000004,0.8852887999999997,0.8854027999999993,0.7818561999999993,0.7818011999999991,0.7820836000000004,0.7819195999999997,0.6887735999999995,0.6888345999999995,0.6890569999999997,0.6895707999999993,0.6055524000000002,0.6056394000000002,0.6056489999999992,0.6055702000000001,0.5305802,0.5302568000000004,0.5306491999999999,0.5304855999999999,0.4624085999999999,0.4627073999999999,0.46247240000000006,0.4626876000000001,0.4019875999999997,0.40203320000000026,0.40221960000000023,0.40194819999999987,0.3474412000000002,0.3470964,0.34748619999999975,0.3470887999999999,0.2987778,0.2986306000000001,0.2983802000000002,0.29917979999999994,0.25485920000000006,0.2548791999999997,0.2548807999999998,0.25439819999999996,0.21563719999999983,0.21534219999999998,0.2154934,0.2154652000000001,0.18061219999999983,0.18083660000000013,0.18005140000000003,0.18031699999999992,0.14919840000000012,0.14846060000000003,0.1491968000000001,0.14924660000000006,0.12061360000000006,0.1205898000000001,0.12133819999999992,0.12107920000000001,0.09584639999999997,0.09526600000000006,0.09561520000000001,0.09516439999999991,0.07359059999999991,0.07286099999999998,0.07268199999999995,0.07268100000000002,0.05285160000000003,0.05335679999999999,0.05235939999999999,0.05291340000000002,0.03476299999999999,0.0340922,0.03546519999999998,0.03475139999999999,0.018893399999999994,0.018775800000000002,0.01903099999999999,0.018947199999999987,0.000003000000000000001,0.0000272,4.0000000000000003e-7,0.0013605999999999991,0.0000022,0.0000016000000000000001,0.000016599999999999994,0.000001,0.0000014000000000000001,0.0000014000000000000001,0.000011800000000000004,0.000006599999999999999,0.0000018000000000000003,0.0000024000000000000003,0.0000022,4.0000000000000003e-7,0.0000022,0.000005399999999999998,0.0000016000000000000001,0.0000018000000000000003,4.0000000000000003e-7,0.0000026000000000000005,8.000000000000001e-7,0.0000034000000000000005,4.0000000000000003e-7,0.0000046,0.0000018000000000000003,0.0000014000000000000001,0.0000018000000000000003,0.0000016000000000000004,0.000002600000000000001,0.0000014,0.0000022000000000000005,8.000000000000001e-7,0.0000022000000000000005,0.0000018000000000000003,0.000001,0.0000018000000000000003,0.0000030000000000000005,0.000001,0.0000018000000000000003,0.0000014000000000000001,0.0000016000000000000001,0.0000016000000000000004],"tHuman":0.10874906186625444,"muRange":[0,0.16312359279938166],"sweepCurve":[{"x":0,"y":1},{"x":0.005437453093312722,"y":0.8853754999999996},{"x":0.010874906186625444,"y":0.7819151499999997},{"x":0.01631235927993817,"y":0.6890589999999995},{"x":0.02174981237325089,"y":0.6056027499999999},{"x":0.02718726546656361,"y":0.5304929500000001},{"x":0.03262471855987634,"y":0.462569},{"x":0.03806217165318906,"y":0.40204715},{"x":0.04349962474650178,"y":0.34727814999999995},{"x":0.0489370778398145,"y":0.29874210000000007},{"x":0.05437453093312722,"y":0.2547543499999999},{"x":0.059811984026439946,"y":0.21548449999999997},{"x":0.06524943711975267,"y":0.18045429999999998},{"x":0.07068689021306539,"y":0.1490256000000001},{"x":0.07612434330637811,"y":0.12090520000000002},{"x":0.08156179639969083,"y":0.09547299999999999},{"x":0.08699924949300356,"y":0.07295364999999998},{"x":0.09243670258631628,"y":0.05287030000000001},{"x":0.097874155679629,"y":0.03476794999999999},{"x":0.10331160877294172,"y":0.018911849999999994},{"x":0.10874906186625444,"y":0.0003477999999999998},{"x":0.11418651495956716,"y":0.000005349999999999999},{"x":0.11962396805287989,"y":0.000005300000000000001},{"x":0.12506142114619262,"y":0.0000017000000000000002},{"x":0.13049887423950535,"y":0.0000027499999999999995},{"x":0.13593632733281805,"y":0.0000018000000000000001},{"x":0.14137378042613077,"y":0.0000020500000000000003},{"x":0.1468112335194435,"y":0.0000018500000000000005},{"x":0.15224868661275623,"y":0.0000017500000000000004},{"x":0.15768613970606896,"y":0.0000017},{"x":0.16312359279938166,"y":0.0000016000000000000004}]}};
+</script>
+<script>
+(function () {
+  'use strict';
+  var BINS_BASE = 50, bins = BINS_BASE;
+  var FIT_SEED = 20260914, ANIM_SEED = 1;
+  var histCv = document.getElementById('hist'), histCx = histCv.getContext('2d');
+  var sweepCv = document.getElementById('sweep'), sweepCx = sweepCv.getContext('2d');
+  var current = null; // { values, tHuman, kind, sweepCurve, muRange, knownCrossing, chosen, otsu, hist }
+  var anim = null;    // アニメーション中の EM 状態
+
+  function armData(key) {
+    if (key === 's02') return { label: 'A-S02: clusterFraction', values: EMBED.s02.values, tHuman: EMBED.s02.tHuman, kind: 'direct' };
+    if (key === 's08lin') return { label: 'A-S08: patternAmplitude（線形）', values: EMBED.s08.values, tHuman: EMBED.s08.tHuman, kind: 'direct' };
+    if (key === 's08log') return { label: 'A-S08: patternAmplitude（log10）', values: EMBED.s08.values.map(Math.log10), tHuman: Math.log10(EMBED.s08.tHuman), kind: 'direct' };
+    if (key === 's21') return { label: 'A-S21: master頻度', values: EMBED.s21.values, tHuman: EMBED.s21.tHuman, kind: 'sweep-invert', sweepCurve: EMBED.s21.sweepCurve, muRange: EMBED.s21.muRange };
+    if (key === 'pc') {
+      var pc = S44.synthBimodal({ n: 500, mu1: 0, sigma1: 1, mu2: 5, sigma2: 1, p1: 0.7 }, 20260914);
+      return { label: 'PC-synthetic（既知の交点=' + pc.knownCrossing.toFixed(3) + '）', values: pc.xs, tHuman: pc.knownCrossing, kind: 'known' };
+    }
+    if (key === 'nc') {
+      var nc = S44.synthUnimodal({ n: 500, mu: 0, sigma: 1 }, 20260915);
+      return { label: 'NC-synthetic（真の二峰なし）', values: nc.xs, tHuman: null, kind: 'none' };
+    }
+    if (key === 'ncScramble') {
+      var pooled = EMBED.s08.values.slice(0, 16).concat([0.6992327737040603]);
+      return { label: 'NC-S08scramble（劣臨界16件+並べ替え1件）', values: pooled, tHuman: null, kind: 'none' };
+    }
+  }
+
+  function compute(data) {
+    var rng = S44.makeRng(FIT_SEED);
+    var chosen = S44.chooseComponents(data.values, { restarts: 20, maxIter: 500, rng: rng });
+    var hist = S44.histogram(data.values, bins);
+    var otsu = S44.otsuFast(hist);
+    var bc = S44.bimodalityCoefficient(data.values);
+    var range = Math.max.apply(null, data.values) - Math.min.apply(null, data.values);
+    var out = { data: data, chosen: chosen, hist: hist, otsu: otsu, bc: bc, range: range };
+
+    if (data.kind === 'sweep-invert') {
+      out.gmmMu = chosen.abstain ? null : S44.firstCrossing(data.sweepCurve, chosen.valley);
+      out.otsuMu = S44.firstCrossing(data.sweepCurve, otsu.threshold);
+      out.muRange = data.muRange[1] - data.muRange[0];
+    }
+    return out;
+  }
+
+  function verdictOf(tAuto, tHuman, range) {
+    if (tAuto === null || tAuto === undefined || tHuman === null || tHuman === undefined) return null;
+    var d = S44.relativeDistance(tAuto, tHuman, range);
+    var outOfRange = tHuman < Math.min.apply(null, current.data.values) - 1e9 && false; // 個別に呼び出し側で判定
+    return { d: d, verdict: S44.classify(d) };
+  }
+
+  // ---------------------------------------------------------------- 描画
+
+  function drawHistogram(cv, cx, hist, overlays, gmm) {
+    var W = cv.width, H = cv.height, padL = 40, padB = 24, padT = 10, padR = 10;
+    cx.clearRect(0, 0, W, H);
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var maxCount = Math.max.apply(null, hist.counts.concat([1]));
+
+    cx.strokeStyle = '#2a2f3d'; cx.fillStyle = '#8b93a7'; cx.font = '10px sans-serif';
+    cx.beginPath(); cx.moveTo(padL, padT); cx.lineTo(padL, H - padB); cx.lineTo(W - padR, H - padB); cx.stroke();
+
+    var n = hist.counts.length;
+    for (var i = 0; i < n; i++) {
+      var x = padL + (i / n) * plotW;
+      var w = plotW / n;
+      var h = (hist.counts[i] / maxCount) * plotH;
+      cx.fillStyle = '#3b4252';
+      cx.fillRect(x + 0.5, H - padB - h, Math.max(1, w - 1), h);
+    }
+    cx.fillText(hist.min.toExponential(2), padL, H - 6);
+    cx.textAlign = 'right'; cx.fillText(hist.max.toExponential(2), W - padR, H - 6); cx.textAlign = 'left';
+
+    function xOf(v) { return padL + ((v - hist.min) / (hist.max - hist.min || 1)) * plotW; }
+
+    // GMM の2成分曲線（密度 × 全体n × ビン幅 でヒストグラムのスケールに合わせる）
+    if (gmm) {
+      var binWidth = hist.width;
+      [[gmm.mu1, gmm.sigma1, gmm.w1, '#f0883e'], [gmm.mu2, gmm.sigma2, gmm.w2, '#e05fa0']].forEach(function (c) {
+        cx.strokeStyle = c[3]; cx.beginPath();
+        for (var px = 0; px <= plotW; px += 2) {
+          var v = hist.min + (px / plotW) * (hist.max - hist.min);
+          var density = c[2] * S44.normalPdf(v, c[0], c[1]) * hist.n * binWidth;
+          var y = H - padB - Math.min(plotH, (density / maxCount) * plotH);
+          if (px === 0) cx.moveTo(padL + px, y); else cx.lineTo(padL + px, y);
+        }
+        cx.stroke();
+      });
+    }
+
+    (overlays || []).forEach(function (o) {
+      if (o.value === null || o.value === undefined || !isFinite(o.value)) return;
+      var x = xOf(o.value);
+      cx.strokeStyle = o.color; cx.setLineDash(o.dash || []);
+      cx.beginPath(); cx.moveTo(x, padT); cx.lineTo(x, H - padB); cx.stroke();
+      cx.setLineDash([]);
+    });
+  }
+
+  function drawSweep(curve, gmmFreq, otsuFreq, gmmMu, otsuMu, tHuman) {
+    var W = sweepCv.width, H = sweepCv.height, padL = 44, padB = 22, padT = 10, padR = 10;
+    sweepCx.clearRect(0, 0, W, H);
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var xs = curve.map(function (p) { return p.x; }), ys = curve.map(function (p) { return p.y; });
+    var xmin = Math.min.apply(null, xs), xmax = Math.max.apply(null, xs);
+    var ymin = 0, ymax = 1;
+    function xOf(x) { return padL + ((x - xmin) / (xmax - xmin || 1)) * plotW; }
+    function yOf(y) { return H - padB - ((y - ymin) / (ymax - ymin || 1)) * plotH; }
+
+    sweepCx.strokeStyle = '#2a2f3d';
+    sweepCx.beginPath(); sweepCx.moveTo(padL, padT); sweepCx.lineTo(padL, H - padB); sweepCx.lineTo(W - padR, H - padB); sweepCx.stroke();
+    sweepCx.fillStyle = '#8b93a7'; sweepCx.font = '10px sans-serif';
+    sweepCx.fillText('μ=' + xmin.toFixed(3), padL, H - 6);
+    sweepCx.textAlign = 'right'; sweepCx.fillText('μ=' + xmax.toFixed(3), W - padR, H - 6); sweepCx.textAlign = 'left';
+
+    sweepCx.strokeStyle = '#60a5fa'; sweepCx.beginPath();
+    curve.forEach(function (p, i) { var x = xOf(p.x), y = yOf(p.y); if (i === 0) sweepCx.moveTo(x, y); else sweepCx.lineTo(x, y); });
+    sweepCx.stroke();
+
+    function vline(mu, color, dash) {
+      if (mu === null || mu === undefined || !isFinite(mu)) return;
+      sweepCx.strokeStyle = color; sweepCx.setLineDash(dash || []);
+      sweepCx.beginPath(); sweepCx.moveTo(xOf(mu), padT); sweepCx.lineTo(xOf(mu), H - padB); sweepCx.stroke();
+      sweepCx.setLineDash([]);
+    }
+    vline(tHuman, '#4ade80', [5, 3]);
+    vline(gmmMu, '#f0883e', []);
+    vline(otsuMu, '#60a5fa', [2, 2]);
+    void gmmFreq; void otsuFreq;
+  }
+
+  // ---------------------------------------------------------------- 表
+
+  function fmt(v) { return (v === null || v === undefined || !isFinite(v)) ? '—' : (Math.abs(v) < 1e-3 && v !== 0 ? v.toExponential(3) : v.toFixed(4)); }
+
+  function colorForVerdict(v) {
+    if (v === '一致') return '#4ade80';
+    if (v === '部分一致') return '#d29922';
+    if (v === '棄権' || v === '判定不能') return '#8b93a7';
+    return '#f87171'; // 不一致・不一致（構造上ほぼ確定）
+  }
+  function verdictSpan(v) { return '<span style="color:' + colorForVerdict(v) + '">' + v + '</span>'; }
+
+  function renderTable(r) {
+    var rows = [];
+    rows.push(['n（除外前後は README/notes 参照）', r.data.values.length]);
+    rows.push(['BIC k=1 / k=2', fmt(r.chosen.bic1) + ' / ' + fmt(r.chosen.bic2)]);
+    rows.push(['GMM+BIC', r.chosen.abstain ? '棄権（k=1選好）' : ('谷=' + fmt(r.chosen.valley))]);
+    rows.push(['Otsu(既定' + bins + 'ビン)', fmt(r.otsu.threshold)]);
+    rows.push(['二峰性係数（5/9=0.556が境界）', fmt(r.bc)]);
+
+    var human = r.data.tHuman;
+    var range = r.data.kind === 'sweep-invert' ? r.muRange : r.range;
+    var tAutoGmm = r.data.kind === 'sweep-invert' ? r.gmmMu : (r.chosen.abstain ? null : r.chosen.valley);
+    var tAutoOtsu = r.data.kind === 'sweep-invert' ? r.otsuMu : r.otsu.threshold;
+
+    if (human !== null && human !== undefined) {
+      var inRange = human >= Math.min.apply(null, r.data.kind === 'sweep-invert' ? [r.data.muRange[0]] : [Math.min.apply(null, r.data.values)])
+        && human <= (r.data.kind === 'sweep-invert' ? r.data.muRange[1] : Math.max.apply(null, r.data.values));
+      var gmmJ = (tAutoGmm === null) ? { verdict: r.chosen.abstain ? '棄権' : '判定不能' } : { d: S44.relativeDistance(tAutoGmm, human, range), verdict: inRange ? S44.classify(S44.relativeDistance(tAutoGmm, human, range)) : '不一致（構造上ほぼ確定）' };
+      var otsuJ = (tAutoOtsu === null) ? { verdict: '判定不能' } : { d: S44.relativeDistance(tAutoOtsu, human, range), verdict: inRange ? S44.classify(S44.relativeDistance(tAutoOtsu, human, range)) : '不一致（構造上ほぼ確定）' };
+      rows.push(['人間/理論の閾値', fmt(human) + (inRange ? '' : '（観測範囲の外）')]);
+      rows.push(['GMM判定', verdictSpan(gmmJ.verdict) + (gmmJ.d !== undefined ? ' (d=' + gmmJ.d.toFixed(3) + ')' : '')]);
+      rows.push(['Otsu判定（対照）', verdictSpan(otsuJ.verdict) + (otsuJ.d !== undefined ? ' (d=' + otsuJ.d.toFixed(3) + ')' : '')]);
+    } else {
+      rows.push(['人間/理論の閾値', '無し（この対照の主眼は棄権できたか）']);
+    }
+
+    document.getElementById('tbl').innerHTML = rows.map(function (r2) {
+      return '<tr><td>' + r2[0] + '</td><td>' + r2[1] + '</td></tr>';
+    }).join('');
+  }
+
+  function render() {
+    var r = current;
+    var overlays = [{ value: r.otsu.threshold, color: '#60a5fa', dash: [2, 2] }];
+    if (!r.chosen.abstain) overlays.push({ value: r.chosen.valley, color: '#f0883e' });
+    if (r.data.kind !== 'sweep-invert' && r.data.tHuman !== null && r.data.tHuman !== undefined) {
+      overlays.push({ value: r.data.tHuman, color: '#4ade80', dash: [5, 3] });
+    }
+    drawHistogram(histCv, histCx, r.hist, overlays, r.chosen.abstain ? null : r.chosen.gmm2);
+    document.getElementById('histTitle').textContent = r.data.label + ' — 周辺分布（掃引順を忘れたヒストグラム、n=' + r.data.values.length + '）';
+    document.getElementById('histLegend').textContent = r.chosen.abstain
+      ? 'BIC が k=1（単峰）を選好した。GMMの谷は出さない（棄権）——これも結果として扱う。'
+      : 'discardedInits=' + r.chosen.discarded + '（20回中）・valleySpread=' + (r.chosen.valleySpread || 0).toFixed(3) + '（初期値依存の頑健性、観測範囲比）';
+
+    var sweepPanel = document.getElementById('sweepPanel');
+    if (r.data.kind === 'sweep-invert') {
+      sweepPanel.style.display = '';
+      drawSweep(r.data.sweepCurve, r.chosen.abstain ? null : r.chosen.valley, r.otsu.threshold, r.gmmMu, r.otsuMu, r.data.tHuman);
+      document.getElementById('sweepLegend').textContent =
+        '頻度空間の谷（左図）を、掃引順を保った参照（μ→平均master、上図）から線形補間でμへ逆算する。' +
+        '緑破線=理論値μ_c^0(20)≈' + r.data.tHuman.toFixed(4) + '。橙=GMMの逆算μ・青点線=Otsuの逆算μ。';
+    } else {
+      sweepPanel.style.display = 'none';
+    }
+
+    renderTable(r);
+    stopAnim();
+  }
+
+  function switchArm() {
+    var key = document.getElementById('arm').value;
+    current = compute(armData(key));
+    render();
+  }
+
+  // ---------------------------------------------------------------- EM の収束アニメーション（進行の可視化）
+
+  function stopAnim() {
+    if (anim && anim.timer) clearInterval(anim.timer);
+    anim = null;
+  }
+
+  function startAnim(reseed) {
+    stopAnim();
+    var values = current.data.values;
+    var sorted = values.slice().sort(function (a, b) { return a - b; });
+    var seed = reseed ? (Date.now() % 100000) : ANIM_SEED;
+    var rng = S44.makeRng(seed);
+    var sd = S44.std(values) || 1;
+    var i1 = Math.floor(rng() * sorted.length), i2 = Math.floor(rng() * sorted.length);
+    var state = { mu1: sorted[i1], mu2: sorted[i2] === sorted[i1] ? sorted[(i2 + 1) % sorted.length] : sorted[i2], sigma1: sd / 2, sigma2: sd / 2, w1: 0.5, w2: 0.5 };
+    var varFloor = Math.pow(sd * 1e-3, 2) || 1e-12;
+    var prevLogLik = -Infinity, step = 0;
+
+    anim = {
+      timer: setInterval(function () {
+        step++;
+        var next = S44.emStep(values, state, varFloor);
+        var overlays = [{ value: current.otsu.threshold, color: '#60a5fa', dash: [2, 2] }];
+        if (next.degenerate) {
+          document.getElementById('histLegend').textContent = 'この初期値では退化した（一方の成分が空になった）。「別の初期値で」を試す。';
+          drawHistogram(histCv, histCx, current.hist, overlays, state);
+          stopAnim();
+          return;
+        }
+        state = { mu1: next.mu1, mu2: next.mu2, sigma1: next.sigma1, sigma2: next.sigma2, w1: next.w1, w2: next.w2 };
+        drawHistogram(histCv, histCx, current.hist, overlays, state);
+        document.getElementById('histLegend').textContent = 'EM 反復 ' + step + ' 回目（1本の初期値からの単独走行。本番は20回再起動して尤度最大を採る）。logLik=' + next.logLik.toFixed(2);
+        if (Math.abs(next.logLik - prevLogLik) < 1e-9 * (Math.abs(prevLogLik) + 1) || step > 300) {
+          document.getElementById('histLegend').textContent += '（収束）';
+          stopAnim();
+        }
+        prevLogLik = next.logLik;
+      }, 120),
+    };
+  }
+
+  document.getElementById('arm').onchange = switchArm;
+  document.getElementById('emGo').onclick = function () { startAnim(false); };
+  document.getElementById('emReseed').onclick = function () { startAnim(true); };
+
+  // URL の # で対象を指定できる（例: viewer.html#s21）。動作確認・共有用の便宜。
+  var hashArm = location.hash.replace('#', '');
+  if (hashArm && document.querySelector('#arm option[value="' + hashArm + '"]')) {
+    document.getElementById('arm').value = hashArm;
+  }
+  switchArm();
+
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { stopAnim(); },
+    id: 'S-44', version: '1.0.0',
+    inputs: ['arm'],
+    paramNames: {
+      arm: { category: 's', code: 'arm', full: 'target_arm' },
+    },
+    canvases: ['hist', 'sweep'],
+    // 「広さ」= ヒストグラムの細かさ（Otsu用ビン数）。criteria.json の knobs 欄そのもの。
+    resize: function (scale) {
+      bins = Math.max(5, Math.round(BINS_BASE * scale));
+      current = compute(current.data);
+      render();
+      Harness.say('ビン数を ' + bins + ' にした');
+    },
+  });
+})();
+</script>

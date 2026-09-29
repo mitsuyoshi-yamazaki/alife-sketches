@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-39 AlChemy — λ項の容器</title>
+<style>
+  body { margin:0; background:#191714; color:#e8e2d6;
+         font:14px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif; }
+  .pad { padding:12px; }
+  h1 { font-size:16px; margin:0 0 4px; }
+  .sub { color:#a89f8e; font-size:12px; margin:0 0 10px; }
+  .bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+  label { font-size:12px; color:#a89f8e; display:flex; gap:4px; align-items:center; }
+  select, input[type=number] { font:inherit; font-size:12px; padding:3px 6px; border-radius:5px;
+    border:1px solid #4a4238; background:#2c2823; color:#e8e2d6; }
+  button { font:inherit; font-size:13px; padding:5px 10px; border-radius:6px;
+    border:1px solid #4a4238; background:#2c2823; color:#e8e2d6; cursor:pointer; }
+  button:hover { background:#38332c; }
+  canvas { background:#111; border:1px solid #322c25; border-radius:6px; display:block; max-width:100%; height:auto; }
+  .wrap { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start; }
+  .panel { min-width:260px; }
+  table { border-collapse:collapse; font-size:12px; }
+  td, th { padding:2px 8px 2px 0; text-align:left; vertical-align:top; }
+  .num { font-variant-numeric:tabular-nums; display:inline-block; text-align:right; min-width:7ch; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px;
+           word-break:break-all; max-width:52ch; }
+  .sp { display:flex; gap:6px; align-items:baseline; }
+  .yes { color:#a3be8c; } .no { color:#bf616a; } .na { color:#70665a; }
+  .sp { cursor:pointer; }
+  .sp:hover { background:#2c2823; }
+  .note { color:#a89f8e; font-size:12px; max-width:60ch; }
+</style>
+</head>
+<body>
+<div class="pad">
+<h1>S-39 AlChemy — λ 項の容器で「組織がある」を測る</h1>
+<p class="sub">容器から相異なる 2 枠を引き、左を右へ作用させて正規形へ落とし、産物を一様な 1 枠へ入れる。
+簡約が上限に当たったら弾性（何も起きない）。<b>色つきの帯が種ごとの個数の移り変わり</b>。</p>
+
+<div class="bar">
+  <label>作り方
+    <select id="mode">
+      <option value="apply">apply（作用の結果を使う）</option>
+      <option value="deal">deal（札束を配るだけ）</option>
+      <option value="random">random（積を乱択に差し替え）</option>
+      <option value="drift">drift（積 = 左そのもの）</option>
+      <option value="forgetF">forgetF（左を忘れる）</option>
+      <option value="forgetG">forgetG（右を忘れる）</option>
+      <option value="inert">inert（作用を切る）</option>
+    </select></label>
+  <label>複写の扱い
+    <select id="filter">
+      <option value="off">禁じない</option>
+      <option value="arg">積＝右 を禁じる</option>
+      <option value="either" selected>積＝左右どちらか を禁じる</option>
+    </select></label>
+  <label>生成器
+    <select id="gen"><option value="grammar">文法</option><option value="tree">二分木</option></select></label>
+  <label>深さ <input id="dmax" type="number" value="10" min="3" max="16" style="width:4.5em"></label>
+  <label>簡約の上限 <input id="msteps" type="number" value="500" min="20" max="5000" style="width:5.5em"></label>
+  <label>大きさの上限 <input id="msize" type="number" value="200" min="20" max="2000" style="width:5.5em"></label>
+  <label>種 <input id="seed" type="number" value="1" min="1" max="999" style="width:4.5em"></label>
+  <label>速さ <input id="speed" type="number" value="400" min="10" max="4000" style="width:5.5em"></label>
+  <button id="go">▶ 走らせる</button>
+  <button id="stepBtn">＋1000 衝突</button>
+  <button id="reset">最初から</button>
+  <button id="injectBtn">新しい項を注ぐ</button>
+</div>
+
+<div class="wrap">
+  <div>
+    <canvas id="stream" width="560" height="240"></canvas>
+    <canvas id="table" width="560" height="240" style="margin-top:10px"></canvas>
+  </div>
+  <div class="panel">
+    <table>
+      <tr><td>衝突</td><td><b class="num" id="v-coll">0</b></td>
+          <td>型の数</td><td><b class="num" id="v-sp">0</b></td></tr>
+      <tr><td>弾性（歩数上限）</td><td><span class="num" id="v-es">0</span></td>
+          <td>弾性（大きさ上限）</td><td><span class="num" id="v-ez">0</span></td></tr>
+      <tr><td>弾性（複写の禁止）</td><td><span class="num" id="v-ef">0</span></td>
+          <td>途中の最大の大きさ</td><td><span class="num" id="v-mx">0</span></td></tr>
+      <tr><td>在庫 produced</td><td><span class="num" id="v-pf">—</span></td>
+          <td>在庫（複写を除く）</td><td><b class="num" id="v-pn">—</b></td></tr>
+      <tr><td>積が集合に入る割合</td><td><span class="num" id="v-cf">—</span></td>
+          <td>自己複製子の数</td><td><span class="num" id="v-sc">—</span></td></tr>
+      <tr><td>直近のノックアウト</td><td colspan="3"><span id="v-ko" class="na">—</span></td></tr>
+      <tr><td>判定</td><td colspan="3"><span id="v-verdict" class="na">—</span></td></tr>
+    </table>
+    <p class="note" id="legend">下の表は反応表（行＝作用する側・列＝作用される側）。
+      緑＝積が集合の中／橙＝集合の外／灰＝上限で落ちた／枠線＝複写反応。</p>
+    <div id="species" class="mono"></div>
+  </div>
+</div>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="observe.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var container = null, running = false, hist = [], colorOf = {}, lastKo = null, N = 200;
+  var streamC = $('stream'), tableC = $('table');
+
+  function opts() {
+    var gen = $('gen').value;
+    var base = gen === 'tree'
+      ? { gen: 'tree', maxLeaves: 12, nvars: 5, pLam: 0.35, wrap: 2, pVar: 0.2 }
+      : { gen: 'grammar', nvars: 5, pVar: 0.2, pLam: 0.4 };
+    base.dmax = Number($('dmax').value);
+    base.std = 'head';
+    base.maxSteps = Number($('msteps').value);
+    base.maxSize = Number($('msize').value);
+    return base;
+  }
+
+  function build() {
+    var o = opts();
+    var seed = Number($('seed').value);
+    var r = S39.rng(seed * 7919 + 13);
+    var init = S39.drawMany(r, N, o);
+    while (init.length < N) init.push(S39.I);
+    var deck = null;
+    if ($('mode').value === 'deal') {
+      var pre = S39.makeContainer(Object.assign({}, o, { seed: seed * 104729 + 7, init: init,
+        mode: 'apply', copyFilter: $('filter').value, elasticLogCap: 20 }));
+      pre.run(30000);
+      deck = pre.keys().map(function (k) { return pre.termOf(k); });
+    }
+    container = S39.makeContainer(Object.assign({}, o, {
+      seed: seed * 104729 + 7, init: init, mode: $('mode').value,
+      copyFilter: $('filter').value, elasticLogCap: 40, deck: deck,
+    }));
+    hist = []; colorOf = {}; lastKo = null;
+    // 最初から「移り変わり」が見えるように、少し走らせた状態で見せる
+    for (var w = 0; w < 80; w++) {
+      var rows0 = snapshot();
+      hist.push(rows0.slice(0, 60));
+      container.run(120);
+    }
+    draw();
+  }
+
+  function color(k) {
+    if (!colorOf[k]) {
+      var h = 0;
+      for (var i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) % 360;
+      colorOf[k] = 'hsl(' + h + ',58%,' + (42 + (k.length * 7) % 26) + '%)';
+    }
+    return colorOf[k];
+  }
+
+  function snapshot() {
+    var cs = container.counts(), rows = [];
+    cs.forEach(function (n, k) { rows.push({ k: k, n: n }); });
+    rows.sort(function (a, b) { return b.n - a.n || (a.k < b.k ? -1 : 1); });
+    return rows;
+  }
+
+  function drawStream() {
+    var g = streamC.getContext('2d'), W = streamC.width, H = streamC.height;
+    g.fillStyle = '#111'; g.fillRect(0, 0, W, H);
+    var cols = Math.min(hist.length, W);
+    var cw = Math.max(1, W / Math.max(cols, 1));
+    for (var i = 0; i < cols; i++) {
+      var rows = hist[hist.length - cols + i], y = H;
+      for (var j = 0; j < rows.length; j++) {
+        var h = rows[j].n / N * H;
+        g.fillStyle = color(rows[j].k);
+        g.fillRect(i * cw, y - h, cw + 0.5, h + 0.5);
+        y -= h;
+      }
+    }
+    g.fillStyle = '#a89f8e'; g.font = '11px monospace';
+    g.fillText('容器の中身（縦＝200 枠・横＝時間）', 6, 14);
+  }
+
+  function drawTable(sup, tab, inv) {
+    var g = tableC.getContext('2d'), W = tableC.width, H = tableC.height;
+    g.fillStyle = '#111'; g.fillRect(0, 0, W, H);
+    if (!sup || !sup.keys.length) return;
+    var n = sup.keys.length, cell = Math.max(3, Math.min(18, Math.floor(Math.min(W - 90, H - 30) / n)));
+    var ox = 80, oy = 22;
+    for (var i = 0; i < n; i++) {
+      for (var j = 0; j < n; j++) {
+        var p = tab.prod[i][j];
+        g.fillStyle = p === null ? '#3a352e' : (inv.idx[p] !== undefined ? '#5f7c4a' : '#a0642e');
+        g.fillRect(ox + j * cell, oy + i * cell, cell - 1, cell - 1);
+        if (p !== null && (p === sup.keys[i] || p === sup.keys[j])) {
+          g.strokeStyle = '#e8e2d6'; g.lineWidth = 1;
+          g.strokeRect(ox + j * cell + 0.5, oy + i * cell + 0.5, cell - 2, cell - 2);
+        }
+      }
+      g.fillStyle = color(sup.keys[i]);
+      g.fillRect(ox - 10, oy + i * cell, 6, cell - 1);
+    }
+    g.fillStyle = '#a89f8e'; g.font = '11px monospace';
+    g.fillText('反応表  ' + n + '×' + n + '（行＝作用する側）', 6, 14);
+  }
+
+  function verdictHtml(sup, inv) {
+    var m = {
+      nSpecies: sup.keys.length,
+      producedFracNoCopy: inv.producedFracNoCopy,
+      recoverFrac: lastKo === null ? 0 : lastKo,
+      perturbRecall: 1, novelEver: 0, blockDrop: null,
+      splitA: 0, splitB: 0,
+    };
+    var v = S39obs.verdict(m, { minSpecies: 2, produced: 0.90, recover: 0.50, perturb: 0.80,
+      novelSpecies: 1, blockDrop: 0.30 });
+    var f = function (b) { return b ? '<span class="yes">立つ</span>' : '<span class="no">立たない</span>'; };
+    return 'D1 在庫 ' + f(v.D1) + ' ／ level（在庫だけで読むと）<b>' + v.level + '</b>'
+      + '<br><span class="na">D2〜D5 は介入が要るので、この画面ではノックアウトのみ反映する</span>';
+  }
+
+  function draw() {
+    if (!container) return;
+    var rows = snapshot();
+    hist.push(rows.slice(0, 60));
+    if (hist.length > 900) hist.shift();
+    var sup = S39obs.support(container, { theta: 1, topK: 24 });
+    var tab = S39obs.reactionTable(container, sup.keys, {});
+    var inv = S39obs.inventory(tab, 'either');
+    var st = container.stats();
+    $('v-coll').textContent = st.collisions;
+    $('v-sp').textContent = rows.length;
+    $('v-es').textContent = st.elasticSteps;
+    $('v-ez').textContent = st.elasticSize;
+    $('v-ef').textContent = st.elasticFilter;
+    $('v-mx').textContent = st.maxSeen;
+    $('v-pf').textContent = inv.producedFrac.toFixed(3);
+    $('v-pn').textContent = inv.producedFracNoCopy.toFixed(3);
+    $('v-cf').textContent = inv.closedFrac.toFixed(3);
+    $('v-sc').textContent = inv.selfCopy;
+    $('v-verdict').innerHTML = verdictHtml(sup, inv);
+    drawStream();
+    drawTable(sup, tab, inv);
+    var html = '<p class="note">上位の種（クリックすると消して、戻るかを見られる）</p>';
+    sup.keys.slice(0, 10).forEach(function (k, i) {
+      html += '<div class="sp" data-k="' + k + '"><span style="color:' + color(k) + '">■</span> '
+        + '<span class="num">' + sup.counts[i] + '</span> <span>' + escapeHtml(clip(S39.show(container.termOf(k)))) + '</span></div>';
+    });
+    $('species').innerHTML = html;
+    Array.prototype.forEach.call(document.querySelectorAll('.sp'), function (el) {
+      el.onclick = function () { knockout(el.getAttribute('data-k')); };
+    });
+  }
+
+  function clip(s) { return s.length > 64 ? s.slice(0, 61) + '...' : s; }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function filler() {
+    var r = S39.rng(555001);
+    var f = S39.drawMany(r, 12, opts());
+    return f.length ? f : [S39.I];
+  }
+
+  function knockout(k) {
+    if (!container) return;
+    var removed = container.removeKey(k, filler());
+    container.run(20000);
+    var back = (container.counts().get(k) || 0) >= 1;
+    lastKo = back ? 1 : 0;
+    $('v-ko').innerHTML = escapeHtml(S39.show(container.termOf(k))) + ' を ' + removed
+      + ' 個消して 20000 衝突 → ' + (back ? '<span class="yes">戻った</span>' : '<span class="no">戻らなかった</span>');
+    draw();
+  }
+
+  function injectNovel() {
+    if (!container) return;
+    var r = S39.rng(778001 + container.stats().collisions);
+    var have = {};
+    container.counts().forEach(function (n, k) { have[k] = true; });
+    var z = null;
+    for (var i = 0; i < 3000 && !z; i++) {
+      var c = S39.drawTerm(r, opts());
+      if (c && S39.size(c) >= 4 && !have[S39.key(c)]) z = c;
+    }
+    if (!z) z = S39.church(7);
+    container.inject(z, 20);
+    $('v-ko').innerHTML = '新しい項 ' + escapeHtml(S39.show(z)) + ' を 20 個注いだ';
+    draw();
+  }
+
+  function tick() {
+    if (!running) return;
+    container.run(Number($('speed').value));
+    draw();
+    requestAnimationFrame(tick);
+  }
+
+  $('go').onclick = function () {
+    running = !running;
+    this.textContent = running ? '⏸ 止める' : '▶ 走らせる';
+    if (running) tick();
+  };
+  $('stepBtn').onclick = function () { container.run(1000); draw(); };
+  $('reset').onclick = function () { running = false; $('go').textContent = '▶ 走らせる'; build(); };
+  $('injectBtn').onclick = injectNovel;
+  ['mode', 'filter', 'gen', 'dmax', 'msteps', 'msize', 'seed'].forEach(function (id) {
+    $(id).addEventListener('change', function () { running = false; $('go').textContent = '▶ 走らせる'; build(); });
+  });
+
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('go').click(); },
+    id: 'S-39', version: '1.0.0',
+    inputs: ['mode', 'filter', 'gen', 'dmax', 'msteps', 'msize', 'seed', 'speed'],
+    paramNames: {
+      mode: { category: 'p', code: 'mode', full: 'reaction_mode' },
+      filter: { category: 'p', code: 'filter', full: 'copy_filter' },
+      gen: { category: 's', code: 'gen', full: 'generator' },
+      dmax: { category: 's', code: 'dmax', full: 'max_depth' },
+      msteps: { category: 's', code: 'msteps', full: 'max_steps' },
+      msize: { category: 's', code: 'msize', full: 'max_size' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+    },
+    canvases: ['stream', 'table'],
+    // 「広さ」は容器の容量（枠の数）
+    resize: function (scale) {
+      N = Math.max(20, Math.round(200 * scale));
+      running = false; $('go').textContent = '▶ 走らせる';
+      build();
+    },
+    onRestore: function () { build(); },
+  });
+
+  build();
+}());
+</script>
+</body>
+</html>

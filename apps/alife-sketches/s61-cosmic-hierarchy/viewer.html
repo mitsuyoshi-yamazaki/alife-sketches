@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-61 宇宙の階層的構造形成 — 重力だけのN体（PM法）</title>
+<style>
+  :root{ --bg:#0c0f14; --panel:#151a22; --line:#262d39; --fg:#d8dee9; --dim:#78829a; --good:#4ade80; --warn:#fbbf24; --bad:#f87171; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1000px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:10px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070b;border:1px solid var(--line);border-radius:4px;max-width:100%;height:auto}
+  aside{width:330px;min-width:280px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:11px 12px;margin-bottom:11px}
+  .box h2{margin:0 0 8px;font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.07em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:118px;color:var(--dim);flex:none}
+  select,input[type=number]{background:#0a0d13;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  input[type=range]{flex:1;min-width:0}
+  button{background:#1d2430;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#27303e}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #1d2430}
+  table.stat td.k{color:var(--dim);width:60%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:8ch}
+  .banner{margin-top:8px;padding:7px 9px;border-radius:4px;font-size:12px;border:1px solid var(--line);background:#10141b;color:var(--dim)}
+  .note{color:var(--dim);font-size:11px;margin-top:7px}
+  @media(max-width:860px){aside{width:auto;min-width:0}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-61 宇宙の階層的構造形成 — 重力だけのN体（膨張宇宙・粒子メッシュ法）</h1>
+  <p>ブラウザで小さな系（32³粒子・メッシュ64³。本番の登録は64³/128³・128³/256³）を走らせる。
+     左は箱の投影（z奥行きで色分け）に FOF ハローの輪郭（丸）を重ねる。右下は T-web の中央断面
+     （空洞=黒・壁=青・糸=橙・節=赤）。核（core.js）はハロー等の語彙を持たず、これらはすべて
+     観測器（observer.js・fof.js・web.js）の側で粒子の位置・速度だけから同定している。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <canvas id="world" width="480" height="480"></canvas>
+    <canvas id="web" width="480" height="200"></canvas>
+    <div class="banner" id="phase">「初期化」→「走らせる」で始まる</div>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>系（criteria.json 登録の型から縮小）</h2>
+      <label><span class="k">スペクトル</span>
+        <select id="spectrum">
+          <option value="n1">n=-1（冪乗則）</option>
+          <option value="n0">n=0（冪乗則）</option>
+          <option value="cdm" selected>cdm（BBKS型）</option>
+          <option value="cut">cut（小スケールを切ったn=-1）</option>
+        </select></label>
+      <label><span class="k">初期条件シード</span><input type="number" id="seed" value="6101"></label>
+      <label><span class="k">粒子数 N1</span>
+        <select id="n1"><option value="16">16³</option><option value="32" selected>32³</option></select></label>
+      <div class="row">
+        <button class="primary" id="init">初期化</button>
+        <button id="run">走らせる</button>
+        <button id="one">1歩</button>
+      </div>
+      <label><span class="k">速さ（1フレームの歩数）</span><input type="range" id="speed" min="1" max="10" value="1"><output class="num" id="speedOut" style="min-width:3ch">1</output></label>
+    </div>
+
+    <div class="box">
+      <h2>見せ方</h2>
+      <label><input type="checkbox" id="showHalos" checked><span>FOF ハローの輪郭</span></label>
+      <label><input type="checkbox" id="showWeb" checked><span>T-web の断面</span></label>
+    </div>
+
+    <div class="box">
+      <h2>観測（本番の判定は run.js が criteria.json の閾値で行う。ここは実況だけ）</h2>
+      <table class="stat">
+        <tr><td class="k">スケール因子 a</td><td class="v num" id="stA">-</td></tr>
+        <tr><td class="k">刻み数</td><td class="v num" id="stStep">0</td></tr>
+        <tr><td class="k">ハロー数（20粒子以上）</td><td class="v num" id="stHalo">-</td></tr>
+        <tr><td class="k">f_halo</td><td class="v num" id="stFhalo">-</td></tr>
+        <tr><td class="k">Layzer-Irvine |eps|</td><td class="v num" id="stEps">-</td></tr>
+        <tr><td class="k">運動量ドリフト P_rel</td><td class="v num" id="stPrel">-</td></tr>
+      </table>
+      <p class="note">|eps| は登録どおりmesh=2×N1で測るため、CICショットノイズ自己エネルギーの
+        影響で大きく出ることがある（raw/notes.mdへ申し送り済み）。</p>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="fft.js"></script>
+<script src="core.js"></script>
+<script src="fof.js"></script>
+<script src="subfind.js"></script>
+<script src="web.js"></script>
+<script src="observer.js"></script>
+<script>
+(function () {
+  'use strict';
+  var cvWorld = document.getElementById('world'), ctxW = cvWorld.getContext('2d');
+  var cvWeb = document.getElementById('web'), ctxWeb = cvWeb.getContext('2d');
+  var W = cvWorld.width, H = cvWorld.height;
+
+  function els(ids) { var o = {}; ids.forEach(function (id) { o[id] = document.getElementById(id); }); return o; }
+  var E = els(['spectrum', 'seed', 'n1', 'speed', 'speedOut', 'showHalos', 'showWeb',
+    'stA', 'stStep', 'stHalo', 'stFhalo', 'stEps', 'stPrel', 'phase']);
+
+  var L = S61.L_BOX;
+  var mesh = 64;
+  var state = null, ic = null, a = 0, step = 0, lna0 = 0, dlna = 0.015, running = false, timer = null;
+  var halos = [], webCls = null, webNg = 32, ledger = [];
+
+  function N1() { return parseInt(E.n1.value, 10); }
+
+  function init() {
+    var n1 = N1();
+    var start = S61.computeStartA(E.spectrum.value, n1, L);
+    var seedVal = parseInt(E.seed.value, 10);
+    ic = S61.generateIC({ N1: n1, spectrum: E.spectrum.value, seed: isNaN(seedVal) ? 1 : seedVal, L: L, aInitial: start.aInitial });
+    state = { x: ic.x, p: ic.p };
+    a = start.aInitial; lna0 = Math.log(a); step = 0; ledger = [];
+    var K0 = S61.kineticEnergy(state, ic.Np, ic.mass, a);
+    var f0 = S61.pmForce(state.x, ic.Np, ic.mass, mesh, L, a);
+    var W0 = S61.potentialEnergy(f0.phiAtParticles, ic.Np, ic.mass);
+    ledger.push({ lna: lna0, K: K0, W: W0 });
+    analyze();
+    draw();
+    E.phase.textContent = '初期化済み（N1=' + n1 + '³・a_i=' + a.toFixed(4) + '）。「走らせる」または「1歩」';
+  }
+
+  function stepOnce() {
+    if (!state) return;
+    var aNext = Math.exp(lna0 + (step + 1) * dlna);
+    S61.stepKDK(state, ic.Np, ic.mass, mesh, L, a, aNext);
+    a = aNext; step++;
+    var K = S61.kineticEnergy(state, ic.Np, ic.mass, a);
+    var f = S61.pmForce(state.x, ic.Np, ic.mass, mesh, L, a);
+    var W = S61.potentialEnergy(f.phiAtParticles, ic.Np, ic.mass);
+    ledger.push({ lna: Math.log(a), K: K, W: W });
+    if (a >= 1 || step > 400) { if (timer) toggleRun(); }
+    analyze();
+  }
+
+  /** 検出器: FOF と T-web を実際に呼ぶ（観測器の側だけがこの語彙を持つ）。 */
+  function analyze() {
+    var n1 = N1();
+    var meanSpacing = L / n1;
+    halos = S61OBS.findHalos(state.x, ic.Np, L, meanSpacing, 0.2, 20);
+    var webRes = S61OBS.computeWeb(state.x, ic.Np, ic.mass, L, webNg, 2 * meanSpacing, 0);
+    webCls = webRes;
+  }
+
+  function worldToPx(x, y) { return { x: (x / L) * W, y: (y / L) * H }; }
+
+  function draw() {
+    ctxW.clearRect(0, 0, W, H);
+    if (!state) return;
+    // 粒子（z奥行きで色分け・間引き表示）
+    var n1 = N1();
+    var stride = Math.max(1, Math.floor(ic.Np / 6000));
+    for (var i = 0; i < ic.Np; i += stride) {
+      var zf = state.x[3 * i + 2] / L;
+      var shade = Math.round(60 + zf * 150);
+      ctxW.fillStyle = 'rgba(' + shade + ',' + shade + ',' + (200) + ',0.55)';
+      var p = worldToPx(state.x[3 * i], state.x[3 * i + 1]);
+      ctxW.fillRect(p.x, p.y, 1.3, 1.3);
+    }
+    if (E.showHalos.checked) {
+      ctxW.strokeStyle = '#fbbf24';
+      halos.forEach(function (h) {
+        if (h.n < 20) return;
+        var p = worldToPx(h.center[0], h.center[1]);
+        var r = Math.max(2, Math.sqrt(h.n) * 0.9);
+        ctxW.beginPath(); ctxW.arc(p.x, p.y, r, 0, 2 * Math.PI); ctxW.stroke();
+      });
+    }
+    if (E.showWeb.checked && webCls) drawWeb();
+  }
+
+  function drawWeb() {
+    ctxWeb.clearRect(0, 0, cvWeb.width, cvWeb.height);
+    var Ng = webCls.Ng;
+    var midZ = Math.floor(Ng / 2);
+    var cw = cvWeb.width / Ng, ch = cvWeb.height / Ng;
+    var colors = ['#05070b', '#1d4ed8', '#f59e0b', '#ef4444']; // 空洞/壁/糸/節
+    for (var ix = 0; ix < Ng; ix++) {
+      for (var iy = 0; iy < Ng; iy++) {
+        var idx = ix * Ng * Ng + iy * Ng + midZ;
+        var cls = webCls.cls[idx];
+        ctxWeb.fillStyle = colors[cls];
+        ctxWeb.fillRect(ix * cw, iy * ch, cw + 0.5, ch + 0.5);
+      }
+    }
+  }
+
+  function updateStats() {
+    document.getElementById('stA').textContent = a ? a.toFixed(4) : '-';
+    document.getElementById('stStep').textContent = String(step);
+    var n = halos.filter(function (h) { return h.n >= 20; }).length;
+    document.getElementById('stHalo').textContent = String(n);
+    var fh = halos.reduce(function (s, h) { return s + h.n; }, 0) / (ic ? ic.Np : 1);
+    document.getElementById('stFhalo').textContent = ic ? fh.toFixed(4) : '-';
+    if (ledger.length >= 2) {
+      var li = S61.layzerIrvineLedger(ledger);
+      var eps = li[li.length - 1].eps;
+      document.getElementById('stEps').textContent = Math.abs(eps).toExponential(3);
+    } else {
+      document.getElementById('stEps').textContent = '0';
+    }
+    var mom = state ? S61.totalMomentum(state, ic.Np) : { Prel: 0 };
+    document.getElementById('stPrel').textContent = mom.Prel.toExponential(3);
+  }
+
+  function frame() {
+    var n = parseInt(E.speed.value, 10) || 1;
+    for (var i = 0; i < n; i++) stepOnce();
+    draw(); updateStats();
+  }
+
+  function toggleRun() {
+    if (timer) { clearInterval(timer); timer = null; E.phase.textContent = '停止'; }
+    else { timer = setInterval(frame, 60); E.phase.textContent = '走行中'; }
+  }
+
+  document.getElementById('init').addEventListener('click', function () { if (timer) toggleRun(); init(); updateStats(); });
+  document.getElementById('run').addEventListener('click', toggleRun);
+  document.getElementById('one').addEventListener('click', function () { stepOnce(); draw(); updateStats(); });
+  E.speed.addEventListener('input', function () { E.speedOut.textContent = E.speed.value; });
+  [E.showHalos, E.showWeb].forEach(function (el) { el.addEventListener('change', draw); });
+
+  function getParams() {
+    return { spectrum: E.spectrum.value, seed: Number(E.seed.value), n1: E.n1.value, speed: E.speed.value };
+  }
+  function setParams(p) {
+    if (p.spectrum != null) E.spectrum.value = p.spectrum;
+    if (p.seed != null) E.seed.value = p.seed;
+    if (p.n1 != null) E.n1.value = p.n1;
+    if (p.speed != null) { E.speed.value = p.speed; E.speedOut.textContent = p.speed; }
+  }
+
+  Harness.mount({
+    pause: function () { if (timer) toggleRun(); },
+    id: 'S-61', version: '1.0.0',
+    getParams: getParams, setParams: setParams,
+    paramNames: {
+      spectrum: { category: 'p', code: 'spec', full: 'spectrum' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      n1: { category: 's', code: 'n1', full: 'n1' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+    },
+    canvases: ['world', 'web'],
+  });
+
+  init();
+  updateStats();
+})();
+</script>
+</body>
+</html>

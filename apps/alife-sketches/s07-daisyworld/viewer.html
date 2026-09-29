@@ -1,0 +1,362 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-07 黒いヒナギクと白いヒナギクの惑星</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--hot:#fb923c;--cold:#38bdf8;--warn:#f87171;--ok:#4ade80}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0}
+  code{background:#0b0d13;padding:1px 5px;border-radius:4px}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  label b{color:var(--fg);font-variant-numeric:tabular-nums;min-width:3.6em}
+  input[type=range]{width:110px}
+  select{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font:inherit;max-width:22em}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 2px;font-size:13px;font-weight:600}
+  .panel .note{margin:0 0 8px;font-size:11px;color:var(--dim)}
+  .p-planet{flex:0 0 268px}
+  .p-chart{flex:1 1 520px;min-width:340px}
+  canvas{display:block;width:100%;height:auto;border-radius:6px;background:#07080c}
+  table{border-collapse:collapse;font-size:12px;width:100%;margin-top:8px}
+  th,td{padding:3px 8px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  td{font-variant-numeric:tabular-nums}
+  .legend{margin-top:10px;font-size:11px;color:var(--dim);line-height:1.9}
+  .sw{display:inline-block;width:22px;height:3px;border-radius:2px;vertical-align:3px;margin-right:5px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:-1px;margin-right:5px;border:1px solid #0008}
+  footer{padding:0 18px 28px;color:var(--dim);font-size:12px;max-width:960px}
+  footer b{color:var(--fg)}
+  /* 桁が変わってもレイアウトが動かないようにする（ユーザ指定） */
+  #lum{display:inline-block;min-width:5ch;text-align:right;font-variant-numeric:tabular-nums}
+  #dir{display:inline-block;min-width:10em}
+  #qV{min-width:4.6em}
+  .p-planet table{table-layout:fixed}
+  .p-planet td:first-child{width:42%}
+  @media(max-width:860px){.wrap{flex-direction:column}.p-planet,.p-chart{flex:1 1 100%;width:100%}}
+  @media(max-width:820px){.p-planet,.p-chart,.panel{min-width:0}.bar label{flex-wrap:wrap;max-width:100%}select{max-width:100%}}
+</style>
+
+<header>
+  <h1>S-07 — 黒いヒナギクと白いヒナギクの惑星</h1>
+  <p class="sub">
+    恒星の光度 <b>L</b> だけをゆっくり上げ下げする。<b>誰も気温を測っていないし、誰も調節しようとしていない。</b>
+    あるのは被覆率・アルベド・温度・成長率だけ。<br>
+    <code>σT⁴ = S·L·(1−A)</code> ／ <code>T_i⁴ = q(A−a_i) + T⁴</code> ／
+    <code>g_i = max(0, 1 − ((22.5−T_i)/17.5)²)</code> ／ <code>dα_i/dt = α_i(α_空 g_i − γ)</code>
+    ／ 出典: Watson &amp; Lovelock (1983)
+  </p>
+</header>
+
+<div class="bar">
+  <button id="run">停止</button>
+  <button id="reset">撒き直す</button>
+  <label>住人
+    <select id="arm"></select>
+  </label>
+  <label>熱輸送 q <input type="range" id="q" min="-206" max="800" step="10" value="206"> <b id="qV">2.06e9</b></label>
+  <label>速さ <input type="range" id="spd" min="1" max="20" value="6"> <b id="spdV">6</b></label>
+  <span style="flex:1"></span>
+  <span style="color:var(--dim)">L = <b id="lum" style="color:var(--fg)">—</b> <span id="dir"></span></span>
+</div>
+
+<div class="wrap">
+  <div class="panel p-planet">
+    <h2>惑星の表面</h2>
+    <p class="note">点1つが表面の一区画。色はそのままアルベド（暗い＝よく吸う）。</p>
+    <canvas id="planet" width="480" height="480"></canvas>
+    <table><tbody id="meters"></tbody></table>
+  </div>
+
+  <div class="panel p-chart">
+    <h2>惑星の温度 — <span style="color:var(--hot)">住人あり</span> と <span style="color:var(--dim)">住人なし（裸の惑星）</span></h2>
+    <p class="note">裸の惑星の温度は光度から解析的に決まる（点線）。実線がそれから離れて平らになる区間が、そのまま「鈍感さ」。</p>
+    <canvas id="temp" width="900" height="380"></canvas>
+    <h2 style="margin-top:12px">被覆率</h2>
+    <p class="note">積み上げ。上へ伸びるほど表面が覆われている。</p>
+    <canvas id="cover" width="900" height="220"></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+</div>
+
+<footer>
+  <p><b>見どころ</b>: 「黒と白の 2 型」を選んで走らせると、L が 0.7 付近を超えたところで黒が一気に広がり、
+  惑星の温度が<b>裸の惑星の曲線から飛び降りて 22.5℃ 付近に貼り付く</b>。
+  そこから L を上げていくと、黒が減って白が増える。<b>比率が入れ替わっていくあいだ、温度はほとんど動かない。</b>
+  裸の惑星が 10℃ から 50℃ まで上がる区間で、住人のいる惑星は数℃ しか動かない。</p>
+  <p><b>熱輸送 q を 0 にすると消える</b>: q=0 では黒も白も惑星の平均温度そのものを感じるので、
+  2 型のあいだに差が生まれない。被覆率は同じように動き、アルベドは 0.5 のまま、温度は裸の惑星と完全に一致する。
+  <b>同じ住人・同じ成長曲線のまま、局所温度の結合の強さだけで平らな区間が消えたり現れたりする。</b></p>
+  <p><b>偽物の見分け方</b>: 「温度を感じない白のみ」を選ぶと、惑星は裸より涼しくなり、温度曲線も裸より寝る。
+  だが<b>平らにはならない</b>——ただ縦に潰れて平行移動しているだけで、L に応じて何かが動いてはいない。
+  「増幅する 2 型」は逆に、温度変化を<b>広げる</b>。どちらも居て・増えて・死んで・温度を感じ・アルベドを変えている。</p>
+  <p>上げ方向は実線、下げ方向は点線で残る。<b>2 本が重ならない区間がある</b>——同じ光度で 2 つの状態がありうる。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var L_MIN = 0.5, L_MAX = 1.8, L_STEP = 0.002;
+  var BASE = { solarFlux: 917, sigma: 5.67e-8, groundAlbedo: 0.5, heatTransfer: 2.06e9,
+               deathRate: 0.3, fertile: 1.0, coverFloor: 0.01, dt: 0.05 };
+
+  var ARMS = [
+    { id: 'two', label: '黒と白の 2 型（本命）', types: [{ albedo: 0.25 }, { albedo: 0.75 }], names: ['黒（a=0.25）', '白（a=0.75）'] },
+    { id: 'black', label: '黒のみ', types: [{ albedo: 0.25 }], names: ['黒（a=0.25）'] },
+    { id: 'white', label: '白のみ', types: [{ albedo: 0.75 }], names: ['白（a=0.75）'] },
+    { id: 'bare', label: '住人なし（裸の惑星）', types: [], names: [] },
+    { id: 'ground', label: '負① 地面と同じアルベドの 2 型', types: [{ albedo: 0.5 }, { albedo: 0.5 }], names: ['a=0.50', 'a=0.50'] },
+    { id: 'flat', label: '負② 温度を感じない白のみ', types: [{ albedo: 0.75, halfWidthC: 1e12 }], names: ['白・温度非依存'] },
+    { id: 'amplify', label: '負③ 増幅する 2 型（暑いほど暗く）',
+      types: [{ albedo: 0.25, peakTempC: 80, halfWidthC: 80 }, { albedo: 0.75, peakTempC: -40, halfWidthC: 80 }],
+      names: ['黒・暑がり', '白・寒がり'] },
+    { id: 'many', label: 'アルベドを乱数で引いた 10 型', types: null, names: null }
+  ];
+
+  var el = function (id) { return document.getElementById(id); };
+  var armSel = el('arm');
+  ARMS.forEach(function (a, i) {
+    var o = document.createElement('option');
+    o.value = String(i); o.textContent = a.label; armSel.appendChild(o);
+  });
+
+  var state = null, running = true, dir = 1, lum = L_MIN;
+  var traceUp = [], traceDown = [];
+
+  function currentArm() { return ARMS[parseInt(armSel.value, 10) || 0]; }
+
+  function buildTypes(arm) {
+    if (arm.types) return { types: S07.makeTypes(arm.types), names: arm.names.slice() };
+    var rng = S07.makeRng(20260911);
+    var t = S07.randomTypes(10, rng);
+    return { types: t, names: t.map(function (x, i) { return '型' + (i + 1) + '（a=' + x.albedo.toFixed(2) + '）'; }) };
+  }
+
+  function params() {
+    var p = {}; Object.keys(BASE).forEach(function (k) { p[k] = BASE[k]; });
+    p.heatTransfer = parseFloat(el('q').value) * 1e7;
+    return p;
+  }
+
+  function reset() {
+    var arm = currentArm();
+    var bt = buildTypes(arm);
+    state = { arm: arm, names: bt.names, world: S07.createWorld(params(), bt.types) };
+    lum = L_MIN; dir = 1; traceUp = []; traceDown = [];
+  }
+
+  // ---------------------------------------------------------------- 描画
+
+  var PLANET_N = 40;                       // 一辺の区画数
+  var order = (function () {               // 固定の並べ替え（見た目を散らすため。値には影響しない）
+    var rng = S07.makeRng(7), a = [];
+    for (var i = 0; i < PLANET_N * PLANET_N; i++) a.push(i);
+    for (var j = a.length - 1; j > 0; j--) { var k = (rng() * (j + 1)) | 0; var t = a[j]; a[j] = a[k]; a[k] = t; }
+    return a;
+  })();
+
+  function greyOf(albedo) {
+    var v = Math.round(Math.max(0, Math.min(1, albedo)) * 235 + 10);
+    return 'rgb(' + v + ',' + v + ',' + v + ')';
+  }
+
+  function drawPlanet(s) {
+    var cv = el('planet'), cx = cv.getContext('2d');
+    var W = cv.width, cell = W / PLANET_N;
+    cx.fillStyle = greyOf(BASE.groundAlbedo);
+    cx.fillRect(0, 0, W, W);
+    // 各区画へ被覆型を割り当てる（個数は被覆率そのもの）
+    var total = PLANET_N * PLANET_N, assign = new Int16Array(total).fill(-1), at = 0, i, n;
+    for (i = 0; i < s.cover.length; i++) {
+      n = Math.round(s.cover[i] * total);
+      for (var k = 0; k < n && at < total; k++, at++) assign[order[at]] = i;
+    }
+    for (i = 0; i < total; i++) {
+      if (assign[i] < 0) continue;
+      var x = (i % PLANET_N) * cell, y = ((i / PLANET_N) | 0) * cell;
+      cx.fillStyle = greyOf(state.world.types[assign[i]].albedo);
+      cx.beginPath();
+      cx.arc(x + cell / 2, y + cell / 2, cell * 0.42, 0, 6.2832);
+      cx.fill();
+      cx.strokeStyle = 'rgba(96,165,250,.35)'; cx.lineWidth = 1; cx.stroke();
+    }
+  }
+
+  function axes(cx, W, H, pad, xlo, xhi, ylo, yhi, xt, yt, ylabel) {
+    cx.clearRect(0, 0, W, H);
+    cx.fillStyle = '#07080c'; cx.fillRect(0, 0, W, H);
+    cx.strokeStyle = '#2a2f3d'; cx.lineWidth = 1;
+    cx.font = '16px -apple-system,sans-serif'; cx.fillStyle = '#8b93a7';
+    var X = function (v) { return pad.l + (v - xlo) / (xhi - xlo) * (W - pad.l - pad.r); };
+    var Y = function (v) { return H - pad.b - (v - ylo) / (yhi - ylo) * (H - pad.t - pad.b); };
+    yt.forEach(function (v) {
+      cx.beginPath(); cx.moveTo(pad.l, Y(v)); cx.lineTo(W - pad.r, Y(v)); cx.stroke();
+      cx.textAlign = 'right'; cx.fillText(String(v), pad.l - 6, Y(v) + 5);
+    });
+    xt.forEach(function (v) {
+      cx.beginPath(); cx.moveTo(X(v), pad.t); cx.lineTo(X(v), H - pad.b); cx.stroke();
+      cx.textAlign = 'center'; cx.fillText(v.toFixed(1), X(v), H - pad.b + 20);
+    });
+    if (ylabel) { cx.textAlign = 'left'; cx.fillText(ylabel, pad.l + 4, pad.t + 16); }
+    return { X: X, Y: Y };
+  }
+
+  function line(cx, pts, X, Y, color, width, dash) {
+    if (!pts.length) return;
+    cx.save(); cx.setLineDash(dash || []); cx.strokeStyle = color; cx.lineWidth = width;
+    cx.beginPath();
+    pts.forEach(function (p, i) { var x = X(p[0]), y = Y(p[1]); if (i) cx.lineTo(x, y); else cx.moveTo(x, y); });
+    cx.stroke(); cx.restore();
+  }
+
+  function drawTemp(s) {
+    var cv = el('temp'), cx = cv.getContext('2d');
+    var W = cv.width, H = cv.height, pad = { l: 46, r: 12, t: 10, b: 28 };
+    var lo = -30, hi = 85;
+    var g = axes(cx, W, H, pad, L_MIN, L_MAX, lo, hi,
+      [0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8], [-20, 0, 20, 40, 60, 80], '惑星温度（℃）  ／ 横軸 = 恒星の光度 L');
+    // 成長できる温度帯（5〜40℃）を薄く塗る。核ではなく観測の側の目印。
+    cx.fillStyle = 'rgba(74,222,128,.07)';
+    cx.fillRect(pad.l, g.Y(40), W - pad.l - pad.r, g.Y(5) - g.Y(40));
+    cx.strokeStyle = 'rgba(74,222,128,.30)'; cx.setLineDash([4, 4]);
+    cx.beginPath(); cx.moveTo(pad.l, g.Y(22.5)); cx.lineTo(W - pad.r, g.Y(22.5)); cx.stroke(); cx.setLineDash([]);
+
+    var bare = [];
+    for (var L = L_MIN; L <= L_MAX + 1e-9; L += 0.01) bare.push([L, S07.bareTempC(params(), L)]);
+    line(cx, bare, g.X, g.Y, '#8b93a7', 2.5, [6, 5]);
+    line(cx, traceDown.map(function (p) { return [p.L, p.T]; }), g.X, g.Y, '#f472b6', 2, [2, 4]);
+    line(cx, traceUp.map(function (p) { return [p.L, p.T]; }), g.X, g.Y, '#fb923c', 3);
+
+    cx.strokeStyle = 'rgba(232,235,242,.35)'; cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(g.X(lum), pad.t); cx.lineTo(g.X(lum), H - pad.b); cx.stroke();
+    cx.fillStyle = '#fb923c';
+    cx.beginPath(); cx.arc(g.X(lum), g.Y(s.tempC), 5, 0, 6.2832); cx.fill();
+    cx.fillStyle = '#8b93a7';
+    cx.beginPath(); cx.arc(g.X(lum), g.Y(S07.bareTempC(params(), lum)), 4, 0, 6.2832); cx.fill();
+  }
+
+  function drawCover(s) {
+    var cv = el('cover'), cx = cv.getContext('2d');
+    var W = cv.width, H = cv.height, pad = { l: 46, r: 12, t: 10, b: 28 };
+    var g = axes(cx, W, H, pad, L_MIN, L_MAX, 0, 1,
+      [0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8], [0, 0.5, 1], '被覆率（積み上げ）');
+    var n = state.world.n;
+    for (var i = n - 1; i >= 0; i--) {
+      var pts = traceUp.map(function (p) {
+        var acc = 0; for (var j = 0; j <= i; j++) acc += p.cover[j];
+        return [p.L, acc];
+      });
+      if (!pts.length) continue;
+      cx.fillStyle = greyOf(state.world.types[i].albedo);
+      cx.globalAlpha = 0.85;
+      cx.beginPath(); cx.moveTo(g.X(pts[0][0]), g.Y(0));
+      pts.forEach(function (p) { cx.lineTo(g.X(p[0]), g.Y(p[1])); });
+      cx.lineTo(g.X(pts[pts.length - 1][0]), g.Y(0)); cx.closePath(); cx.fill();
+      cx.globalAlpha = 1;
+    }
+    // 惑星アルベドの軌跡（右軸を兼ねて 0..1 のまま描く）
+    line(cx, traceUp.map(function (p) { return [p.L, p.A]; }), g.X, g.Y, '#60a5fa', 2);
+    cx.strokeStyle = 'rgba(232,235,242,.35)'; cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(g.X(lum), pad.t); cx.lineTo(g.X(lum), H - pad.b); cx.stroke();
+  }
+
+  function drawMeters(s) {
+    var bare = S07.bareTempC(params(), lum);
+    var rows = [
+      ['惑星の温度', s.tempC.toFixed(2) + ' ℃'],
+      ['住人がいなければ', bare.toFixed(2) + ' ℃'],
+      ['差', (s.tempC - bare >= 0 ? '+' : '') + (s.tempC - bare).toFixed(2) + ' ℃'],
+      ['惑星アルベド A', s.albedo.toFixed(3)],
+      ['空き地', (s.free * 100).toFixed(1) + ' %']
+    ];
+    s.cover.forEach(function (c, i) {
+      rows.push([state.names[i] || ('型' + (i + 1)), (c * 100).toFixed(1) + ' %  ／ 局所 ' + s.localTempC[i].toFixed(1) + '℃']);
+    });
+    el('meters').innerHTML = rows.map(function (r) {
+      return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>';
+    }).join('');
+
+    var legend = '<span class="sw" style="background:#fb923c"></span>住人のいる惑星（上げ方向）'
+      + ' &nbsp; <span class="sw" style="background:#f472b6"></span>下げ方向'
+      + ' &nbsp; <span class="sw" style="background:#8b93a7"></span>裸の惑星（解析解）'
+      + ' &nbsp; <span class="sw" style="background:#60a5fa"></span>惑星アルベド A'
+      + ' &nbsp; <span style="color:#4ade80">帯 = 成長できる温度（5〜40℃）・破線 = 22.5℃</span><br>'
+      + '住人: ' + state.names.map(function (nm, i) {
+          return '<span class="dot" style="background:' + greyOf(state.world.types[i].albedo) + '"></span>' + nm;
+        }).join(' &nbsp; ');
+    el('legend').innerHTML = legend;
+  }
+
+  // ---------------------------------------------------------------- 進行
+
+  function tick() {
+    if (!state) reset();
+    var p = params();
+    state.world.params.heatTransfer = p.heatTransfer;
+    var perL = 400;
+    var advance = parseInt(el('spd').value, 10);
+    for (var a = 0; a < advance; a++) {
+      for (var t = 0; t < perL; t++) S07.stepWorld(state.world, lum);
+      var s = S07.sample(state.world, lum);
+      var row = { L: lum, T: s.tempC, A: s.albedo, cover: s.cover.slice() };
+      (dir > 0 ? traceUp : traceDown).push(row);
+      lum += dir * L_STEP;
+      if (lum > L_MAX) { lum = L_MAX; dir = -1; traceDown = []; }
+      else if (lum < L_MIN) { lum = L_MIN; dir = 1; traceUp = []; }
+    }
+    var s2 = S07.sample(state.world, lum);
+    drawPlanet(s2); drawTemp(s2); drawCover(s2); drawMeters(s2);
+    el('lum').textContent = lum.toFixed(3);
+    el('dir').textContent = dir > 0 ? '↑ 明るくなっている' : '↓ 暗くなっている';
+  }
+
+  function frame() {
+    if (running) tick();
+    requestAnimationFrame(frame);
+  }
+
+  el('run').onclick = function () { running = !running; el('run').textContent = running ? '停止' : '再開'; };
+  el('reset').onclick = reset;
+  armSel.onchange = reset;
+  el('q').oninput = function () {
+    var v = parseFloat(el('q').value) * 1e7;
+    el('qV').textContent = v === 0 ? '0' : (v / 1e9).toFixed(2) + 'e9';
+    if (state) state.world.params.heatTransfer = v;
+  };
+  el('spd').oninput = function () { el('spdV').textContent = el('spd').value; };
+
+  reset();
+  el('q').oninput();
+  frame();
+
+  // --- 共通の実行UI（撮る / 設定の保存と復元）を載せる ---
+  // 「広さ」は出さない: 核は面積分率（惑星表面を 1 とした割合）だけで書かれていて、
+  // 系に長さの次元が無い。占有されうる面積 fertile も上限 1 の分率なので倍にできない
+  // （A > 1 になり σT⁴ = S·L·(1−A) が解けなくなる）。理由は README.md にも書いた。
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('run').click(); },
+    id: 'S-07',
+    version: '1.0.0',
+    inputs: ['arm', 'q', 'spd'],
+    // URLパラメータの短縮名/フル名（K-80・2026-09-15 ユーザ指定）。arm は住人（アルベド・温度応答）の
+    // 組み合わせを選ぶので物理法則、q は熱輸送で物理法則、spd は表示の速さでソフトウェア
+    paramNames: {
+      arm: { category: 'p', code: 'arm', full: 'arm' },
+      q: { category: 'p', code: 'q', full: 'q' },
+      spd: { category: 's', code: 'spd', full: 'spd' },
+    },
+    canvases: ['planet', 'temp', 'cover'],
+  });
+})();
+</script>

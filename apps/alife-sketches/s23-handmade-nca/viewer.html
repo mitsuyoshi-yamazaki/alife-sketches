@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-23 手設計の局所規則で育てて、切って、再生させる</title>
+<style>
+  :root{--bg:#0f1115;--panel:#171a21;--line:#2a2f3a;--fg:#d7dce5;--dim:#7e8797;--hot:#ff7a59;--cool:#4aa3ff;--good:#4ade80;--warn:#fbbf24}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:4px 0 0;color:var(--dim);font-size:12px;max-width:1100px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:12px;min-width:0}
+  canvas{display:block;background:#05070a;border:1px solid var(--line);border-radius:4px;max-width:100%;height:auto;image-rendering:pixelated}
+  aside{width:340px;min-width:280px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 13px;margin-bottom:12px}
+  .box h2{margin:0 0 9px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.06em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:96px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  input[type=number],select{background:#0c0e13;color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  .val{width:52px;text-align:right;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:none}
+  button{background:#20252f;color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#2a3140}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  button.cut{border-color:#7a3b2e}
+  button.on{border-color:var(--good);color:var(--good)}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #20242c}
+  table.stat td.k{color:var(--dim);width:58%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .banner{margin-top:9px;padding:8px 10px;border-radius:4px;font-size:12px;border:1px solid var(--line);background:#12161d;color:var(--dim)}
+  .banner.reached{border-color:var(--good);background:#0f2a1a;color:#c8f5d8}
+  .banner.approached{border-color:var(--warn);background:#241d0c;color:#ffe9b0}
+  .banner.regen{border-color:var(--cool);background:#0e1c2b;color:#c2e0ff}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--dim);font-size:11px;margin-top:7px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .note{color:var(--dim);font-size:11px;margin-top:8px}
+  .cap{color:var(--dim);font-size:11px;margin:0 0 2px}
+  code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#a5b4fc}
+  b.hi{color:#fff}
+  @media(max-width:820px){aside{width:auto;min-width:0}.col{width:100%}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-23 — 学習なし・手設計の局所規則で、形を育て、切り、再生させる</h1>
+  <p>格子の各点は自分と 3×3 の近傍しか見ない。原点が場を放出し、場は拡散して減衰し、場の合計で占有が決まる（<code>grad</code>）。
+     到達回数で決める規則（<code>hop</code>）、座標を読んで塗る<b class="hi">参照点</b>（<code>coord</code>・局所性なし）、乱択（<code>random</code>）、
+     形の情報を持たない塊（<code>edenClock</code>）も同じ画面で動く。<b class="hi">切るボタン</b>で半分を消し、戻るかどうかを見る。
+     出典: Mordvintsev ら (2020) <i>Growing Neural Cellular Automata</i>（規則は原典と違い、手で書いたもの）。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <div>
+      <p class="cap">盤面（色 = 読み出した種別。薄い点線 = 目標。◎ = 印）。<b class="hi">クリックで半径 6 の円を消す</b>。</p>
+      <canvas id="grid" width="512" height="512"></canvas>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div>
+      <p class="cap">IoU の推移（緑 = その場、青点線 = 平行移動を許した最大。縦線 = 損傷）。</p>
+      <canvas id="chart" width="512" height="120"></canvas>
+    </div>
+  </div>
+
+  <div class="col">
+    <div>
+      <p class="cap">場（橙 = 場A u、青 = 場B v。対数の明るさ）。gradRim では調和場 z（紫↔黄）。</p>
+      <canvas id="field" width="256" height="256"></canvas>
+    </div>
+    <div>
+      <p class="cap">目標</p>
+      <canvas id="target" width="256" height="256"></canvas>
+    </div>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>つまみ</h2>
+      <label><span class="k">目標</span>
+        <select id="target-sel">
+          <option value="disc">円板（disc）</option>
+          <option value="ring">輪（ring）</option>
+          <option value="flag">三色の旗（flag）</option>
+          <option value="bitmap">手描きの輪郭（bitmap）</option>
+        </select></label>
+      <label><span class="k">規則</span>
+        <select id="rule">
+          <option value="gradW">grad+再確立（手設計）</option>
+          <option value="grad">grad（手設計・再確立なし）</option>
+          <option value="gradRim">gradRim（縁が境界値を置く）</option>
+          <option value="hopW">hop+再確立（到達回数）</option>
+          <option value="hop">hop（到達回数）</option>
+          <option value="coord">coord（座標を読む・参照点）</option>
+          <option value="random">random（乱択・参照点）</option>
+          <option value="edenClock">edenClock（形の無い塊・対照）</option>
+        </select></label>
+      <label><span class="k">fireRate</span><input type="range" id="fire" min="0.05" max="1" step="0.05" value="0.5"><span class="val" id="firev">0.50</span></label>
+      <label><span class="k">シード</span><input type="number" id="seed" value="1" min="1" step="1"></label>
+      <label><span class="k">1コマの歩数</span><input type="range" id="speed" min="1" max="16" step="1" value="4"><span class="val" id="speedv">4</span></label>
+      <div class="row">
+        <button class="primary" id="play">止める</button>
+        <button id="step">8 歩</button>
+        <button id="reset">やり直す</button>
+      </div>
+      <div class="row">
+        <button class="cut" id="cutKeep">半分切る（原点を残す）</button>
+        <button class="cut" id="cutRemove">半分切る（原点ごと）</button>
+        <button class="cut" id="cutSegment">4分の1だけ残す</button>
+      </div>
+      <p class="note">目標・規則・シードを変えると自動でやり直す。fireRate=1 は決定論（同じ盤面が必ず出る）。</p>
+    </div>
+
+    <div class="box">
+      <h2>いま測っている量</h2>
+      <table class="stat">
+        <tr><td class="k">ステップ t</td><td class="v" id="t">0</td></tr>
+        <tr><td class="k">占有（a &gt; 0.1）/ 目標</td><td class="v" id="occ">0 / 0</td></tr>
+        <tr><td class="k"><b class="hi">mIoU（その場）</b></td><td class="v" id="iou">—</td></tr>
+        <tr><td class="k">mIoU（平行移動を許す）</td><td class="v" id="iouShift">—</td></tr>
+        <tr><td class="k">種別ごとの IoU</td><td class="v" id="perClass">—</td></tr>
+        <tr><td class="k">印の数</td><td class="v" id="emit">0</td></tr>
+        <tr><td class="k">損傷直後の mIoU</td><td class="v" id="iouDamaged">—</td></tr>
+        <tr><td class="k">回復比</td><td class="v" id="ratio">—</td></tr>
+        <tr><td class="k">盤面ハッシュ</td><td class="v" id="hash">—</td></tr>
+      </table>
+      <div class="banner" id="verdict">まだ判定していない</div>
+      <p class="note">札は <code>criteria.json</code> と同じ規則: mIoU ≥ 0.9 で <b class="hi">reached</b>、0.7 以上で approached。
+        損傷後は回復比 (今 − 直後)/(損傷前 − 直後) が 0.9 以上で <b class="hi">regenerates</b>。本番は T=512 で測る。</p>
+    </div>
+
+    <div class="box">
+      <h2>読み方</h2>
+      <p class="note">
+        <b class="hi">grad</b> は場の等高線で形を決めるので円い。<b class="hi">hop</b> は到達回数（チェビシェフ距離）なので正方形になる——
+        円板に対する IoU は 441/625 = 0.706 で止まる。<br>
+        <b class="hi">旗</b>は二つの原点の場の比で色を決めるが、比の等高線は平行にならず、中央の白が蝶ネクタイ形に広がる。
+        <b class="hi">gradRim</b> は縁が自分の比を境界値として置き直すので縞が平行になる。<br>
+        <b class="hi">半分切る（原点ごと）</b>のあと、grad+再確立では傷口で信号が下がった極大が新しい原点になる。
+        4分の1だけ残すと傷口が平らで、原点が複数立つ。
+      </p>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="targets.js"></script>
+<script src="stats.js"></script>
+<script>
+(function () {
+  'use strict';
+  var L_BASE = 64, L = L_BASE;
+  var el = function (id) { return document.getElementById(id); };
+  var grid = el('grid'), field = el('field'), tcv = el('target'), chart = el('chart');
+  var gx = grid.getContext('2d'), fx = field.getContext('2d'), tx = tcv.getContext('2d'), cx = chart.getContext('2d');
+  var off = document.createElement('canvas'), ox = off.getContext('2d');
+  var offF = document.createElement('canvas'), ofx = offF.getContext('2d');
+
+  var W = null, tg = null, playing = true, history = [], cuts = [], iouAtCut = null, iouBeforeCut = null;
+  var COLORS = {
+    disc: { 1: [74, 222, 128] }, bitmap: { 1: [74, 222, 128] },
+    ring: { 1: [30, 110, 120], 2: [251, 191, 36] },
+    flag: { 1: [74, 120, 255], 2: [235, 235, 235], 3: [255, 90, 70] },
+  };
+
+  function readoutFor(target, rule) {
+    if (rule === 'coord' || rule === 'random' || rule === 'edenClock') return 'mask';
+    if (target === 'ring') return 'band';
+    if (target === 'flag') return rule === 'gradRim' ? 'harmonic' : 'dipole';
+    return 'mask';
+  }
+
+  function opts() {
+    var target = el('target-sel').value, rule = el('rule').value;
+    tg = S23T.byName(target, L);
+    var o = { L: L, rule: rule, readout: readoutFor(target, rule), fireRate: parseFloat(el('fire').value),
+      rngSeed: parseInt(el('seed').value, 10) || 1, K: tg.K };
+    if (rule === 'coord') o.paint = tg.labels;
+    if (rule === 'gradRim' && target !== 'flag') o.rule = 'gradW';
+    if (target === 'bitmap' && (rule === 'grad' || rule === 'gradW' || rule === 'gradRim')) { o.thetaG = 0.002; o.thetaD = 0.0012; o.rule = rule === 'gradRim' ? 'gradW' : rule; }
+    return o;
+  }
+
+  function reset() {
+    W = S23.createWorld(opts());
+    history = []; cuts = []; iouAtCut = null; iouBeforeCut = null;
+    off.width = L; off.height = L; offF.width = L; offF.height = L;
+    drawTarget(); measureAndRender();
+  }
+
+  function labels() { return S23S.labelsOf(W, 0.1, tg.K); }
+
+  function measure() {
+    var lab = labels();
+    var r = S23S.classIoU(lab, tg.labels, tg.K);
+    var bs = (W.t % 16 === 0 || !history.length) ? S23S.bestShift(lab, tg.labels, tg.K, L, 12).iou : history[history.length - 1].bs;
+    return { iou: r.mean, bs: bs, per: r.perClass, occ: r.occupied, hash: S23S.labelHash(lab) };
+  }
+
+  function countEmitters() {
+    var n = W.n, p = W.cur.subarray(3 * n, 4 * n), q = W.cur.subarray(4 * n, 5 * n), c = 0;
+    for (var i = 0; i < n; i++) if (p[i] > 0 || q[i] > 0) c++;
+    return c;
+  }
+
+  /* ---------------- 描画 ---------------- */
+  function drawTarget() {
+    var img = tx.createImageData(L, L), d = img.data, cols = COLORS[tg.name];
+    for (var i = 0; i < L * L; i++) {
+      var lab = tg.labels[i], c = lab ? cols[lab] : [5, 7, 10], p = i * 4;
+      d[p] = c[0]; d[p + 1] = c[1]; d[p + 2] = c[2]; d[p + 3] = 255;
+    }
+    var tmp = document.createElement('canvas'); tmp.width = L; tmp.height = L;
+    tmp.getContext('2d').putImageData(img, 0, 0);
+    tx.imageSmoothingEnabled = false;
+    tx.clearRect(0, 0, tcv.width, tcv.height);
+    tx.drawImage(tmp, 0, 0, L, L, 0, 0, tcv.width, tcv.height);
+    var lg = el('legend'), names = { disc: ['形'], bitmap: ['形'], ring: ['内側', '輪'], flag: ['左', '中', '右'] };
+    lg.innerHTML = '';
+    for (var k = 1; k <= tg.K; k++) {
+      var s = document.createElement('span'), sw = document.createElement('span');
+      sw.className = 'sw'; sw.style.background = 'rgb(' + cols[k].join(',') + ')';
+      s.appendChild(sw); s.appendChild(document.createTextNode(names[tg.name][k - 1] + '（種別 ' + k + '）'));
+      lg.appendChild(s);
+    }
+  }
+
+  function drawGrid() {
+    var n = W.n, a = W.cur, c = W.cur.subarray(7 * n, 8 * n), p = W.cur.subarray(3 * n, 4 * n), q = W.cur.subarray(4 * n, 5 * n);
+    var img = ox.createImageData(L, L), d = img.data, cols = COLORS[tg.name];
+    for (var i = 0; i < n; i++) {
+      var pi = i * 4, col;
+      if (a[i] > 0.1) {
+        var lab = Math.round(c[i]); if (!(lab >= 1)) lab = 1; if (lab > tg.K) lab = tg.K;
+        col = cols[lab];
+        var f = 0.55 + 0.45 * Math.min(1, a[i]);
+        col = [col[0] * f, col[1] * f, col[2] * f];
+      } else if (a[i] > 0) col = [40, 45, 60];
+      else col = tg.labels[i] ? [22, 26, 34] : [5, 7, 10];
+      d[pi] = col[0]; d[pi + 1] = col[1]; d[pi + 2] = col[2]; d[pi + 3] = 255;
+    }
+    ox.putImageData(img, 0, 0);
+    gx.imageSmoothingEnabled = false;
+    gx.drawImage(off, 0, 0, L, L, 0, 0, grid.width, grid.height);
+    var s = grid.width / L;
+    gx.strokeStyle = 'rgba(255,255,255,.9)'; gx.lineWidth = 1.5;
+    for (var j = 0; j < n; j++) if (p[j] > 0 || q[j] > 0) {
+      var x = (j % L) * s + s / 2, y = ((j / L) | 0) * s + s / 2;
+      gx.beginPath(); gx.arc(x, y, Math.max(3, s * 0.6), 0, 6.283); gx.stroke();
+    }
+    gx.fillStyle = 'rgba(215,220,229,.85)'; gx.font = '11px ui-monospace,Menlo,monospace';
+    gx.fillText(W.rule + ' / ' + W.readout + '  L=' + L, 8, grid.height - 8);
+  }
+
+  function drawField() {
+    var n = W.n, u = W.cur.subarray(n, 2 * n), v = W.cur.subarray(2 * n, 3 * n), z = W.cur.subarray(8 * n, 9 * n);
+    var img = ofx.createImageData(L, L), d = img.data, harmonic = W.rule === 'gradRim';
+    var isHop = W.rule === 'hop' || W.rule === 'hopW', isEden = W.rule === 'edenClock';
+    for (var i = 0; i < n; i++) {
+      var pi = i * 4, r = 5, g = 7, b = 10;
+      if (harmonic) {
+        var t = Math.max(-1, Math.min(1, z[i] / 0.15));
+        r = 120 + 120 * t; g = 40 + 160 * Math.abs(t) * (t > 0 ? 1 : 0.3); b = 160 - 120 * t;
+        if (z[i] === 0) { r = 5; g = 7; b = 10; }
+      } else if (isHop || isEden) {
+        var h = Math.max(u[i], v[i]) / (isEden ? 40 : 12), hh = Math.min(1, h);
+        if (u[i] > 0 || v[i] > 0) { r = 40 + 200 * (1 - hh); g = 60 + 160 * hh; b = 40; }
+      } else {
+        var lu = u[i] > 0 ? Math.max(0, 1 + Math.log10(u[i]) / 4) : 0, lv = v[i] > 0 ? Math.max(0, 1 + Math.log10(v[i]) / 4) : 0;
+        r = 5 + 250 * lu; g = 7 + 120 * lu + 100 * lv; b = 10 + 250 * lv;
+      }
+      d[pi] = Math.min(255, r); d[pi + 1] = Math.min(255, g); d[pi + 2] = Math.min(255, b); d[pi + 3] = 255;
+    }
+    ofx.putImageData(img, 0, 0);
+    fx.imageSmoothingEnabled = false;
+    fx.drawImage(offF, 0, 0, L, L, 0, 0, field.width, field.height);
+  }
+
+  function drawChart() {
+    cx.fillStyle = '#05070a'; cx.fillRect(0, 0, chart.width, chart.height);
+    var n = history.length; if (n < 2) return;
+    var Wd = chart.width, H = chart.height, pad = 6, tmax = Math.max(history[n - 1].t, 512);
+    function X(t) { return pad + (t / tmax) * (Wd - 2 * pad); }
+    function Y(v) { return pad + (1 - v) * (H - 2 * pad); }
+    cx.strokeStyle = 'rgba(255,255,255,.18)'; cx.setLineDash([3, 3]);
+    [0.7, 0.9].forEach(function (v) { cx.beginPath(); cx.moveTo(pad, Y(v)); cx.lineTo(Wd - pad, Y(v)); cx.stroke(); });
+    cx.setLineDash([]);
+    cuts.forEach(function (t) { cx.strokeStyle = 'rgba(255,122,89,.7)'; cx.beginPath(); cx.moveTo(X(t), pad); cx.lineTo(X(t), H - pad); cx.stroke(); });
+    cx.strokeStyle = '#4aa3ff'; cx.setLineDash([2, 3]); cx.beginPath();
+    for (var i = 0; i < n; i++) { if (i === 0) cx.moveTo(X(history[i].t), Y(history[i].bs)); else cx.lineTo(X(history[i].t), Y(history[i].bs)); }
+    cx.stroke(); cx.setLineDash([]);
+    cx.strokeStyle = '#4ade80'; cx.lineWidth = 1.6; cx.beginPath();
+    for (var j = 0; j < n; j++) { if (j === 0) cx.moveTo(X(history[j].t), Y(history[j].iou)); else cx.lineTo(X(history[j].t), Y(history[j].iou)); }
+    cx.stroke(); cx.lineWidth = 1;
+    cx.fillStyle = 'rgba(215,220,229,.75)'; cx.font = '10px ui-monospace,Menlo,monospace';
+    cx.fillText('1.0', 2, pad + 8); cx.fillText('0.9', 2, Y(0.9) - 2); cx.fillText('0.7', 2, Y(0.7) - 2); cx.fillText('t →', Wd - 26, H - 2);
+  }
+
+  function measureAndRender() {
+    var m = measure();
+    history.push({ t: W.t, iou: m.iou, bs: m.bs });
+    if (history.length > 4096) history.shift();
+    drawGrid(); drawField(); drawChart();
+    Harness.num('t', W.t, 6);
+    Harness.num('occ', m.occ + ' / ' + tg.count, 11);
+    Harness.num('iou', m.iou.toFixed(3), 6);
+    Harness.num('iouShift', m.bs.toFixed(3), 6);
+    Harness.num('perClass', m.per.map(function (x) { return x.toFixed(2); }).join(' / '), 16);
+    Harness.num('emit', countEmitters(), 4);
+    Harness.num('hash', m.hash.slice(0, 8), 8);
+    var b = el('verdict');
+    if (iouAtCut !== null) {
+      var ratio = S23S.recovery(iouBeforeCut, iouAtCut, m.iou, 0.05);
+      Harness.num('iouDamaged', iouAtCut.toFixed(3), 6);
+      Harness.num('ratio', ratio === null ? '定義なし' : ratio.toFixed(3), 8);
+      if (ratio === null) { b.className = 'banner'; b.textContent = '損傷が小さすぎて回復比は定義しない（分母 < 0.05）'; }
+      else if (ratio >= 0.9) { b.className = 'banner regen'; b.textContent = 'regenerates — 回復比 ' + ratio.toFixed(3) + '（その場の mIoU ' + m.iou.toFixed(3) + '）'; }
+      else if (ratio >= 0.5) { b.className = 'banner approached'; b.textContent = 'partial — 回復比 ' + ratio.toFixed(3) + '。平行移動を許すと ' + m.bs.toFixed(3); }
+      else { b.className = 'banner'; b.textContent = '回復比 ' + ratio.toFixed(3) + '（0.5 未満）。印の数 ' + countEmitters(); }
+    } else {
+      Harness.num('iouDamaged', '—', 6); Harness.num('ratio', '—', 8);
+      if (m.iou >= 0.9) { b.className = 'banner reached'; b.textContent = 'reached — 目標との mIoU ' + m.iou.toFixed(3) + '（t=' + W.t + '）'; }
+      else if (m.iou >= 0.7) { b.className = 'banner approached'; b.textContent = 'approached — mIoU ' + m.iou.toFixed(3); }
+      else { b.className = 'banner'; b.textContent = 'notReached — mIoU ' + m.iou.toFixed(3) + '（偶然の水準 ' + S23T.chanceIoU(tg.count / (L * L), 0.5).toFixed(3) + '）'; }
+    }
+  }
+
+  function cut(kind, x, y) {
+    if (!W) return;
+    iouBeforeCut = measure().iou;
+    if (kind === 'keep') S23.eraseColumns(W, 0, W.cx - 1);
+    else if (kind === 'remove') S23.eraseColumns(W, 0, W.cx);
+    else if (kind === 'segment') S23.eraseColumns(W, 0, W.cx + 6);
+    else S23.eraseCircle(W, x, y, 6);
+    cuts.push(W.t);
+    iouAtCut = measure().iou;
+    measureAndRender();
+    Harness.say('t=' + W.t + ' で切った。損傷直後の mIoU ' + iouAtCut.toFixed(3));
+  }
+
+  function frame() {
+    if (playing && W) {
+      var k = parseInt(el('speed').value, 10) || 4;
+      for (var i = 0; i < k; i++) S23.stepWorld(W);
+      measureAndRender();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------------- つまみ ---------------- */
+  ['target-sel', 'rule', 'seed'].forEach(function (id) { el(id).addEventListener('change', reset); });
+  el('fire').addEventListener('input', function () { el('firev').textContent = parseFloat(el('fire').value).toFixed(2); reset(); });
+  el('speed').addEventListener('input', function () { el('speedv').textContent = el('speed').value; });
+  el('play').addEventListener('click', function () { playing = !playing; this.textContent = playing ? '止める' : '再生'; });
+  el('step').addEventListener('click', function () { for (var i = 0; i < 8; i++) S23.stepWorld(W); measureAndRender(); });
+  el('reset').addEventListener('click', reset);
+  el('cutKeep').addEventListener('click', function () { cut('keep'); });
+  el('cutRemove').addEventListener('click', function () { cut('remove'); });
+  el('cutSegment').addEventListener('click', function () { cut('segment'); });
+  grid.addEventListener('click', function (ev) {
+    var r = grid.getBoundingClientRect();
+    var x = Math.floor((ev.clientX - r.left) / r.width * L), y = Math.floor((ev.clientY - r.top) / r.height * L);
+    cut('circle', x, y);
+  });
+
+  reset();
+  frame();
+
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (playing) document.getElementById('play').click(); },
+    id: 'S-23',
+    version: '1.0.0',
+    inputs: ['target-sel', 'rule', 'fire', 'seed', 'speed'],
+    paramNames: {
+      'target-sel': { category: 'p', code: 'target', full: 'target_shape' },
+      rule: { category: 'p', code: 'rule', full: 'rule' },
+      fire: { category: 'p', code: 'fire', full: 'fire_rate' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+    },
+    canvases: ['grid', 'field', 'target', 'chart'],
+    // 格子の系なので「広さ」は格子の一辺。目標の大きさ（半径 12）は据え置き。
+    resize: function (scale) {
+      var next = Math.round(L_BASE * scale);
+      if (next < 32) throw new Error('目標の直径（25）より広くないと置けない');
+      L = next;
+      reset();
+      Harness.say('格子を ' + L + '×' + L + ' にした（目標の半径 12 は据え置き）');
+    },
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-32 ランダムブール網とカオスの縁 — 損傷が増えるか消えるか、閉じた軌道はどれだけ長いか</title>
+<style>
+  :root{
+    --bg:#0d1016; --panel:#161a22; --line:#282f3b; --fg:#d6dce6; --dim:#7c8698;
+    --hot:#ff7a59; --cool:#4aa3ff; --good:#4ade80; --warn:#fbbf24; --theory:#c084fc;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1100px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070b;border:1px solid var(--line);border-radius:4px;
+         max-width:100%;height:auto;image-rendering:pixelated}
+  aside{width:322px;min-width:282px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 13px;margin-bottom:12px}
+  .box h2{margin:0 0 9px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.06em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:104px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  select,input[type=number]{background:#0b0e14;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  .val{width:62px;text-align:right;flex:none;
+       font:12px ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+  button{background:#1e2430;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#28303e}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  button.primary:hover{background:#2557e6}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #1e2430}
+  table.stat td.k{color:var(--dim);width:54%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:9ch}
+  .banner{margin-top:9px;padding:8px 10px;border-radius:4px;font-size:12px;
+          border:1px solid var(--line);background:#11151c;color:var(--dim)}
+  .banner.chaos{border-color:var(--hot);background:#231410;color:#ffd3c6}
+  .banner.order{border-color:var(--cool);background:#101a26;color:#c7e0ff}
+  .banner.edge{border-color:var(--good);background:#10201a;color:#c8f5dc}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;color:var(--dim);font-size:11px;margin-top:6px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .cap{color:var(--dim);font-size:11px;margin:0 0 3px}
+  .note{color:var(--dim);font-size:11px;margin-top:8px}
+  code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#a5b4fc}
+  b.hi{color:#fff}
+  @media(max-width:860px){aside{width:auto;min-width:0}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-32 ランダムブール網とカオスの縁</h1>
+  <p>N 個のノードが K 本の入力とランダムな真理値表を持ち、同期に更新される。1 ノードだけ違う 2 本の軌道を並べて走らせると、
+     食い違いは<b class="hi">増える（カオス相）</b>か<b class="hi">消える（秩序相）</b>かに分かれる。境目は解析的に
+     <code>2Kp(1−p) = 1</code>（Derrida–Pomeau）。もう一方の画面では、有限・決定的なので必ず落ちる<b class="hi">閉じた軌道</b>の長さを数える。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <p class="cap" id="cap1">2 本の軌道（上＝基準・下＝1 ノードだけ違う）。<span style="color:var(--hot)">橙</span>が食い違っているノード</p>
+    <canvas id="field" width="460" height="268"></canvas>
+    <div class="legend">
+      <span><span class="sw" style="background:#2b3546"></span>0</span>
+      <span><span class="sw" style="background:#7fa9d8"></span>1</span>
+      <span><span class="sw" style="background:#ff7a59"></span>2 本で食い違っているノード</span>
+      <span><span class="sw" style="background:#4ade80"></span>閉じた軌道の中</span>
+    </div>
+  </div>
+
+  <div class="col">
+    <p class="cap" id="cap2">Derrida プロット: d<sub>t</sub> → d<sub>t+1</sub>。<span style="color:var(--theory)">紫</span>が理論の写像、灰が対角線</p>
+    <canvas id="derrida" width="300" height="300"></canvas>
+    <p class="cap" id="cap3">p を掃くと交点が出る。<span style="color:var(--theory)">紫の縦線</span>が理論値 p<sub>c</sub></p>
+    <canvas id="sweep" width="300" height="220"></canvas>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>系</h2>
+      <label><span class="k">見るもの</span>
+        <select id="mode">
+          <option value="damage">損傷（カオスの縁）</option>
+          <option value="orbit">閉じた軌道（周期）</option>
+        </select></label>
+      <label><span class="k">K（入力数）</span>
+        <select id="K"><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+      <label><span class="k">p（表が1の率）</span><input type="range" id="p" min="0.02" max="0.5" step="0.002" value="0.211">
+        <span class="val" id="pv">0.211</span></label>
+      <label><span class="k">配線</span>
+        <select id="wiring"><option value="distinct">相異なる・自己なし</option><option value="replace">重複と自己を許す</option></select></label>
+      <label><span class="k">忘れ方</span>
+        <select id="forget">
+          <option value="none">何も忘れない（実際の網）</option>
+          <option value="table">真理値表を毎回引き直す</option>
+          <option value="wiring">配線を毎回引き直す</option>
+          <option value="both">両方＝焼きなまし模型</option>
+        </select></label>
+      <label><span class="k">最初の食い違い</span><input type="range" id="m0" min="1" max="40" step="1" value="1">
+        <span class="val" id="m0v">1</span></label>
+      <label><span class="k">種</span><input type="number" id="seed" value="20260913"></label>
+      <label><span class="k">速さ</span><input type="range" id="speed" min="1" max="30" step="1" value="6">
+        <span class="val" id="speedv">6</span></label>
+      <div class="row">
+        <button class="primary" id="go">走らせる</button>
+        <button id="stop">止める</button>
+        <button id="reset">やり直す</button>
+        <button id="newpair">次の対</button>
+      </div>
+      <div class="note">「広さ」＝ <b class="hi">N（ノード数）</b>。ハーネスの ⇲ で変えられる。</div>
+    </div>
+
+    <div class="box">
+      <h2>いま出ている値</h2>
+      <table class="stat">
+        <tr><td class="k">N</td><td class="v" id="sN">256</td></tr>
+        <tr><td class="k">理論の傾き 2Kp(1−p)</td><td class="v" id="sSlope">—</td></tr>
+        <tr><td class="k">理論の臨界 p<sub>c</sub>(K)</td><td class="v" id="sPc">—</td></tr>
+        <tr><td class="k">ステップ t</td><td class="v" id="sT">0</td></tr>
+        <tr><td class="k">食い違い数 m<sub>t</sub></td><td class="v" id="sM">—</td></tr>
+        <tr><td class="k">1 歩の実測比（平均）</td><td class="v" id="sRatio">—</td></tr>
+        <tr><td class="k">生き残った対</td><td class="v" id="sSurv">—</td></tr>
+        <tr><td class="k">閉じた軌道の周期</td><td class="v" id="sPeriod">—</td></tr>
+        <tr><td class="k">いま辿った長さ</td><td class="v" id="sEntry">—</td></tr>
+        <tr><td class="k">周期の中央値</td><td class="v" id="sMed">—</td></tr>
+        <tr><td class="k">相異なる軌道</td><td class="v" id="sDistinct">—</td></tr>
+        <tr><td class="k">上限 512 で落ちる率</td><td class="v" id="sTrunc">—</td></tr>
+        <tr><td class="k">終状態ハッシュ</td><td class="v" id="sHash">—</td></tr>
+      </table>
+      <div class="banner" id="verdict">走らせると相の判定が出る</div>
+    </div>
+
+    <div class="box">
+      <h2>p の掃引</h2>
+      <div class="note">11 点の p を順に測り、増幅率が 1 を横切る場所（＝推定した臨界点）を出す。理論値は紫の線。</div>
+      <div class="row">
+        <button id="sweepGo">掃引する</button>
+        <button id="sweepClear">消す</button>
+      </div>
+      <table class="stat" style="margin-top:8px">
+        <tr><td class="k">推定した p̂<sub>c</sub></td><td class="v" id="sPhat">—</td></tr>
+        <tr><td class="k">理論値との差</td><td class="v" id="sErr">—</td></tr>
+      </table>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="stats.js"></script>
+<script>
+(function () {
+  'use strict';
+  var el = function (id) { return document.getElementById(id); };
+  var C = window.S32, ST = window.S32stats;
+
+  var baseN = 256, nScale = 1, N = baseN;
+  var net = null, rng = null, A = null, B = null, A2 = null, B2 = null;
+  var t = 0, running = false, rows = [], mSeries = [], ratios = [], surv = { alive: 0, total: 0 };
+  var periods = [], distinct = {}, truncN = 0, orbitTotal = 0;
+  var orbitTrace = null, orbitMark = null;
+  var sweepPts = [], sweeping = -1;
+  var CAP_LOW = 512;
+
+  function num(id, v, w) { Harness.num(el(id), v, w); }
+  function K() { return Number(el('K').value); }
+  function P() { return Number(el('p').value); }
+
+  // ---------------------------------------------------------------- 準備
+
+  function build() {
+    var seed = (Number(el('seed').value) >>> 0) || 1;
+    net = C.makeNetwork({ N: N, K: K(), p: P(), seed: seed, wiring: el('wiring').value });
+    rng = C.makeRng((seed ^ 0x9e3779b9) >>> 0);
+  }
+
+  function newPair() {
+    A = C.randomState(N, rng);
+    B = Uint8Array.from(A);
+    var m0 = Math.min(Number(el('m0').value), N), used = {}, k = 0;
+    while (k < m0) { var i = (rng() * N) | 0; if (!used[i]) { used[i] = 1; B[i] ^= 1; k++; } }
+    A2 = new Uint8Array(N); B2 = new Uint8Array(N);
+    t = 0; rows = []; mSeries = [C.hamming(A, B)];
+    pushRow();
+  }
+
+  function reset() {
+    N = Math.max(16, Math.round(baseN * nScale));
+    build(); newPair();
+    ratios = []; surv = { alive: 0, total: 0 };
+    periods = []; distinct = {}; truncN = 0; orbitTotal = 0; orbitTrace = null; orbitMark = null;
+    draw(); drawDerrida(); drawSweep(); stats();
+  }
+
+  function pushRow() {
+    var r = new Uint8Array(N * 2);
+    for (var i = 0; i < N; i++) { r[i] = A[i]; r[N + i] = B[i]; }
+    rows.push(r);
+    if (rows.length > 120) rows.shift();
+  }
+
+  // ---------------------------------------------------------------- 進行
+
+  function stepDamage() {
+    C.stepPair(net, A, B, A2, B2, el('forget').value, rng);
+    var sw = A; A = A2; A2 = sw; sw = B; B = B2; B2 = sw;
+    t++;
+    var m = C.hamming(A, B);
+    if (mSeries.length) {
+      var prev = mSeries[mSeries.length - 1];
+      if (prev > 0 && m > 0) ratios.push(m / prev);   // 0 になった歩は log が取れないので除く
+    }
+    mSeries.push(m);
+    pushRow();
+    if (m === 0 || t >= 60) {
+      surv.total++; if (m > 0) surv.alive++;
+      newPair();
+    }
+  }
+
+  var holdFor = 0;
+
+  function stepOrbit() {
+    // 1 本の軌道を進め、閉じた軌道を見つけたら印を付けてしばらく見せ、次の初期状態へ
+    if (holdFor > 0) { holdFor--; if (holdFor === 0) orbitTrace = null; return; }
+    if (!orbitTrace) {
+      var s0 = C.randomState(N, rng);
+      orbitTrace = { seen: {}, len: 0, state: Uint8Array.from(s0), start: Uint8Array.from(s0) };
+      rows = []; t = 0; orbitMark = null;
+    }
+    var h = C.stateHash(orbitTrace.state);
+    if (orbitTrace.seen[h] !== undefined) {
+      var per = orbitTrace.len - orbitTrace.seen[h];
+      orbitMark = { period: per };
+      periods.push(per); orbitTotal++;
+      // 本番と同じ規約で「上限 512 なら落ちたか」を数える（steps から導く）
+      var full = C.findClosedOrbit(net, orbitTrace.start, 200000);
+      if (full.truncated || full.steps > CAP_LOW) truncN++;
+      if (full.orbitKey) distinct[full.orbitKey] = 1;
+      holdFor = 20;
+      return;
+    }
+    orbitTrace.seen[h] = orbitTrace.len++;
+    A = orbitTrace.state; B = A;
+    pushRow();
+    var nx = new Uint8Array(N);
+    C.stepState(net, orbitTrace.state, nx);
+    orbitTrace.state = nx;
+    t++;
+    if (t > 400) { orbitTrace = null; truncN++; orbitTotal++; }
+  }
+
+  function tick() {
+    if (!running) return;
+    var speed = Number(el('speed').value);
+    for (var s = 0; s < speed; s++) {
+      if (sweeping >= 0) { sweepStep(); }
+      else if (el('mode').value === 'orbit') stepOrbit();
+      else stepDamage();
+    }
+    draw(); drawDerrida(); drawSweep(); stats();
+    requestAnimationFrame(tick);
+  }
+
+  // ---------------------------------------------------------------- 掃引
+
+  var sweepGrid = [], sweepAcc = null;
+
+  function makeGrid() {
+    var k = K();
+    if (k < 2.0000001 && k <= 2) return null;
+    var pc = ST.pcLow(k);
+    if (!isFinite(pc)) return null;
+    var d = { 3: 0.0086, 4: 0.0053, 5: 0.0039 }[k] || 0.006;
+    var g = [];
+    for (var j = -5; j <= 5; j++) g.push(+(pc + j * d).toFixed(6));
+    return g;
+  }
+
+  function startSweep() {
+    sweepGrid = makeGrid();
+    if (!sweepGrid) { el('verdict').textContent = 'K=2 では理論の傾きが p=0.5 で 1 に接するだけで横切らない。K≥3 を選ぶ'; return; }
+    sweepPts = []; sweeping = 0;
+    sweepAcc = { mSum: new Float64Array(11), n: 0, reps: 0 };
+    running = true; requestAnimationFrame(tick);
+  }
+
+  function sweepStep() {
+    var p = sweepGrid[sweeping];
+    var seed = ((Number(el('seed').value) >>> 0) + sweeping * 7919 + sweepAcc.reps * 13) >>> 0;
+    var nt = C.makeNetwork({ N: N, K: K(), p: p, seed: seed, wiring: el('wiring').value });
+    var rr = C.makeRng((seed ^ 0x5bf03635) >>> 0);
+    for (var q = 0; q < 12; q++) {
+      var a = C.randomState(N, rr), b = Uint8Array.from(a);
+      b[(rr() * N) | 0] ^= 1;
+      var res = C.separationSeries(nt, a, b, 8, el('forget').value, rr);
+      for (var i = 0; i <= 8; i++) sweepAcc.mSum[i] += res.m[i];
+      sweepAcc.n++;
+    }
+    sweepAcc.reps++;
+    if (sweepAcc.reps >= 10) {
+      var m = [];
+      for (var j = 0; j <= 8; j++) m.push(Math.max(sweepAcc.mSum[j] / sweepAcc.n, 1 / sweepAcc.n));
+      var ls = ST.logSBar(m, 1, 6, 'geomean-of-ratios', 1 / sweepAcc.n);
+      sweepPts.push({ p: p, logS: ls, se: 0.01 });
+      sweeping++;
+      sweepAcc = { mSum: new Float64Array(11), n: 0, reps: 0 };
+      if (sweeping >= sweepGrid.length) {
+        sweeping = -1; running = false;
+        var det = ST.detectCrossing(sweepPts, { orientation: 1, floorLog: 0.004 });
+        var pc = ST.pcLow(K());
+        num('sPhat', det.detected ? det.pHat.toFixed(6) : det.reason, 9);
+        num('sErr', det.detected ? (det.pHat - pc >= 0 ? '+' : '') + (det.pHat - pc).toFixed(6) : '—', 9);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------- 描画
+
+  function draw() {
+    var cv = el('field'), g = cv.getContext('2d');
+    g.fillStyle = '#05070b'; g.fillRect(0, 0, cv.width, cv.height);
+    if (!rows.length) return;
+    var orbitMode = el('mode').value === 'orbit';
+    var cols = orbitMode ? N : N * 2;
+    var cw = cv.width / cols, ch = Math.max(1, Math.min(6, cv.height / Math.max(rows.length, 40)));
+    for (var y = 0; y < rows.length; y++) {
+      var r = rows[y], yy = y * ch;
+      for (var x = 0; x < cols; x++) {
+        var v = r[x], diff = false;
+        if (!orbitMode) { var i = x % N; diff = r[i] !== r[N + i]; }
+        g.fillStyle = diff ? '#ff7a59' : (v ? '#7fa9d8' : '#2b3546');
+        g.fillRect(x * cw, yy, Math.max(1, cw), Math.max(1, ch));
+      }
+      if (orbitMode && orbitMark && y >= rows.length - orbitMark.period) {
+        g.fillStyle = 'rgba(74,222,128,0.30)';
+        g.fillRect(0, yy, cv.width, Math.max(1, ch));
+      }
+    }
+    if (!orbitMode) {
+      g.strokeStyle = '#282f3b'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(cv.width / 2, 0); g.lineTo(cv.width / 2, cv.height); g.stroke();
+    }
+  }
+
+  function drawDerrida() {
+    var cv = el('derrida'), g = cv.getContext('2d'), W = cv.width, H = cv.height, pad = 26;
+    g.fillStyle = '#05070b'; g.fillRect(0, 0, W, H);
+    var X = function (d) { return pad + d * (W - pad - 8); };
+    var Y = function (d) { return H - pad - d * (H - pad - 8); };
+    // 対角線
+    g.strokeStyle = '#3a4354'; g.setLineDash([3, 3]);
+    g.beginPath(); g.moveTo(X(0), Y(0)); g.lineTo(X(1), Y(1)); g.stroke(); g.setLineDash([]);
+    // 理論の写像
+    g.strokeStyle = '#c084fc'; g.lineWidth = 2; g.beginPath();
+    for (var i = 0; i <= 100; i++) {
+      var d = i / 100, dn = ST.mapStep(d, K(), P());
+      if (i === 0) g.moveTo(X(d), Y(dn)); else g.lineTo(X(d), Y(dn));
+    }
+    g.stroke(); g.lineWidth = 1;
+    // 実測点
+    g.fillStyle = '#ff7a59';
+    for (var s = 0; s + 1 < mSeries.length; s++) {
+      var a = mSeries[s] / N, b = mSeries[s + 1] / N;
+      g.beginPath(); g.arc(X(a), Y(b), 2.4, 0, 6.2832); g.fill();
+    }
+    g.strokeStyle = '#282f3b';
+    g.strokeRect(pad, 8, W - pad - 8, H - pad - 8);
+    g.fillStyle = '#7c8698'; g.font = '10px ui-monospace,Menlo,monospace';
+    g.fillText('d(t)', W / 2 - 10, H - 8);
+    g.save(); g.translate(10, H / 2 + 14); g.rotate(-Math.PI / 2); g.fillText('d(t+1)', 0, 0); g.restore();
+  }
+
+  function drawSweep() {
+    var cv = el('sweep'), g = cv.getContext('2d'), W = cv.width, H = cv.height, pad = 30;
+    g.fillStyle = '#05070b'; g.fillRect(0, 0, W, H);
+    if (el('mode').value === 'orbit') { drawPeriods(g, W, H, pad); return; }
+    var grid = sweepGrid && sweepGrid.length ? sweepGrid : makeGrid();
+    if (!grid) { g.fillStyle = '#7c8698'; g.font = '11px sans-serif'; g.fillText('K≥3 を選ぶと掃引できる', 14, H / 2); return; }
+    var p0 = grid[0], p1 = grid[grid.length - 1], lim = 0.25;
+    var X = function (p) { return pad + (p - p0) / (p1 - p0) * (W - pad - 10); };
+    var Y = function (v) { return H / 2 - Math.max(-lim, Math.min(lim, v)) / lim * (H / 2 - 12); };
+    g.strokeStyle = '#3a4354'; g.beginPath(); g.moveTo(pad, Y(0)); g.lineTo(W - 10, Y(0)); g.stroke();
+    var pc = ST.pcLow(K());
+    g.strokeStyle = '#c084fc'; g.setLineDash([4, 3]);
+    g.beginPath(); g.moveTo(X(pc), 8); g.lineTo(X(pc), H - 14); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = '#4ade80'; g.lineWidth = 1.6; g.beginPath();
+    sweepPts.forEach(function (q, i) {
+      var x = X(q.p), y = Y(isFinite(q.logS) ? q.logS : -lim);
+      if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+    });
+    g.stroke(); g.lineWidth = 1;
+    g.fillStyle = '#4ade80';
+    sweepPts.forEach(function (q) {
+      g.beginPath(); g.arc(X(q.p), Y(isFinite(q.logS) ? q.logS : -lim), 3, 0, 6.2832); g.fill();
+    });
+    g.fillStyle = '#7c8698'; g.font = '10px ui-monospace,Menlo,monospace';
+    g.fillText('log sBar', 3, 14); g.fillText('p', W - 14, H - 3);
+    g.fillText(p0.toFixed(3), pad - 8, H - 3); g.fillText(p1.toFixed(3), W - 48, H - 3);
+  }
+
+  function drawPeriods(g, W, H, pad) {
+    if (!periods.length) { g.fillStyle = '#7c8698'; g.font = '11px sans-serif'; g.fillText('走らせると周期がたまる', 14, H / 2); return; }
+    var bins = 14, cnt = new Array(bins).fill(0), maxlog = Math.log2(100000);
+    periods.forEach(function (p) { var b = Math.min(bins - 1, Math.floor(Math.log2(Math.max(1, p)) / maxlog * bins)); cnt[b]++; });
+    var mx = Math.max.apply(null, cnt) || 1;
+    var bw = (W - pad - 10) / bins;
+    for (var i = 0; i < bins; i++) {
+      var h = cnt[i] / mx * (H - pad - 10);
+      g.fillStyle = '#4aa3ff';
+      g.fillRect(pad + i * bw, H - pad + 6 - h, Math.max(1, bw - 2), h);
+    }
+    var capBin = Math.log2(CAP_LOW / 3) / maxlog * bins;
+    g.strokeStyle = '#fbbf24'; g.setLineDash([4, 3]);
+    g.beginPath(); g.moveTo(pad + capBin * bw, 8); g.lineTo(pad + capBin * bw, H - pad + 6); g.stroke(); g.setLineDash([]);
+    g.fillStyle = '#7c8698'; g.font = '10px ui-monospace,Menlo,monospace';
+    g.fillText('周期（2 の冪の目盛り）', pad, H - 6);
+    g.fillText('上限512', pad + capBin * bw + 3, 16);
+  }
+
+  // ---------------------------------------------------------------- 表示
+
+  function stats() {
+    num('sN', N, 5);
+    num('sSlope', ST.derridaSlope(K(), P()).toFixed(4), 8);
+    var pc = ST.pcLow(K());
+    num('sPc', isFinite(pc) ? pc.toFixed(6) : '—（K<2 で存在せず）', 9);
+    num('sT', t, 5);
+    num('sM', mSeries.length ? mSeries[mSeries.length - 1] : '—', 6);
+    var r = ratios.length ? Math.exp(ratios.reduce(function (a, b) { return a + Math.log(b); }, 0) / ratios.length) : null;
+    num('sRatio', r == null ? '—' : r.toFixed(4), 8);
+    num('sSurv', surv.total ? surv.alive + '/' + surv.total : '—', 8);
+    num('sPeriod', orbitMark ? orbitMark.period : '—', 7);
+    num('sEntry', orbitTrace ? orbitTrace.len : '—', 7);
+    num('sMed', periods.length ? ST.median(periods) : '—', 7);
+    num('sDistinct', Object.keys(distinct).length || '—', 6);
+    num('sTrunc', orbitTotal ? (truncN / orbitTotal).toFixed(3) : '—', 7);
+    num('sHash', A ? C.stateHash(A).slice(0, 10) : '—', 11);
+
+    var v = el('verdict'), s = ST.derridaSlope(K(), P());
+    v.className = 'banner ' + (s > 1.06 ? 'chaos' : s < 0.94 ? 'order' : 'edge');
+    v.innerHTML = '理論の傾き <b class="hi">' + s.toFixed(3) + '</b> — '
+      + (s > 1.06 ? 'カオス相（食い違いは広がる）' : s < 0.94 ? '秩序相（食い違いは消える）' : '<b class="hi">縁</b>（1 の近く）')
+      + (r == null ? '' : '。実測の 1 歩あたり比は <b class="hi">' + r.toFixed(3) + '</b>');
+  }
+
+  // ---------------------------------------------------------------- 配線
+
+  ['p', 'm0', 'speed'].forEach(function (id) {
+    el(id).addEventListener('input', function () { el(id + 'v').textContent = el(id).value; });
+  });
+  ['K', 'p', 'wiring', 'seed', 'forget'].forEach(function (id) {
+    el(id).addEventListener('change', function () { sweepPts = []; sweeping = -1; reset(); });
+  });
+  el('mode').addEventListener('change', function () { reset(); });
+  el('go').onclick = function () { if (!running) { running = true; requestAnimationFrame(tick); } };
+  el('stop').onclick = function () { running = false; sweeping = -1; };
+  el('reset').onclick = function () { running = false; sweeping = -1; sweepPts = []; reset(); };
+  el('newpair').onclick = function () { if (el('mode').value === 'orbit') { orbitTrace = null; holdFor = 0; } else newPair(); draw(); stats(); };
+  el('sweepGo').onclick = startSweep;
+  el('sweepClear').onclick = function () { sweepPts = []; sweeping = -1; drawSweep(); };
+
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { document.getElementById('stop').click(); },
+    id: 'S-32',
+    version: '1.0.0',
+    inputs: ['mode', 'K', 'p', 'wiring', 'forget', 'm0', 'seed', 'speed'],
+    // mode は見る図（軌道/Derrida）の切替で描画専用のため s にした（判断に迷った点として報告済み）。
+    // forget はここでは対のステップ関数 stepPair に渡り実際の力学を変えるため p にした
+    // （S-26 の forget は検出器側の定義で用途が異なる）
+    paramNames: {
+      mode: { category: 's', code: 'mode', full: 'view_mode' },
+      K: { category: 'p', code: 'k', full: 'in_degree' },
+      p: { category: 'p', code: 'p', full: 'bias' },
+      wiring: { category: 'p', code: 'wiring', full: 'wiring' },
+      forget: { category: 'p', code: 'forget', full: 'forget_mode' },
+      m0: { category: 'p', code: 'm0', full: 'initial_hamming' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+    },
+    canvases: ['field', 'derrida', 'sweep'],
+    // 「広さ」は **N（ノード数）**。空間ではないが、この系の規模はノード数で決まる。
+    resize: function (scale) {
+      nScale = scale;
+      sweepPts = []; sweeping = -1;
+      reset();
+      Harness.say('N を ' + N + ' にした（16 で下から止まる）');
+    },
+    onRestore: function () {
+      ['p', 'm0', 'speed'].forEach(function (id) { el(id + 'v').textContent = el(id).value; });
+      sweepPts = []; sweeping = -1;
+      reset();
+    },
+  });
+
+  reset();
+  // 画面を開いた時点で動いている（ダッシュボードではスケッチの画面がそのまま実行画面になる）
+  running = true;
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

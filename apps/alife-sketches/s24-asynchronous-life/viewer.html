@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-24 非同期更新は何を壊し、何を残すか — α-非同期ライフゲーム</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --line:#2a2f3a; --fg:#d7dce5; --dim:#7e8797;
+    --hot:#ff7a59; --cool:#4aa3ff; --good:#4ade80; --warn:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:4px 0 0;color:var(--dim);font-size:12px;max-width:1100px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070a;border:1px solid var(--line);border-radius:4px;max-width:100%;height:auto}
+  canvas#grid{image-rendering:pixelated}
+  aside{width:340px;min-width:300px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 13px;margin-bottom:12px}
+  .box h2{margin:0 0 9px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.06em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;flex-wrap:wrap}
+  label span.k{width:104px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  input[type=number],select{background:#0c0e13;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  .val{width:60px;text-align:right;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--fg);flex:none;
+       font-variant-numeric:tabular-nums}
+  button{background:#20252f;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#2a3140}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  button.primary:hover{background:#2557e6}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #20242c}
+  table.stat td.k{color:var(--dim);width:58%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:9ch}
+  .banner{margin-top:9px;padding:8px 10px;border-radius:4px;font-size:12px;border:1px solid var(--line);background:#12161d;color:var(--dim)}
+  .banner.frozen{border-color:var(--cool);background:#0e1c2b;color:#c2e0ff}
+  .banner.active{border-color:var(--hot);background:#2a1610;color:#ffd1c2}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--dim);font-size:11px;margin-top:7px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .note{color:var(--dim);font-size:11px;margin-top:8px}
+  .cap{color:var(--dim);font-size:11px;margin:0 0 2px}
+  code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#a5b4fc}
+  b.hi{color:#fff}
+  @media(max-width:820px){aside{width:auto;min-width:0}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-24 — 非同期更新は何を壊し、何を残すか（α-非同期ライフゲーム）</h1>
+  <p>規則は Conway の Life（B3/S23）のまま。<b class="hi">つまみは同期率 α ひとつ</b>——各セルが各ステップで確率 α で更新され、
+     残りは据え置き。α=1 が同期。<b class="hi">α を 0.95 → 0.85 へ下げるとまばらな凍結模様が迷路へ変わる</b>（公表された転移 α_c ≈ 0.9083）。
+     赤は「選ばれたら変わるセル」（activity）で、凍結相では消える。下の 1 次元の帯は較正に使う接触過程（λ_c = 3.29785）。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <div>
+      <p class="cap">格子（<span id="Lv">128</span>×<span id="Lv2">128</span> のトーラス）。白 = 1、赤 = 選ばれたら変わるセル。</p>
+      <canvas id="grid" width="440" height="440"></canvas>
+      <div class="legend">
+        <span><span class="sw" style="background:#e8e8e8"></span>1 のセル</span>
+        <span><span class="sw" style="background:#ff7a59"></span>不安定な 1（次に消える候補）</span>
+        <span><span class="sw" style="background:#7a2a1a"></span>不安定な 0（次に生える候補）</span>
+      </div>
+    </div>
+    <div>
+      <p class="cap">activity（赤・対数）と density（青・線形）の推移。横軸は対数の時間。</p>
+      <canvas id="series" width="440" height="150"></canvas>
+    </div>
+    <div>
+      <p class="cap">較正用の系: 1 次元の接触過程（横 = 環の位置、縦 = 時間 ↓）。λ を 3.3 の前後で振ると帯が絶えるか残るかが変わる。</p>
+      <canvas id="cp" width="440" height="120"></canvas>
+    </div>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>つまみ</h2>
+      <label><span class="k">同期率 α</span><input type="range" id="alpha" min="0" max="1" step="0.005" value="0.91"><span class="val" id="alphav">0.910</span></label>
+      <label><span class="k">規則</span>
+        <select id="rule">
+          <option value="life">Life（B3/S23）</option>
+          <option value="flip">反転（負コントロール NC1）</option>
+          <option value="fill">充填（負コントロール NC2）</option>
+        </select></label>
+      <label><span class="k">毎ステップ混ぜる</span><input type="checkbox" id="mix"> <span class="note">（NC3: 空間相関だけを忘れる）</span></label>
+      <label><span class="k">初期密度</span><input type="range" id="density" min="0" max="1" step="0.05" value="0.5"><span class="val" id="densityv">0.50</span></label>
+      <label><span class="k">シード</span><input type="number" id="seed" value="1" min="1" step="1"></label>
+      <label><span class="k">1 フレームの歩数</span><input type="number" id="speed" value="1" min="1" max="50" step="1"></label>
+      <label><span class="k">接触過程 λ</span><input type="range" id="lambda" min="2.5" max="4.5" step="0.01" value="3.30"><span class="val" id="lambdav">3.30</span></label>
+      <div class="row">
+        <button class="primary" id="play">再生</button>
+        <button id="step">1 歩</button>
+        <button id="reset">やり直す</button>
+      </div>
+      <div class="row">
+        <button id="p1">α=1 同期</button>
+        <button id="p095">α=0.95 凍結</button>
+        <button id="p091">α=0.91 転移付近</button>
+        <button id="p05">α=0.5 迷路</button>
+      </div>
+      <p class="note">つまみを動かすと自動でやり直す。</p>
+    </div>
+
+    <div class="box">
+      <h2>観測</h2>
+      <table class="stat">
+        <tr><td class="k">ステップ t</td><td class="v" id="t">0</td></tr>
+        <tr><td class="k"><b class="hi">activity</b>（不安定セルの割合）</td><td class="v" id="act">—</td></tr>
+        <tr><td class="k">density（1 の割合）</td><td class="v" id="den">—</td></tr>
+        <tr><td class="k">このステップで変えたセル</td><td class="v" id="chg">—</td></tr>
+        <tr><td class="k">凍結した時刻</td><td class="v" id="frz">—</td></tr>
+        <tr><td class="k">状態ハッシュ</td><td class="v" id="hash">—</td></tr>
+        <tr><td class="k">接触過程の活性率</td><td class="v" id="cprho">—</td></tr>
+      </table>
+      <div class="banner" id="verdict">まだ動かしていない</div>
+      <p class="note">「凍結」= activity が 0 になった配置（固定点）。α&lt;1 では振動子も壊れて止まる。
+        迷路相では activity が正のまま揺れ続ける。判定そのものは <code>run.js</code> が log-log の曲がりで行う。</p>
+    </div>
+
+    <div class="box">
+      <h2>読み方</h2>
+      <p class="note">
+        <b class="hi">α=1</b>: 見慣れた Life。灰と静止物とブリンカーが残り、赤（ブリンカー）が点々と残る。<br>
+        <b class="hi">α=0.95</b>: ブリンカーが壊れ、まばらな静止物だけになって赤が消える（凍結相）。<br>
+        <b class="hi">α=0.5</b>: 密度 0.37 前後の迷路が全面を覆い、赤が絶えず瞬く（迷路相）。<br>
+        転移はその間の <b class="hi">α≈0.91</b> にあり、どちらへ転ぶかが格子の大きさと時間に依存する。
+      </p>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="stats.js"></script>
+<script>
+(function () {
+  'use strict';
+  var BASE_L = 128, sizeScale = 1;
+  var CP_N = 440, CP_ROWS = 120;
+
+  var el = function (id) { return document.getElementById(id); };
+  var grid = el('grid'), series = el('series'), cpc = el('cp');
+  var gx = grid.getContext('2d'), sx = series.getContext('2d'), px = cpc.getContext('2d');
+  var off = document.createElement('canvas'), ox = off.getContext('2d');
+
+  var G = null, C = null, playing = false, frozenAt = null, lastChanged = 0;
+  var tHist = [], aHist = [], dHist = [], cpRow = 0, cpImg = null;
+
+  function L() { return Math.max(16, Math.round(BASE_L * sizeScale)); }
+
+  function opts() {
+    return {
+      L: L(), alpha: parseFloat(el('alpha').value), rule: el('rule').value, mix: el('mix').checked,
+      density: parseFloat(el('density').value), seed: parseInt(el('seed').value, 10) || 1,
+    };
+  }
+
+  function reset() {
+    var o = opts();
+    G = S24.createGrid(o);
+    C = S24.createChain({ N: CP_N, lambda: parseFloat(el('lambda').value), seed: o.seed });
+    frozenAt = null; lastChanged = 0; tHist = []; aHist = []; dHist = [];
+    off.width = o.L; off.height = o.L;
+    cpRow = 0; cpImg = px.createImageData(CP_N, CP_ROWS);
+    px.fillStyle = '#05070a'; px.fillRect(0, 0, cpc.width, cpc.height);
+    el('Lv').textContent = o.L; el('Lv2').textContent = o.L;
+    record();
+    render();
+  }
+
+  function record() {
+    var a = S24.unstableFraction(G), d = S24.onesFraction(G);
+    tHist.push(G.t); aHist.push(a); dHist.push(d);
+    if (a === 0 && frozenAt === null) frozenAt = G.t;
+    return a;
+  }
+
+  function advance(n) {
+    for (var i = 0; i < n; i++) {
+      if (frozenAt !== null && !G.mix) { G.t++; continue; }   // 固定点はそのまま（近道）
+      var r = S24.stepGrid(G);
+      lastChanged = r.changed;
+    }
+    // 接触過程は 1 時間単位ずつ
+    S24.advanceChain(C, C.t + 1);
+    drawCpRow();
+    record();
+  }
+
+  /* ---------------- 描画 ---------------- */
+  function drawGrid() {
+    var n = G.n, Lg = G.L, x = G.x, cnt = S24.neighbourCounts(G);
+    var img = ox.createImageData(Lg, Lg), d = img.data;
+    for (var i = 0; i < n; i++) {
+      var v = x[i], f = S24.localRule(G, v, cnt[i]), p = i * 4;
+      if (v && f) { d[p] = 232; d[p + 1] = 232; d[p + 2] = 232; }
+      else if (v && !f) { d[p] = 255; d[p + 1] = 122; d[p + 2] = 89; }
+      else if (!v && f) { d[p] = 122; d[p + 1] = 42; d[p + 2] = 26; }
+      else { d[p] = 5; d[p + 1] = 7; d[p + 2] = 10; }
+      d[p + 3] = 255;
+    }
+    ox.putImageData(img, 0, 0);
+    gx.imageSmoothingEnabled = false;
+    gx.drawImage(off, 0, 0, Lg, Lg, 0, 0, grid.width, grid.height);
+  }
+
+  function drawSeries() {
+    sx.fillStyle = '#05070a'; sx.fillRect(0, 0, series.width, series.height);
+    var n = tHist.length; if (n < 2) return;
+    var pad = 8, W = series.width - 2 * pad, H = series.height - 2 * pad;
+    var tMax = Math.max(10, tHist[n - 1]);
+    function X(t) { return pad + Math.log(1 + t) / Math.log(1 + tMax) * W; }
+    function Ya(a) { var lo = Math.log(1e-4), hi = 0; return pad + (1 - (Math.log(Math.max(a, 1e-4)) - lo) / (hi - lo)) * H; }
+    function Yd(v) { return pad + (1 - v) * H; }
+    sx.strokeStyle = '#4aa3ff'; sx.lineWidth = 1.2; sx.beginPath();
+    for (var i = 0; i < n; i++) { if (i === 0) sx.moveTo(X(tHist[i]), Yd(dHist[i])); else sx.lineTo(X(tHist[i]), Yd(dHist[i])); }
+    sx.stroke();
+    sx.strokeStyle = '#ff7a59'; sx.lineWidth = 1.6; sx.beginPath();
+    for (var j = 0; j < n; j++) { if (j === 0) sx.moveTo(X(tHist[j]), Ya(aHist[j])); else sx.lineTo(X(tHist[j]), Ya(aHist[j])); }
+    sx.stroke();
+    sx.fillStyle = 'rgba(215,220,229,.75)'; sx.font = '10px ui-monospace,Menlo,monospace';
+    sx.fillText('activity 1', 3, Ya(1) + 9); sx.fillText('1e-2', 3, Ya(1e-2)); sx.fillText('1e-4', 3, Ya(1e-4) - 2);
+    sx.fillText('t = ' + tHist[n - 1], series.width - 70, series.height - 3);
+  }
+
+  function drawCpRow() {
+    var d = cpImg.data, row = cpRow % CP_ROWS;
+    for (var i = 0; i < CP_N; i++) {
+      var p = (row * CP_N + i) * 4, v = C.s[i];
+      d[p] = v ? 74 : 5; d[p + 1] = v ? 222 : 7; d[p + 2] = v ? 128 : 10; d[p + 3] = 255;
+    }
+    cpRow++;
+    px.putImageData(cpImg, 0, 0);
+    // 現在の行に印
+    px.fillStyle = 'rgba(255,255,255,.35)'; px.fillRect(0, row, 3, 1);
+  }
+
+  function render() {
+    drawGrid(); drawSeries();
+    var a = aHist[aHist.length - 1], d = dHist[dHist.length - 1];
+    el('t').textContent = G.t;
+    el('act').textContent = a.toFixed(4);
+    el('den').textContent = d.toFixed(4);
+    el('chg').textContent = lastChanged;
+    el('frz').textContent = frozenAt === null ? '—' : frozenAt;
+    el('hash').textContent = S24.hashGrid(G);
+    el('cprho').textContent = S24.activeFraction(C).toFixed(3);
+    var b = el('verdict');
+    if (frozenAt !== null) { b.className = 'banner frozen'; b.textContent = '凍結 — t=' + frozenAt + ' で activity が 0 になった（固定点。density ' + d.toFixed(3) + '）'; }
+    else if (G.t > 200 && a > 0.02) { b.className = 'banner active'; b.textContent = '活性が残っている — activity ' + a.toFixed(3) + '、density ' + d.toFixed(3) + '（迷路相の徴候）'; }
+    else { b.className = 'banner'; b.textContent = '進行中 — activity ' + a.toFixed(3); }
+  }
+
+  function frame() {
+    if (playing) {
+      advance(Math.max(1, parseInt(el('speed').value, 10) || 1));
+      render();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------------- つまみ ---------------- */
+  function showVal(id, digits) { el(id + 'v').textContent = parseFloat(el(id).value).toFixed(digits); }
+  ['alpha', 'density', 'lambda'].forEach(function (id) {
+    el(id).addEventListener('input', function () { showVal(id, id === 'alpha' ? 3 : 2); reset(); });
+  });
+  ['rule', 'mix', 'seed'].forEach(function (id) { el(id).addEventListener('change', reset); });
+  el('play').addEventListener('click', function () { playing = !playing; el('play').textContent = playing ? '止める' : '再生'; });
+  el('step').addEventListener('click', function () { advance(1); render(); });
+  el('reset').addEventListener('click', reset);
+  function preset(alpha) {
+    el('alpha').value = alpha; showVal('alpha', 3);
+    el('rule').value = 'life'; el('mix').checked = false;
+    el('density').value = 0.5; showVal('density', 2);
+    reset(); playing = true; el('play').textContent = '止める';
+  }
+  el('p1').addEventListener('click', function () { preset(1); });
+  el('p095').addEventListener('click', function () { preset(0.95); });
+  el('p091').addEventListener('click', function () { preset(0.91); });
+  el('p05').addEventListener('click', function () { preset(0.5); });
+
+  showVal('alpha', 3); showVal('density', 2); showVal('lambda', 2);
+  reset();
+  frame();
+
+  // --- 共通の実行UI（撮る / 広さ / 設定の保存と復元）を載せる ---
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (playing) document.getElementById('play').click(); },
+    id: 'S-24',
+    version: '1.0.0',
+    inputs: ['alpha', 'rule', 'mix', 'density', 'seed', 'speed', 'lambda'],
+    paramNames: {
+      alpha: { category: 'p', code: 'alpha', full: 'sync_rate' },
+      rule: { category: 'p', code: 'rule', full: 'rule' },
+      mix: { category: 'p', code: 'mix', full: 'shuffle_each_step' },
+      density: { category: 'p', code: 'dens', full: 'initial_density' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+      lambda: { category: 'p', code: 'lambda', full: 'contact_process_lambda' },
+    },
+    canvases: ['grid', 'series', 'cp'],
+    // 「広さ」= 格子の一辺 L（既定 128。½ で 64、2 倍で 256）。転移の見え方は L に依存する（有限サイズ）
+    resize: function (scale) {
+      sizeScale = scale;
+      reset();
+      Harness.say('格子を ' + G.L + '×' + G.L + ' にした（有限サイズ効果で転移の見え方が変わる）');
+    },
+  });
+})();
+</script>
+</body>
+</html>

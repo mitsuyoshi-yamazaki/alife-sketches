@@ -1,0 +1,401 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-03 Lenia — 連続セルオートマトンの自己維持パターン</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--ok:#4ade80;--warn:#fbbf24}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0}
+  code{background:#0b0d13;padding:1px 5px;border-radius:4px;font-size:11px}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  button.on{border-color:var(--acc);color:var(--acc)}
+  select{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  label b{color:var(--fg);font-variant-numeric:tabular-nums;min-width:4.2em}
+  input[type=range]{width:150px}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;background:#05070c}
+  table{border-collapse:collapse;font-size:12px;width:100%;table-layout:fixed}
+  /* 値の桁が変わっても列（＝パネルの幅）が動かないよう、値の列を固定する */
+  table td:last-child{width:112px}
+  .fx{display:inline-block;font-variant-numeric:tabular-nums}
+  th,td{padding:4px 8px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  td{font-variant-numeric:tabular-nums}
+  .big{font-size:15px;font-weight:600}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .dimc{color:var(--dim)}
+  .legend{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.8}
+  .ramp{height:10px;border-radius:3px;margin:6px 0 2px}
+  footer{padding:0 18px 24px;color:var(--dim);font-size:12px;max-width:980px}
+  footer b{color:var(--fg)}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .w290{min-width:290px} .w250{min-width:250px}
+  @media(max-width:820px){.wrap{flex-direction:column}.w290,.w250{min-width:0}}
+</style>
+
+<header>
+  <h1>S-03 — Lenia（連続セルオートマトン）</h1>
+  <p class="sub">ライフゲームを空間・時間・状態のすべてで連続にした系。場 <code>A ∈ [0,1]</code> を環状の核 <code>K</code> と畳み込んで <code>U = K*A</code> を作り、成長写像 <code>G</code> を通して <code>dt = 1/T</code> ずつ足す。<br>
+    <code>A ← clip(A + (1/T)·G(K*A), 0, 1)</code>　<code>G(u) = 2exp(−(u−μ)²/2σ²) − 1</code>　／　出典: Bert Chan (2019) <i>Lenia — Biology of Artificial Life</i>, Complex Systems 28(3)</p>
+</header>
+
+<div class="bar">
+  <button id="run">停止</button>
+  <button id="reset">置き直す</button>
+  <label>初期パターン
+    <select id="init">
+      <option value="orbium">原典の Orbium</option>
+      <option value="found">自前の探索で出た模様</option>
+      <option value="soup">粗いスープ（核の半分の粒）</option>
+      <option value="iid">一様乱数（負コントロール）</option>
+    </select>
+  </label>
+  <label>μ <input type="range" id="mu" min="60" max="300" value="150"> <b id="muV">0.150</b></label>
+  <label>σ <input type="range" id="sg" min="2" max="400" value="150"> <b id="sgV">0.0150</b></label>
+  <button id="nominal">公称値へ戻す</button>
+  <span style="flex:1"></span>
+  <span class="dimc">t = <b id="t" class="fx" style="color:var(--fg);min-width:7ch">0</b> ステップ（<b id="tu" class="fx" style="color:var(--fg);min-width:7ch">0.0</b> 時間単位）</span>
+</div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>場 A（明るいほど 1 に近い）</h2>
+    <canvas id="c" width="512" height="512"></canvas>
+    <div class="ramp" id="ramp"></div>
+    <div class="legend">0 &nbsp;——&nbsp; 場の値 &nbsp;——&nbsp; 1　／　白い十字は質量重心（トーラス上の円周平均）</div>
+  </div>
+
+  <div class="panel w290">
+    <h2>いま測っている量</h2>
+    <table>
+      <tr><td>質量 Σ A</td><td class="big" id="mass">—</td></tr>
+      <tr><td>初期に対する比</td><td class="big" id="ratio">—</td></tr>
+      <tr><td>支持（A &gt; 0.01 の数）</td><td id="sup">—</td></tr>
+      <tr><td class="ok"><b>kernelExcess</b></td><td class="big ok" id="ke">—</td></tr>
+      <tr><td class="dimc" style="padding-left:18px">理論的な帰無値</td><td class="dimc" id="kenull">1.000</td></tr>
+      <tr><td>balance</td><td id="bal">—</td></tr>
+      <tr><td>重心の道のり</td><td id="path">—</td></tr>
+    </table>
+    <div class="legend" style="margin-top:10px">
+      <b style="color:var(--fg)">kernelExcess = Var(K*A) / (Var(A)·ΣK²)</b><br>
+      空間相関を持たない場では分子と分母が理論上そのまま等しく、<br>
+      <b style="color:var(--ok)">帰無値はちょうど 1.0</b>。測る幅は核そのものなので、<br>
+      解析側が選ぶ自由なスケールを持たない。<br>
+      1 から離れているほど、核のスケールに構造がある。<br><br>
+      <b style="color:var(--fg)">balance = |Σ dA| / Σ|dA|</b>（dA は切り詰め後の実効変化量）<br>
+      減衰一方・増大一方なら 1.0。生成と消滅が釣り合うと 0 へ。
+    </div>
+
+    <h2 style="margin-top:16px">時系列（直近 240 点）</h2>
+    <canvas id="chart" width="270" height="110"></canvas>
+    <div class="legend"><span style="color:var(--acc)">━</span> 質量（初期比・上限 2）　<span style="color:var(--ok)">━</span> kernelExcess（対数・点線が帰無値 1.0）</div>
+  </div>
+
+  <div class="panel w250">
+    <h2>核 K（R = 13・環 b = [1]）</h2>
+    <canvas id="kern" width="216" height="216"></canvas>
+    <h2 style="margin-top:14px">成長写像 G(u)</h2>
+    <canvas id="grow" width="230" height="120"></canvas>
+    <div class="legend">
+      横軸 u = 0…0.6、縦軸 G = −1…+1。<br>
+      赤い縦線が μ（G = +1 の位置）。σ を広げると山が太る。<br>
+      <b style="color:var(--fg)">公称値では山の幅は 0.015 しかない</b>——<br>
+      近傍の総和がこの窓に入った場所だけが増える。
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p><b>見どころ</b>: 公称値（μ=0.15・σ=0.015）で「原典の Orbium」を置くと、<b>形を保ったまま場を渡っていく</b>。
+  μ のスライダを 0.005 ほど動かすだけで、数十ステップのうちに消えるか、膨れて場を埋めるかに変わる。
+  <b>質量は保存量ではない</b>——毎ステップ作られては壊されていて、その釣り合いが balance ≈ 0 に出ている。</p>
+  <p>「一様乱数」を選ぶと kernelExcess が 1.0 の付近に落ちる。これは理論値であって当てはめではない。
+  ただし 64×64 の世界に半径 13 の核では独立な窓が 6 個ほどしか取れないので、1 回ごとの揺れは大きい（およそ 0.6〜1.5）。
+  帰無値 1.0 は期待値であり、1 標本の値ではない。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="pattern.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var SIZE_BASE = 64, SIZE = SIZE_BASE, SCALE = 8;   // SCALE = 描画倍率 = cv.width / SIZE
+  var cv = document.getElementById('c'), cx = cv.getContext('2d');
+  var img = cx.createImageData(SIZE, SIZE);
+  var off = document.createElement('canvas');
+  off.width = SIZE; off.height = SIZE;
+  var ocx = off.getContext('2d');
+
+  var state = null, running = true, initialMass = 1, pathLength = 0, prevC = null;
+  var history = [];
+
+  // ------------------------------------------------------------- 配色
+  var STOPS = [[5,7,12],[19,42,88],[22,105,122],[46,160,90],[190,190,60],[250,240,225]];
+  function ramp(v) {
+    if (v <= 0) return STOPS[0];
+    if (v >= 1) return STOPS[STOPS.length - 1];
+    var f = v * (STOPS.length - 1), i = Math.floor(f), t = f - i;
+    var a = STOPS[i], b = STOPS[i + 1];
+    return [a[0] + (b[0]-a[0])*t, a[1] + (b[1]-a[1])*t, a[2] + (b[2]-a[2])*t];
+  }
+  (function paintRamp() {
+    var el = document.getElementById('ramp'), parts = [];
+    for (var i = 0; i <= 10; i++) {
+      var c = ramp(i / 10);
+      parts.push('rgb(' + (c[0]|0) + ',' + (c[1]|0) + ',' + (c[2]|0) + ') ' + (i * 10) + '%');
+    }
+    el.style.background = 'linear-gradient(90deg,' + parts.join(',') + ')';
+  })();
+
+  // ------------------------------------------------------------- 初期化
+  function currentParams() {
+    return {
+      size: SIZE, R: 13, T: 10,
+      mu: document.getElementById('mu').value / 1000,
+      sigma: document.getElementById('sg').value / 10000,
+    };
+  }
+
+  /**
+   * fieldOverride があれば、それで場を上書きする（export/import からの復元用）。
+   * soup/iid は乱数で場を作るため、**場そのもの**が「パターン」——シードではなく生成後の
+   * 値を export/import する（2026-09-15 ユーザ指定。理由は harness.js 冒頭を見よ）。
+   */
+  function reset(fieldOverride) {
+    state = S03.createState(currentParams());
+    var kind = document.getElementById('init').value;
+    if (fieldOverride && fieldOverride.length === state.n) {
+      state.A.set(fieldOverride);
+    } else if (kind === 'orbium') S03.placePattern(state, S03_PATTERNS.ORBIUM.cells, 0, 1);
+    else if (kind === 'found') S03.placePattern(state, S03_PATTERNS.FOUND.cells, 0, 1);
+    else if (kind === 'soup') S03.patchSoup(state, (Date.now() & 0x7fffffff), 14);
+    else S03.fillUniformRandom(state, (Date.now() & 0x7fffffff));
+    initialMass = Math.max(1e-9, S03.mass(state));
+    pathLength = 0; prevC = null; history = [];
+    drawKernel(); drawGrowth(); refresh();
+  }
+
+  function getParams() {
+    var out = {
+      init: document.getElementById('init').value,
+      mu: document.getElementById('mu').value,
+      sg: document.getElementById('sg').value,
+    };
+    // soup/iid は乱数で決まる場そのものが「パターン」。orbium/found は手作りの固定配置で
+    // 既に決定的なので、パラメータ（init/mu/sg）だけで足りる
+    if (out.init === 'soup' || out.init === 'iid') out.field = Array.prototype.slice.call(state.A);
+    return out;
+  }
+
+  function setParams(v) {
+    ['init', 'mu', 'sg'].forEach(function (id) {
+      var e = document.getElementById(id);
+      e.value = v[id];
+      // input/change を発火させる（既定の writeInputs と同じ規約）。
+      // muV/sgV の表示ラベルはこのイベントで更新されるため、発火させないと表示だけ古いままになる
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    reset(v.field);
+  }
+
+  function applyParams() {
+    S03.setParams(state, { mu: currentParams().mu, sigma: currentParams().sigma });
+    drawGrowth();
+  }
+
+  // ------------------------------------------------------------- 描画
+  function drawField(m) {
+    var d = img.data, A = state.A;
+    for (var i = 0; i < SIZE * SIZE; i++) {
+      var c = ramp(A[i]);
+      d[i*4] = c[0]; d[i*4+1] = c[1]; d[i*4+2] = c[2]; d[i*4+3] = 255;
+    }
+    ocx.putImageData(img, 0, 0);
+    cx.imageSmoothingEnabled = false;
+    cx.drawImage(off, 0, 0, cv.width, cv.height);
+    if (m && m.mass > 0) {
+      cx.strokeStyle = 'rgba(255,255,255,0.75)';
+      cx.lineWidth = 1;
+      var px = m.centroidX * SCALE, py = m.centroidY * SCALE;
+      cx.beginPath();
+      cx.moveTo(px - 7, py); cx.lineTo(px + 7, py);
+      cx.moveTo(px, py - 7); cx.lineTo(px, py + 7);
+      cx.stroke();
+    }
+  }
+
+  function drawKernel() {
+    var kc = document.getElementById('kern'), g = kc.getContext('2d');
+    var ki = S03.kernelImage(state.kernel);
+    var s = kc.width / ki.side;
+    g.fillStyle = '#05070c'; g.fillRect(0, 0, kc.width, kc.height);
+    for (var y = 0; y < ki.side; y++) {
+      for (var x = 0; x < ki.side; x++) {
+        var v = ki.data[y * ki.side + x] / ki.max;
+        if (v <= 0) continue;
+        var c = ramp(v);
+        g.fillStyle = 'rgb(' + (c[0]|0) + ',' + (c[1]|0) + ',' + (c[2]|0) + ')';
+        g.fillRect(x * s, y * s, Math.ceil(s), Math.ceil(s));
+      }
+    }
+  }
+
+  function drawGrowth() {
+    var gc = document.getElementById('grow'), g = gc.getContext('2d');
+    var W = gc.width, H = gc.height, UMAX = 0.6;
+    g.fillStyle = '#05070c'; g.fillRect(0, 0, W, H);
+    g.strokeStyle = '#2a2f3d'; g.beginPath();
+    g.moveTo(0, H / 2); g.lineTo(W, H / 2); g.stroke();
+    var p = state.params;
+    g.strokeStyle = '#f87171'; g.beginPath();
+    g.moveTo((p.mu / UMAX) * W, 0); g.lineTo((p.mu / UMAX) * W, H); g.stroke();
+    g.strokeStyle = '#4ade80'; g.lineWidth = 1.6; g.beginPath();
+    for (var i = 0; i <= W; i++) {
+      var u = (i / W) * UMAX;
+      var gv = S03.growth(u, p.mu, p.sigma);
+      var y = H / 2 - (gv * H) / 2;
+      if (i === 0) g.moveTo(i, y); else g.lineTo(i, y);
+    }
+    g.stroke(); g.lineWidth = 1;
+  }
+
+  function drawChart() {
+    var ch = document.getElementById('chart'), g = ch.getContext('2d');
+    var W = ch.width, H = ch.height;
+    g.fillStyle = '#05070c'; g.fillRect(0, 0, W, H);
+    if (history.length < 2) return;
+    // kernelExcess は対数で 0.3 .. 300 を H に写す
+    function keY(v) {
+      var lo = Math.log(0.3), hi = Math.log(300);
+      var t = (Math.log(Math.max(0.3, Math.min(300, v))) - lo) / (hi - lo);
+      return H - t * H;
+    }
+    g.strokeStyle = '#3a4256'; g.setLineDash([3, 3]); g.beginPath();
+    g.moveTo(0, keY(1)); g.lineTo(W, keY(1)); g.stroke(); g.setLineDash([]);
+    var n = history.length, step = W / Math.max(1, n - 1);
+    g.strokeStyle = '#60a5fa'; g.beginPath();
+    for (var i = 0; i < n; i++) {
+      var y = H - Math.min(1, history[i].r / 2) * H;
+      if (i === 0) g.moveTo(0, y); else g.lineTo(i * step, y);
+    }
+    g.stroke();
+    g.strokeStyle = '#4ade80'; g.beginPath();
+    var started = false;
+    for (var j = 0; j < n; j++) {
+      if (history[j].ke === null) { started = false; continue; }
+      var yy = keY(history[j].ke);
+      if (!started) { g.moveTo(j * step, yy); started = true; } else g.lineTo(j * step, yy);
+    }
+    g.stroke();
+  }
+
+  function wrapD(d) { d = d % SIZE; if (d > SIZE/2) d -= SIZE; if (d < -SIZE/2) d += SIZE; return d; }
+
+  function refresh() {
+    var m = S03.measure(state);
+    if (prevC && m.mass > 0) {
+      pathLength += Math.hypot(wrapD(m.centroidX - prevC.x), wrapD(m.centroidY - prevC.y));
+    }
+    prevC = { x: m.centroidX, y: m.centroidY };
+
+    drawField(m);
+    document.getElementById('t').textContent = state.step;
+    document.getElementById('tu').textContent = (state.step / state.params.T).toFixed(1);
+    document.getElementById('mass').textContent = m.mass.toFixed(2);
+    var r = m.mass / initialMass;
+    var re = document.getElementById('ratio');
+    re.textContent = r.toFixed(3);
+    re.className = 'big ' + (r >= 0.5 && r <= 2 ? 'ok' : 'warn');
+    document.getElementById('sup').textContent = m.support;
+    var ke = document.getElementById('ke');
+    ke.textContent = m.fieldFlat ? '—（一様）' : m.kernelExcess.toFixed(2);
+    ke.title = m.fieldFlat ? '場が一様なので kernelExcess は定義されない' : '';
+    ke.className = 'big ' + (m.fieldFlat ? 'dimc' : (m.kernelExcess >= 2 ? 'ok' : 'warn'));
+    document.getElementById('bal').textContent = m.growthBalance.toFixed(4);
+    document.getElementById('path').textContent = pathLength.toFixed(1) + ' 格子';
+
+    history.push({ r: r, ke: m.fieldFlat ? null : m.kernelExcess });
+    if (history.length > 240) history.shift();
+    drawChart();
+  }
+
+  // ------------------------------------------------------------- ループ
+  var frame = 0;
+  function loop() {
+    if (running && state) {
+      for (var k = 0; k < 2; k++) S03.stepState(state);
+      if (++frame % 2 === 0) refresh(); else drawField(null);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  document.getElementById('run').onclick = function () {
+    running = !running;
+    this.textContent = running ? '停止' : '再開';
+    this.className = running ? '' : 'on';
+  };
+  document.getElementById('reset').onclick = reset;
+  document.getElementById('init').onchange = reset;
+  document.getElementById('mu').oninput = function () {
+    document.getElementById('muV').textContent = (this.value / 1000).toFixed(3);
+    applyParams();
+  };
+  document.getElementById('sg').oninput = function () {
+    document.getElementById('sgV').textContent = (this.value / 10000).toFixed(4);
+    applyParams();
+  };
+  document.getElementById('nominal').onclick = function () {
+    document.getElementById('mu').value = 150;
+    document.getElementById('sg').value = 150;
+    document.getElementById('muV').textContent = '0.150';
+    document.getElementById('sgV').textContent = '0.0150';
+    applyParams();
+  };
+
+  reset();
+  requestAnimationFrame(loop);
+
+  // --- 共通の実行UI（撮る / 広さ / 設定の保存と復元）を載せる ---
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('run').click(); },
+    id: 'S-03',
+    version: '1.1.0',
+    getParams: getParams,
+    setParams: setParams,
+    // URLパラメータの短縮名/フル名（K-80・2026-09-15 ユーザ指定）。mu/sgma は成長写像＝物理法則、
+    // init は初期条件の選び方でソフトウェア、field は soup/iid 選択時のみ載る生成データ
+    paramNames: {
+      init: { category: 's', code: 'i', full: 'init_mode' },
+      mu: { category: 'p', code: 'm', full: 'mu' },
+      sg: { category: 'p', code: 's', full: 'sigma' },
+      field: { category: 'd', code: 'f', full: 'initial_field' },
+    },
+    canvases: ['c', 'chart', 'kern', 'grow'],
+    // 格子の系なので「広さ」は正方トーラスの一辺。核の半径 R は据え置きなので、
+    // 「核に対して世界がどれだけ広いか」が変わる。描画倍率は canvas に合わせて取り直す。
+    resize: function (scale) {
+      var next = Math.round(SIZE_BASE * scale);
+      if (next <= 2 * 13) throw new Error('核の直径（26）より広くないと場が作れない');
+      if (next === SIZE) return;
+      SIZE = next;
+      SCALE = cv.width / SIZE;
+      img = cx.createImageData(SIZE, SIZE);
+      off.width = SIZE; off.height = SIZE;
+      reset();
+      Harness.say('場を ' + SIZE + '×' + SIZE + ' にした（核の半径 13 は据え置き）');
+    },
+  });
+})();
+</script>

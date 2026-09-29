@@ -1,0 +1,371 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-59 — 型が変わる粒子</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--hot:#fbbf24;--f:#4ade80;--w:#6b7280;--s:#c084fc}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0;max-width:1000px}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  button.on{border-color:var(--hot);color:var(--hot)}
+  select{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  input[type=number]{width:6.5em;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;background:#05060a}
+  table{border-collapse:collapse;font-size:12px;width:100%}
+  th,td{padding:3px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  td{font-variant-numeric:tabular-nums;min-width:6ch}
+  .ok{color:#4ade80}.no{color:#f87171}
+  .legend{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.9}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:5px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:1000px}
+  footer b{color:var(--fg)}
+  .col{display:flex;flex-direction:column;gap:14px;flex:1;min-width:280px}
+  .presetrow{display:flex;gap:6px;flex-wrap:wrap}
+  .presetrow button{padding:4px 8px;font-size:11px}
+  @media(max-width:760px){.wrap{flex-direction:column}}
+</style>
+
+<header>
+  <h1>S-59 — 型が変わる粒子(反応が塊の物性を書き換え、塊が育ち、割れる)</h1>
+  <p class="sub">円板 N 個は餌 <span style="color:var(--f)">F</span>・構造材 <span style="color:var(--s)">S</span>(色の濃さ=形質θ)・
+    廃物 <span style="color:var(--w)">W</span> の型を持ち、反応で型が変わる: F→S(近くにSが2個以上あると触媒)・
+    S→W(自発的な崩壊)・W→F(有限の太陽から光子を1個吸う)。力は型ペアで決まる対ポテンシャル(S-Sは引力・W-Sは斥力)の
+    厳密な勾配で、慣性と熱浴を持つ Langevin の力学で動く。<b>割る規則は無い</b>――塊が育ち、割れるか。
+    太陽・化学・運動・ポテンシャル・熱の5区画の台帳が全体で厳密に保存するはずで、型が変わる瞬間の
+    ポテンシャルの跳びはその反応の化学エネルギーが払う。</p>
+</header>
+
+<div class="bar">
+  <button id="run">開始</button>
+  <button id="reset">配置をやり直す</button>
+  <button id="dusk">太陽を尽きさせる</button>
+  <button id="freeToggle">光子を払わない(A-free)</button>
+  <label>凝集 ε_S<select id="epsS"><option value="2" selected>2</option><option value="3">3</option></select></label>
+  <label>光の率 Φ<select id="phi"><option value="1">1</option><option value="2" selected>2</option><option value="4">4</option></select></label>
+  <label>θが凝集を決める(SEL)<input type="checkbox" id="selToggle"></label>
+  <label>seed<input type="number" id="seed" value="5901" step="1"></label>
+</div>
+<div class="bar">
+  <span style="color:var(--dim)">腕プリセット(criteria.jsonの登録。N=1024・L=64):</span>
+  <div class="presetrow" id="presets"></div>
+</div>
+
+<div class="wrap">
+  <div class="col" style="flex:2">
+    <div class="panel">
+      <h2>粒子と塊(緑=F・灰=W・紫の濃さ=Sのθ。塊の輪郭と型 K/R/E/B/S を重ねる)</h2>
+      <canvas id="mainCanvas" width="640" height="640"></canvas>
+      <div class="legend">
+        <span class="sw" style="background:var(--f)"></span>F(餌)
+        &nbsp;&nbsp;<span class="sw" style="background:var(--s)"></span>S(構造材。濃いほどθが高い)
+        &nbsp;&nbsp;<span class="sw" style="background:var(--w)"></span>W(廃物)
+        &nbsp;&nbsp;輪郭の色: <span style="color:#f87171">K丸い塊</span> ／ <span style="color:#fbbf24">R環</span> ／
+        <span style="color:#60a5fa">E伸びた</span> ／ <span style="color:#a78bfa">B不規則</span> ／ <span style="color:#34d399">S回り込む</span>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="panel">
+      <h2>いま</h2>
+      <table>
+        <tr><th></th><th>値</th></tr>
+        <tr><td>時刻 t</td><td id="t">0.00</td></tr>
+        <tr><td>N_F / N_S / N_W</td><td id="counts">―</td></tr>
+        <tr><td>塊(n≥6・age≥10τ)</td><td id="patN">―</td></tr>
+        <tr><td>Φ_pat</td><td id="phiPat">―</td></tr>
+        <tr><td>f_nc(円でない割合)</td><td id="fnc">―</td></tr>
+        <tr><td>持続的分裂(累計)</td><td id="fissions">0</td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>エネルギーの台帳(5区画)</h2>
+      <table>
+        <tr><th></th><th>値</th></tr>
+        <tr><td>太陽 Sun(残量)</td><td id="lSun">―</td></tr>
+        <tr><td>化学 Chem</td><td id="lChem">―</td></tr>
+        <tr><td>運動 K</td><td id="lK">―</td></tr>
+        <tr><td>ポテンシャル U</td><td id="lU">―</td></tr>
+        <tr><td>熱 H(累積)</td><td id="lH">―</td></tr>
+        <tr><td>closure_exact</td><td id="closure">―</td></tr>
+        <tr><td>Err(積分の影の仕事)</td><td id="err">―</td></tr>
+      </table>
+      <canvas id="ledgerCanvas" width="420" height="120"></canvas>
+      <div class="legend" id="unpaidNote"></div>
+    </div>
+    <div class="panel">
+      <h2>形質θの分布(立っているS)</h2>
+      <canvas id="thetaCanvas" width="420" height="100"></canvas>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p><b>読み方</b>: 「開始」で時間発展する。ε_S(凝集の強さ)とΦ(太陽の光子の率)を変えると、
+    出るパターンの型(丸い塊K・環R・伸びた塊E・不規則な塊B・箱を回る帯S)と、割れるか・組を作るかが変わる。
+    「太陽を尽きさせる」で強制的に太陽を0にすると、パターンが数百τ後に消える様子が見える。
+    「光子を払わない」を有効にした状態で太陽を尽きさせると、closure_exactが1e-9を超えて台帳が破れる――
+    エネルギーがSunを引かずに湧く。SELを有効にするとθが凝集の強さ(ε_i=2+θ_i)を決め、選択が働きうる。
+    事前登録・全28走行・判定基準は <code>criteria.json</code>、レポートはS4が書く。</p>
+  <p>⚠ ブラウザは<b>探索・観察のための窓</b>であり、ここで見たものは判定に使わない――
+    主張は事前登録した本番走行(<code>run.js</code>)の生ログだけが担う。表示は本番と同じ N=1024・L=64 だが、
+    描画のため観測(塊・形・穴)は数フレームに1回に間引く。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="tracking.js"></script>
+<script>
+'use strict';
+var $ = function (id) { return document.getElementById(id); };
+var mCanvas = $('mainCanvas'), mctx = mCanvas.getContext('2d');
+var lCanvas = $('ledgerCanvas'), lctx = lCanvas.getContext('2d');
+var tCanvas = $('thetaCanvas'), tctx = tCanvas.getContext('2d');
+
+var N = 1024, L = 64;
+var OBS = { rb: 1.5, nMin: 6, tauAge: 10, tauP: 20, gapG2: 3, tauLink: 20, hexA: 1.10, Athr: 0.5, qThr: 1.35, holeMinArea: 2, holeRadius: 0.75, holeStep: 0.25, rCat: 1.5 };
+var running = false, freeArm = false, cumFissions = 0;
+var sim = null; // {sys,p,rng,gaussian,E0,history:[{t,closure}],tracker,bondHistory}
+
+function sunPhotons0(kind, Phi) {
+  if (kind === 'dark') return 0;
+  if (kind === 'dusk') return Math.round(1000 * Phi);
+  return Math.ceil(2600 * Phi);
+}
+
+function buildSim() {
+  var epsS = parseFloat($('epsS').value), Phi = parseFloat($('phi').value), seed = parseInt($('seed').value, 10) || 1;
+  var epsMode = $('selToggle').checked ? 'theta' : 'const';
+  var p = S59.defaultParams({ N: N, L: L, seed: seed, epsS: epsS, epsMode: epsMode, Phi: Phi, sunPhotons0: sunPhotons0('main', Phi), freeArm: freeArm });
+  var sys = S59.initReplicate(p, { S: 205, F: 102, W: 717 });
+  var rng = S59.subStream(seed, 5), gaussian = S59.gaussianFactory(rng);
+  // initReplicate() は sys._f(力のキャッシュ)を計算しない(createSystem()の既定はnull)。
+  // ここで一度力を計算して積んでおかないと、直後の S59.eTot(...,sys._f.U) が
+  // 「Cannot read properties of null (reading 'U')」で例外を投げ、reset()が完走せず
+  // sim がnullのまま止まる(以後 sim.sys の参照で2つ目の例外が出る)――viewer.htmlが
+  // 一度も描画されない不具合の原因はこれだった。
+  sys._f = S59.computeForces(sys, p);
+  var E0 = S59.eTot(sys, p, sys._f.U);
+  cumFissions = 0;
+  return {
+    sys: sys, p: p, rng: rng, gaussian: gaussian, E0: E0, history: [],
+    tracker: new S59T.ClusterTracker({ nMin: OBS.nMin, tauAge: OBS.tauAge, tauP: OBS.tauP, dtSnap: 1 }),
+    bondHistory: new S59T.PersistentBonds(3), lastTagged: [], decaySince: new Set(), lastSnapT: -1,
+  };
+}
+
+function stepOnce() {
+  var r = S59.stepSystem(sim.sys, sim.p, sim.rng, sim.gaussian, {
+    onReaction: function (ev) { if (ev.kind === 'decay') sim.decaySince.add(ev.i); },
+    onBirth: function () {},
+  });
+}
+
+function analyze() {
+  var sys = sim.sys, p = sim.p;
+  var t = sys.t;
+  var Unow = sys._f.U;
+  var Etot = S59.eTot(sys, p, Unow);
+  var closure = Math.abs(Etot - sim.E0 - sys.Err.sum) / (p.N * p.kT);
+  sim.history.push({ t: t, closure: closure });
+  if (sim.history.length > 400) sim.history.shift();
+
+  var counts = S59.typeCounts(sys);
+  $('t').textContent = t.toFixed(2);
+  $('counts').textContent = counts.F + ' / ' + counts.S + ' / ' + counts.W;
+  $('lSun').textContent = S59.sunEnergy(sys, p).toFixed(0);
+  $('lChem').textContent = S59.chemTotal(sys, p).toFixed(1);
+  $('lK').textContent = S59.kineticEnergy(sys).toFixed(1);
+  $('lU').textContent = Unow.toFixed(1);
+  $('lH').textContent = sys.H.sum.toFixed(1);
+  var cEl = $('closure');
+  cEl.textContent = closure.toExponential(2);
+  cEl.className = closure <= 1e-9 ? 'ok' : 'no';
+  $('err').textContent = sys.Err.sum.toExponential(2);
+  $('unpaidNote').textContent = freeArm ? '光子を払わない: unpaidWork(影の計数器)=' + sys.unpaidWork.toFixed(1) + '(太陽が尽きた後、closureの超過とほぼ一致するはず)' : '';
+
+  // 塊(持続する結合→連結成分)。数フレームに1回なので毎回でも軽い(S~200)。
+  if (t - sim.lastSnapT >= 0.99) {
+    sim.lastSnapT = t;
+    var bonds = S59T.findBonds(sys, OBS.rb, S59.TYPE_S);
+    var edgeSet = new Set(bonds.pairs.map(function (pr) { return S59T.edgeKey(pr[0], pr[1]); }));
+    sim.bondHistory.push(edgeSet);
+    var persistent = sim.bondHistory.persistentEdges();
+    var clusters, edgeArr = [];
+    if (persistent) {
+      edgeArr = Array.from(persistent).map(function (k) { return k.split('_').map(Number); });
+      clusters = S59T.buildClusters(bonds.sIdx, edgeArr);
+    } else clusters = bonds.sIdx.map(function (i) { return { id: i, members: [i], size: 1 }; });
+    var idInfo = sim.tracker.step(clusters, t, sim.decaySince, edgeArr);
+    sim.decaySince = new Set();
+    for (var ei = 0; ei < sim.tracker.events.length; ei++) {
+      var ev = sim.tracker.events[ei];
+      if (!ev._shown && ev.type === 'fission') { ev._shown = true; cumFissions++; }
+      else if (!ev._shown) ev._shown = true;
+    }
+    var adjacency = new Map();
+    for (var e2 = 0; e2 < edgeArr.length; e2++) {
+      var a = edgeArr[e2][0], b = edgeArr[e2][1];
+      if (!adjacency.has(a)) adjacency.set(a, []); if (!adjacency.has(b)) adjacency.set(b, []);
+      adjacency.get(a).push(b); adjacency.get(b).push(a);
+    }
+    var tagged = [], patternMembers = 0;
+    for (var ci = 0; ci < clusters.length; ci++) {
+      var c = clusters[ci], info = idInfo.get(c.id);
+      if (!info || !info.qualifies) continue;
+      var shape = S59T.clusterShape(c.members, sys.x, sys.y, sys.L, adjacency, OBS.hexA);
+      var holes = shape.wrapRank >= 1 ? [] : S59T.findHoles(c.members, shape.posMap, OBS.holeRadius, OBS.holeStep, OBS.holeMinArea);
+      var type = S59T.classifyPattern(shape, holes, OBS.Athr, OBS.qThr);
+      tagged.push({ members: c.members, size: c.size, patternType: type });
+      patternMembers += c.size;
+    }
+    sim.lastTagged = tagged;
+    $('patN').textContent = tagged.length;
+    $('phiPat').textContent = counts.S > 0 ? (patternMembers / counts.S).toFixed(3) : '―';
+    $('fnc').textContent = S59T.nonCircularFraction(tagged).toFixed(3);
+    $('fissions').textContent = cumFissions;
+  }
+
+  drawLedger();
+  drawTheta();
+}
+
+var TYPE_COLOR = { 0: [74, 222, 128], 2: [107, 114, 128] }; // F, W
+var CLASS_COLOR = { K: '#f87171', R: '#fbbf24', E: '#60a5fa', B: '#a78bfa', S: '#34d399' };
+function drawMain() {
+  var sys = sim.sys, W = mCanvas.width, H = mCanvas.height, scale = W / sys.L;
+  mctx.clearRect(0, 0, W, H);
+  for (var k = 0; k < sys.N; k++) {
+    var t = sys.type[k], col;
+    if (t === S59.TYPE_S) {
+      var v = Math.round(60 + 140 * sys.theta[k]);
+      col = 'rgb(' + (100 + v * 0.3 | 0) + ',' + (30) + ',' + (v + 60) + ')';
+    } else { var c0 = TYPE_COLOR[t]; col = 'rgb(' + c0[0] + ',' + c0[1] + ',' + c0[2] + ')'; }
+    mctx.beginPath();
+    mctx.arc(sys.x[k] * scale, sys.y[k] * scale, Math.max(1.2, scale * 0.42), 0, 7);
+    mctx.fillStyle = col;
+    mctx.fill();
+  }
+  // 塊の輪郭(バウンディング円で簡略表示)と型ラベル
+  var tagged = sim.lastTagged || [];
+  for (var ti = 0; ti < tagged.length; ti++) {
+    var c = tagged[ti], cx = 0, cy = 0, n = c.members.length;
+    for (var m = 0; m < n; m++) { cx += sys.x[c.members[m]]; cy += sys.y[c.members[m]]; }
+    cx /= n; cy /= n;
+    var r = 0;
+    for (m = 0; m < n; m++) { var dx = S59.minImageD(sys.x[c.members[m]] - cx, sys.L), dy = S59.minImageD(sys.y[c.members[m]] - cy, sys.L); r = Math.max(r, Math.hypot(dx, dy)); }
+    mctx.strokeStyle = CLASS_COLOR[c.patternType] || '#fff';
+    mctx.lineWidth = 1.5;
+    mctx.beginPath(); mctx.arc(cx * scale, cy * scale, (r + 0.6) * scale, 0, 7); mctx.stroke();
+    mctx.fillStyle = mctx.strokeStyle; mctx.font = '11px sans-serif';
+    mctx.fillText(c.patternType + n, (cx) * scale + (r + 1) * scale, cy * scale);
+  }
+}
+
+function drawLedger() {
+  var W = lCanvas.width, H = lCanvas.height;
+  lctx.clearRect(0, 0, W, H);
+  var hist = sim.history;
+  if (hist.length < 2) return;
+  var maxAbs = 1e-9;
+  for (var i = 0; i < hist.length; i++) maxAbs = Math.max(maxAbs, hist[i].closure);
+  lctx.strokeStyle = '#2a2f3d'; lctx.beginPath(); lctx.moveTo(0, H - 4); lctx.lineTo(W, H - 4); lctx.stroke();
+  lctx.strokeStyle = freeArm ? '#f87171' : '#60a5fa'; lctx.beginPath();
+  for (i = 0; i < hist.length; i++) {
+    var x = (i / (hist.length - 1)) * W;
+    var y = H - 4 - (hist[i].closure / maxAbs) * (H - 16);
+    if (i === 0) lctx.moveTo(x, y); else lctx.lineTo(x, y);
+  }
+  lctx.stroke();
+  lctx.fillStyle = '#8b93a7'; lctx.font = '10px sans-serif';
+  lctx.fillText('closure_exact 振れ幅 上限' + maxAbs.toExponential(2) + (freeArm ? '(払わない: 破れうる)' : '(払う: 1e-9未満のはず)'), 4, 12);
+}
+
+function drawTheta() {
+  var W = tCanvas.width, H = tCanvas.height;
+  tctx.clearRect(0, 0, W, H);
+  var sys = sim.sys, bins = new Array(20).fill(0), n = 0;
+  for (var i = 0; i < sys.N; i++) if (sys.type[i] === S59.TYPE_S) { bins[Math.min(19, Math.floor(sys.theta[i] * 20))]++; n++; }
+  var maxB = Math.max(1, Math.max.apply(null, bins));
+  var bw = W / bins.length;
+  for (i = 0; i < bins.length; i++) {
+    var h = (bins[i] / maxB) * (H - 14);
+    tctx.fillStyle = '#c084fc';
+    tctx.fillRect(i * bw + 1, H - 4 - h, bw - 2, h);
+  }
+  tctx.fillStyle = '#8b93a7'; tctx.font = '10px sans-serif';
+  tctx.fillText('θ∈[0,1](S ' + n + '個)', 4, 12);
+}
+
+var frame = 0, SUBSTEPS = 3;
+function loop() {
+  if (running) {
+    for (var s = 0; s < SUBSTEPS; s++) stepOnce();
+    frame++;
+    if (frame % 3 === 0) analyze();
+    drawMain();
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function reset() { sim = buildSim(); analyze(); drawMain(); }
+$('reset').addEventListener('click', reset);
+$('run').addEventListener('click', function () { running = !running; $('run').textContent = running ? '止める' : '開始'; });
+$('dusk').addEventListener('click', function () {
+  if (!sim) return;
+  sim.sys.sunPhotons = 0;
+  // 止めている間に押されても表(台帳のSunなど)へ即反映する(表の更新はrunningの間しか回らないため)。
+  analyze(); drawMain();
+});
+$('freeToggle').addEventListener('click', function () {
+  freeArm = !freeArm; $('freeToggle').className = freeArm ? 'on' : '';
+  if (sim) { sim.p.freeArm = freeArm; analyze(); }
+});
+$('selToggle').addEventListener('change', reset);
+
+var PRESETS = [
+  { label: 'M ε2 Φ2(既定)', epsS: 2, phi: 2, sel: false }, { label: 'M ε3 Φ4(固い・多い)', epsS: 3, phi: 4, sel: false },
+  { label: 'M ε2 Φ1(少ない)', epsS: 2, phi: 1, sel: false }, { label: 'SEL', epsS: 2, phi: 2, sel: true },
+];
+var presetRow = $('presets');
+PRESETS.forEach(function (pr) {
+  var b = document.createElement('button');
+  b.textContent = pr.label;
+  b.addEventListener('click', function () {
+    $('epsS').value = String(pr.epsS); $('phi').value = String(pr.phi); $('selToggle').checked = pr.sel;
+    reset();
+  });
+  presetRow.appendChild(b);
+});
+
+reset();
+
+Harness.mount({
+  id: 'S-59', version: '1.0.0',
+  inputs: ['epsS', 'phi', 'selToggle', 'seed'],
+  canvases: ['mainCanvas', 'ledgerCanvas', 'thetaCanvas'],
+  onRestore: function () { reset(); },
+  pause: function () { running = false; $('run').textContent = '開始'; },
+  resize: function (scale) {
+    N = Math.max(64, Math.round(1024 * scale * scale)); L = 64 * scale;
+    reset();
+  },
+  paramNames: {
+    epsS: { category: 'p', code: 'epsS', full: 'epsS' },
+    phi: { category: 'p', code: 'phi', full: 'photonRate' },
+    selToggle: { category: 'p', code: 'sel', full: 'selectionArm' },
+    seed: { category: 's', code: 'seed', full: 'seed' },
+  },
+});
+</script>

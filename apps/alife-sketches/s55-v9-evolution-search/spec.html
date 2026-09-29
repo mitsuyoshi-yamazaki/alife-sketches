@@ -1,0 +1,282 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-55 — v9 という世界（提示の run。主張はしない）</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--hot:#fbbf24}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.7 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  h2{font-size:13px;color:var(--acc);border-bottom:1px solid var(--line);padding-bottom:6px;margin:26px 0 10px}
+  h3{font-size:12px;color:var(--fg);margin:16px 0 6px}
+  .sub{color:var(--dim);font-size:12px;margin:0}
+  main{padding:4px 16px 28px;max-width:760px}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:12px 0;font-size:12px;color:var(--dim)}
+  .box b{color:var(--fg)}
+  .box.warn{border-color:#7c4a1e;background:#1e160e}
+  p{margin:8px 0;font-size:12.5px}
+  ul,ol{margin:6px 0;padding-left:1.3em;font-size:12.5px}
+  li{margin:3px 0}
+  code{background:#0009;border-radius:4px;padding:1px 5px;font-size:11.5px}
+  figure.cite{margin:8px 0 14px;padding:0}
+  blockquote.cite{margin:0;padding:8px 10px;border-left:3px solid var(--acc);background:#0c0f16;border-radius:0 6px 6px 0;font-size:11.8px;color:var(--fg);overflow-x:auto}
+  blockquote.cite.table{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.8px;line-height:1.55}
+  blockquote.cite.prose{white-space:pre-wrap}
+  figcaption{margin-top:3px;font-size:10.5px;color:var(--dim)}
+  figcaption code{font-size:10px}
+  table.plain{border-collapse:collapse;width:100%;font-size:11.5px;margin:6px 0}
+  table.plain th,table.plain td{border:1px solid var(--line);padding:4px 6px;text-align:left}
+  table.plain th{color:var(--dim);font-weight:600}
+  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  a{color:var(--acc)}
+  footer{padding:10px 16px 26px;color:var(--dim);font-size:11px;max-width:760px}
+  .tag{display:inline-block;font-size:10px;color:var(--dim);border:1px solid var(--line);border-radius:10px;padding:1px 8px;margin-left:6px}
+</style>
+
+<header>
+  <h1>S-55 — 「v9 という世界」<span class="tag">提示の run（exhibit）</span></h1>
+  <p class="sub">AutoCraftGame v9 の仕様・系譜内の位置づけ・本実験（S-55）のテーマの位置づけ・外部リポジトリへの参照を、原典からの逐語または機械的に取れる事実として提示する。<b>結果・解釈・評価・結論は一行も書かない</b>——それはレポート（<code>reports/</code>）の仕事である。書いた事実が原典と一致することは <code>selftest.js</code> が機械で照合する。</p>
+</header>
+
+<main>
+
+<div class="box">
+  <b>このページの性質。</b> 本実験（S-55）はシミュレーションが本リポジトリの外（別プロジェクト AutoCraftGame）で走る「外部実験」であり、本リポジトリはその写しとレポートだけを持つ。したがって本 run は<b>動かない</b>。事前登録は<code>criteria.json</code>が持ち、事実の照合は<code>selftest.js</code>が持つ。
+</div>
+
+<div class="box warn">
+  <b>revision について。</b> 本実験の事前登録（<code>criteria.json</code>）が固定した pin は <code>8bb4f34</code>（v9.5.9・2026-09-22 22:54）である。本ページはそこから進んだ <code>542a283</code> を基準に AutoCraftGame を読んでいる。<code>selftest.js</code> は①<code>8bb4f34</code> が <code>542a283</code> の祖先であること②本ページが引用する仕様・総括・系譜文書（下記8ファイル）が両者のあいだで1バイトも変わっていないこと、を <code>git diff --stat</code> で機械確認する——変わったのは実験09（進化の探索）の実装と記録だけである。
+  <div class="tablewrap"><table class="plain"><tr><th>確認対象</th><td>README.md ／ docs/versions.md ／ v9/docs/CONCLUSION.md ／ v9/docs/specs/{00_world_objects, 02_components, 03_program_io, 04_craft_energy, 05_parameters}.md</td></tr></table></div>
+</div>
+
+<h2>1. v9 という世界の仕様</h2>
+
+<h3>1.1 世界とオブジェクト</h3>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="external" data-src="v9/docs/specs/00_world_objects.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">WORLD_WIDTH × WORLD_HEIGHT の連続2D空間。壁あり（トーラスではない）</blockquote>
+  <figcaption>AutoCraftGame <code>v9/docs/specs/00_world_objects.md</code> @542a283</figcaption>
+</figure>
+<p>世界に存在するオブジェクトはコンポーネント・グループ・地面の物体・MatterNode・EnergyNode の5種のみ。「個体」はシステムの語彙ではない:</p>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="external" data-src="v9/docs/specs/00_world_objects.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">「キャラクター」「個体」という種別は存在しない（R7: 個体境界の非定義）。
+  観察上の個体はグループという物理的帰結にすぎない</blockquote>
+  <figcaption>同上</figcaption>
+</figure>
+
+<h3>1.2 コンポーネント（8種）と耐久度・修理</h3>
+<p>8種のコンポーネント（Assembler / Disassembler / Processor / MemoryCore / Actuator / Sensor / Harvester / Storage）は、修理材料の対応表に全種が現れる:</p>
+<figure class="cite">
+  <blockquote class="cite table" data-repo="external" data-src="v9/docs/specs/02_components.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">| コンポーネント | 修理材料 |
+|---|---|
+| Assembler | ChargedBinder |
+| Disassembler | ChargedBinder |
+| Processor | EncodedFragment |
+| MemoryCore | EncodedFragment |
+| Actuator | ConductiveGel |
+| Sensor | PatternChain |
+| Harvester | ConductiveGel |
+| Storage | BindingShard |</blockquote>
+  <figcaption>AutoCraftGame <code>v9/docs/specs/02_components.md</code> @542a283</figcaption>
+</figure>
+<p>修理コストは回数とともに逓増する:</p>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="external" data-src="v9/docs/specs/02_components.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">n回目（n = 対象のrepairCount + 1）の修理コスト:
+  - エネルギー: REPAIR_BASE_ENERGY × n</blockquote>
+  <figcaption>同上</figcaption>
+</figure>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="external" data-src="v9/docs/specs/02_components.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">設計意図: 修理コストの逓増により、生涯総修理コストは回数の2乗で増加する。
+  一時的・局所的には修理が有利（組立済み構造を保てる）だが、大局的には再生産が必ず有利になる（R4）</blockquote>
+  <figcaption>同上</figcaption>
+</figure>
+<p>修理の定数値:</p>
+<figure class="cite">
+  <blockquote class="cite table" data-repo="external" data-src="v9/docs/specs/05_parameters.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">| REPAIR_BASE_ENERGY | 40 | n回目の修理エネルギー = 40 × n |
+| REPAIR_AMOUNT | 400 | 1回の修理で回復する耐久度 |</blockquote>
+  <figcaption>AutoCraftGame <code>v9/docs/specs/05_parameters.md</code> @542a283</figcaption>
+</figure>
+
+<h3>1.3 VM（16bit von Neumann）とメモリ配置</h3>
+<figure class="cite">
+  <blockquote class="cite table" data-repo="external" data-src="v9/docs/specs/03_program_io.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">| アーキテクチャ | 16bit von Neumann（プログラム=データ同一空間、自己参照可能） |
+| レジスタ | 8本（r0=常に0、r7=スタックポインタ） |
+| pmem | 4096ワード（アドレスは mod PMEM_WORDS で巡回。定住複製子には1024で足りたが移動複製子のため拡大。実験06） |</blockquote>
+  <figcaption>AutoCraftGame <code>v9/docs/specs/03_program_io.md</code> @542a283</figcaption>
+</figure>
+<p>外部pmem I/O（複製に使うアドレス空間）:</p>
+<figure class="cite">
+  <blockquote class="cite table" data-repo="external" data-src="v9/docs/specs/03_program_io.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">| 0x2000 | PMEM_TARGET_ID | 対象のローカルID（永続） |
+| 0x2001 | PMEM_ADDR | アドレス（mod 対象サイズ、永続） |
+| 0x2002 | PMEM_VALUE | 生値の読み書き |
+| 0x2003 | PMEM_AUTO_VALUE | 生値の読み書き＋アクセス後 ADDR++ |</blockquote>
+  <figcaption>同上</figcaption>
+</figure>
+<p>VM・メモリの定数値:</p>
+<figure class="cite">
+  <blockquote class="cite table" data-repo="external" data-src="v9/docs/specs/05_parameters.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">| instructionsPerTick | 10000 | v8と同じ |
+| PMEM_WORDS | 4096 | Processorのメモリ語数（定住複製子は約620語で足りたが、移動複製子は約1400語を要し1024から拡大。実験06） |
+| MEMCORE_WORDS | 4096 | MemoryCoreの記憶語数 |
+| PROC_TICK_COST | 1 | Processor実行のエネルギー/tick（v9新設） |</blockquote>
+  <figcaption>AutoCraftGame <code>v9/docs/specs/05_parameters.md</code> @542a283</figcaption>
+</figure>
+
+<h3>1.4 原子種別の保存</h3>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="external" data-src="v9/docs/specs/04_craft_energy.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">世界に存在する全物質（ノード残量・Storage内容物・地面の物体・コンポーネント・残骸）の
+原子総数は、原子種ごとに初期状態から不変である</blockquote>
+  <figcaption>AutoCraftGame <code>v9/docs/specs/04_craft_energy.md</code> @542a283</figcaption>
+</figure>
+
+<h3>1.5 要件 R1〜R9 の一覧（v9 自身の達成状況）</h3>
+<div class="tablewrap"><figure class="cite">
+  <blockquote class="cite table" data-repo="external" data-src="v9/docs/CONCLUSION.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">| # | 要件 | v9での状態 | 根拠 |
+|---|------|-----------|------|
+| R1 | 自己複製 | **達成** | ancestor.ts が完全複製（実験01）。8種コンポーネント・17工程クラフト・pmem複写 |
+| R2 | 複製時の変異 | **達成** | プログラム内LCG＋1ビット反転で子のみ変異。生存変異体を観察（実験03） |
+| R3 | 資源の有限性 | **達成** | 原子種別保存＋MatterNode有限。InfoSeed枯渇が複製を止める（実験01） |
+| R4 | 再生産 &lt; 修理 | **達成（機構）** | 逓増修理（n回目=基本料×n）で生涯修理コストが2乗増。長期的に再生産が有利 |
+| R5 | 捕食性個体 | **達成** | predator.ts が探知→追跡→分解で狩る。利得=希少I素材（実験02） |
+| R6 | 手法の非提供 | **達成** | システムは複写/分解/探知のI/Oのみ。進化・変異・個体・種を定義しない |
+| R7 | 個体境界の非定義 | **達成** | 世界にあるのはコンポーネントと接続だけ。「個体」はグループという物理帰結 |
+| R8 | 決定論 | **達成** | シード付きPRNGのみ。同一シード＝バイト単位一致（全実験でテスト） |
+| R9 | 情報的相互作用 | **基盤のみ**（v9範囲外） | 近接/同グループのpmem読み書きは実装済み。有性生殖等は未実装（3_v9_goal通り） |</blockquote>
+  <figcaption>AutoCraftGame <code>v9/docs/CONCLUSION.md</code> @542a283</figcaption>
+</figure></div>
+
+<h2>2. AutoCraftGame の中での v9 の位置づけ</h2>
+
+<p>プロジェクト全体の最終目標（README.md）:</p>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="external" data-src="README.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">最終目標は、進化手法をゲームシステムとして提供せず、個々のキャラクター（人工生命）の自律的な活動の結果として進化が創発するシミュレータの実現。</blockquote>
+  <figcaption>AutoCraftGame <code>README.md</code> @542a283</figcaption>
+</figure>
+<p>構成（v1〜v9 の9版、各版が独立したnpmプロジェクト）:</p>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="external" data-src="README.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">各バージョンは独立したnpmプロジェクトとして格納される。バージョン間のコード依存はない。</blockquote>
+  <figcaption>同上</figcaption>
+</figure>
+
+<p>版横断サマリー表（<code>docs/versions.md</code>）における v9 の行:</p>
+<div class="tablewrap"><figure class="cite">
+  <blockquote class="cite table" data-repo="external" data-src="docs/versions.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">| v9 | ダイナミックな生態系 | **達成** | R9本実装・移動種複製・長期開放進化は今後 |</blockquote>
+  <figcaption>AutoCraftGame <code>docs/versions.md</code> @542a283</figcaption>
+</figure></div>
+
+<p>同文書の表直後の総括（v1〜v9の位置づけを地の文で述べたもの。原典の記述をそのまま引用する）:</p>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="external" data-src="docs/versions.md" data-rev="542a283c7dd1cd63a82718109612111d7b331660">進化の創発という最終目標に対し、v1-v3で自己複製と淘汰圧の基盤を構築し、v4-v5でVMと堅牢性を整備、
+v6-v8で変異メカニズムの根本的限界（完全なコピー忠実性と自己書き換え不能）に直面した。
+**v9はこの限界を「コピー忠実度をシステムが規定しない」設計で突破し、進化手法そのものが
+プレイヤーのプログラムである世界を実証した。** 残る課題は情報的相互作用の本実装と長期の開放的進化である。</blockquote>
+  <figcaption>AutoCraftGame <code>docs/versions.md</code> @542a283</figcaption>
+</figure>
+
+<h2>3. 本実験（S-55）のテーマの位置づけ</h2>
+<p>本実験の問い（<code>criteria.json</code> の <code>question</code>、逐語）:</p>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="local" data-src="apps/alife-sketches/s55-v9-evolution-search/criteria.json">AutoCraftGame v9 のシミュレーション処理（物理法則）を一切変更せず、祖先種プログラムと初期状態の選択だけで、①個体のプログラムが参照するパラメータの進化（最適化）、さらに②個体の振る舞いを司るプログラムそのものの進化が起きると言えるか。そして、その「起きた」を浮動・ヒッチハイク・創始者効果・境界効果から区別できるか。</blockquote>
+  <figcaption>本スケッチ <code>criteria.json</code>（question）</figcaption>
+</figure>
+
+<h3>3.1 何を変えなかったか</h3>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="local" data-src="docs/subprojects/alife-sketches/sketches/S-55-v9-evolution-search/raw/external-STATUS.md">- シミュレータの処理内容（物理法則・アクションの意味・保存則）は変更しない
+- DEFAULT_GAME_PARAMS の既定値は変更しない。実験用の世界は既存の MOBILE_PARAMS
+  （移動種用の既存プリセット）をそのまま使い、新しい設定が要る場合は
+  EXPERIMENTS に新規エントリとして追加する
+- 変異の手法はシミュレータ側に置かない。すべて祖先種プログラムが自分で実装する（R6）</blockquote>
+  <figcaption>本スケッチ <code>raw/external-STATUS.md</code>（実験の設計 §0）</figcaption>
+</figure>
+
+<h3>3.2 何を変えたか（祖先種）</h3>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="local" data-src="docs/subprojects/alife-sketches/sketches/S-55-v9-evolution-search/raw/external-STATUS.md">v9/src/programs/evolvable.ts（新規）。長命移動複製種 longevous.ts の派生であり、
+能力構成（Processor/Assembler/Storage/Harvester/Sensor/Actuator の6部品）、工程表、
+持参金、修理戦略は同一である。変えるのは次の2点だけ</blockquote>
+  <figcaption>本スケッチ <code>raw/external-STATUS.md</code>（実験の設計 §1）</figcaption>
+</figure>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="local" data-src="docs/subprojects/alife-sketches/sketches/S-55-v9-evolution-search/raw/external-STATUS.md">1. 振る舞いを決める定数を、コード中の即値から**ゲノム（pmem）のPARAM区画**へ移し、
+   実行時に `lw` で読むようにする。これにより「プログラムが参照するパラメータ」が
+   ゲノムの一部となり、子に複製され、変異の対象になりうる
+2. 複製時の変異を、pmem全域への1ビット反転（実験03の方式）から
+   **PARAM区画に限定した ±step の摂動**に変える。区画外は1語も書き換えない</blockquote>
+  <figcaption>同上</figcaption>
+</figure>
+
+<h3>3.3 PARAM 区画（5語。うち1語は中立対照）</h3>
+<div class="tablewrap"><figure class="cite">
+  <blockquote class="cite table" data-repo="local" data-src="docs/subprojects/alife-sketches/sketches/S-55-v9-evolution-search/raw/external-STATUS.md">| slot | 名前 | 意味 | 初期値 | 下限 | 上限 | step |
+|:---:|---|---|---:|---:|---:|---:|
+| P0 | `childEnergyDowry` | 子に渡すエネルギー | 900 | 100 | 1800 | 100 |
+| P1 | `disperseTicks` | 複製後に親が子から離れる時間 | 40 | 0 | 200 | 20 |
+| P2 | `repairThreshold` | この耐久度を下回った器官を修理する | 600 | 100 | 950 | 50 |
+| P3 | `energyForageTarget` | エネルギーをこの量まで貯めてから作業する | 1500 | 600 | 1950 | 100 |
+| **P4** | **`neutralDummy`** | **どこからも参照されない語（中立対照）** | **900** | **100** | **1800** | **100** |</blockquote>
+  <figcaption>本スケッチ <code>raw/external-STATUS.md</code>（実験の設計 §2）</figcaption>
+</figure></div>
+
+<h3>3.4 変異機構（祖先種プログラム内に実装。複製直後に実行）</h3>
+<figure class="cite">
+  <blockquote class="cite table" data-repo="local" data-src="docs/subprojects/alife-sketches/sketches/S-55-v9-evolution-search/raw/external-STATUS.md">seed = seed * 31421 + 6927                  （16bit LCG。seedはゲノムの一部で子に複製される）
+if ((seed &gt;&gt; 8) &amp; GATE_MASK) != 0: 変異なし   （GATE_MASK=1 → 確率 1/2）
+i    = (seed &gt;&gt; 3) % 5                       （P0..P4 から1つ選ぶ）
+dir  = (seed &gt;&gt; 12) &amp; 1
+v    = 子のPARAM[i] + (dir ? +step[i] : -step[i])
+v    = clamp(v, min[i], max[i])
+子のpmem[PARAM_BASE + i] = v                 （0x2001/0x2002 で子のコピーのみ書換。親は無傷）</blockquote>
+  <figcaption>本スケッチ <code>raw/external-STATUS.md</code>（実験の設計 §3）</figcaption>
+</figure>
+
+<h3>3.5 初期状態</h3>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="local" data-src="docs/subprojects/alife-sketches/sketches/S-55-v9-evolution-search/raw/external-STATUS.md">- 世界パラメータ: MOBILE_PARAMS（既存。資源ノード量 abundant4000/common2000/limited1000/rare200、
+  エネルギーノード60）。**既定値の書き換えはしない**
+- 祖先: FOUNDER_SPOTS の4個体（(25,25)(75,75)(75,25)(25,75)）。個体ごとに seedSalt を変える
+- 全創始者の PARAM は同一の初期値（900/40/600/1500/900）から出発する
+- tick数: 60,000（実験08で seed=12 が t=40,000 で同時35個体・累計92誕生に達した実績に基づく）
+- シード: 8個（1, 2, 7, 12, 21, 26, 31, 42）。実験08で走査済みのシードを含む</blockquote>
+  <figcaption>本スケッチ <code>raw/external-STATUS.md</code>（実験の設計 §4）</figcaption>
+</figure>
+
+<p>実装・実行された版（先方の記録より）:</p>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="local" data-src="docs/subprojects/alife-sketches/sketches/S-55-v9-evolution-search/raw/external-STATUS.md">実装・テスト（115件通過）・コミットは完了済み（v9.5.11）</blockquote>
+  <figcaption>本スケッチ <code>raw/external-STATUS.md</code></figcaption>
+</figure>
+
+<h2>4. AutoCraftGame への参照</h2>
+<div class="tablewrap"><table class="plain">
+  <tr><th>リポジトリ（ローカル）</th><td><code>~/Documents/Development/Projects/AutoCraftGame</code></td></tr>
+  <tr><th>GitHub</th><td><a href="https://github.com/mitsuyoshi-yamazaki/AutoCraftGame">https://github.com/mitsuyoshi-yamazaki/AutoCraftGame</a></td></tr>
+  <tr><th>事前登録時の pin</th><td><code>8bb4f34d020d4c6ae89d56f0caa8d6f912d27721</code>（v9.5.9）</td></tr>
+  <tr><th>本ページが引用の基準にした revision</th><td><code>542a283c7dd1cd63a82718109612111d7b331660</code>（v9.5.11）</td></tr>
+  <tr><th>主要な文書</th><td><code>README.md</code> ／ <code>docs/versions.md</code> ／ <code>v9/docs/CONCLUSION.md</code> ／ <code>v9/docs/specs/*.md</code> ／ <code>v9/docs/experiments/01〜08</code></td></tr>
+</table></div>
+
+<p>本登録が固定した pin（<code>criteria.json</code> <code>externalExecution.revision</code>、逐語）:</p>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="local" data-src="apps/alife-sketches/s55-v9-evolution-search/criteria.json">v9.5.9 / 8bb4f34d020d4c6ae89d56f0caa8d6f912d27721（2026-09-22 22:54 +0900）が本登録時点の HEAD。</blockquote>
+  <figcaption>本スケッチ <code>criteria.json</code>（externalExecution.revision）</figcaption>
+</figure>
+<p>読み取り専用であることの登録（同ファイル、逐語）:</p>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="local" data-src="apps/alife-sketches/s55-v9-evolution-search/criteria.json">~/Documents/Development/Projects/AutoCraftGame（本リポジトリからは読み取りのみ。書き込み禁止）</blockquote>
+  <figcaption>本スケッチ <code>criteria.json</code>（externalExecution.repository）</figcaption>
+</figure>
+<p>生ログを本リポジトリへ複製した時点で AutoCraftGame が指していた revision（<code>raw/manifest.json</code> の記録。逐語）:</p>
+<figure class="cite">
+  <blockquote class="cite prose" data-repo="local" data-src="docs/subprojects/alife-sketches/sketches/S-55-v9-evolution-search/raw/manifest.json">542a283c7dd1cd63a82718109612111d7b331660</blockquote>
+  <figcaption>本スケッチ <code>raw/manifest.json</code>（source.state）</figcaption>
+</figure>
+
+<div class="box">
+  <b>スクリーンショットについて。</b> AutoCraftGame の UI（<code>v9/docs/specs/08_ui.md</code>）は別リポジトリのアプリケーションを起動しないと撮れない。本段（S2）の裁量は本スケッチのディレクトリ1本に限られ、別リポジトリを走らせる操作は範囲外と判断し、撮っていない。理由と詳細は <span class="deadlink">README.md</span> に記す。
+</div>
+
+</main>
+
+<footer>
+  S-55「v9 という世界」（提示の run・origin: exhibit）。事前登録: <code>criteria.json</code>。事実の照合: <code>selftest.js</code>（<code>node selftest.js</code>）。結果・解釈はレポート（<code>docs/subprojects/alife-sketches/sketches/S-55-v9-evolution-search/reports/</code>）を見よ——本ページには無い。
+</footer>

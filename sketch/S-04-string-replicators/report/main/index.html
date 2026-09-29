@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>文字列分子の衝突と複製（Stringmol 風） — 人工生命スケッチ</title><link rel="stylesheet" href="../../../../assets/style.css"></head><body class="sketchpage"><nav class="crumbs"><a href="../../../../index.html">人工生命スケッチ</a><span class="sep">›</span><span aria-current="page">S-04 文字列分子の衝突と複製（Stringmol 風）</span></nav><header class="shead"><div class="sline"><span class="cid">S-04</span><h1>文字列分子の衝突と複製（Stringmol 風）</h1><span class="ver">v1.0.0</span></div><div class="tags"><span class="tag">文字列分子</span><span class="tag">複製</span><span class="tag">組合せ論</span></div><div class="sacts"><button class="btn ovopen" data-go="r-main">📄 文字列分子の衝突と複製（Stringmol 風）</button><button class="btn ovopen" data-go="comments">💬 コメント（1）</button></div></header><div class="stagewrap"><iframe class="stage" title="実行窓" data-run="main" src="../../../../apps/alife-sketches/s04-string-replicators/viewer.html"></iframe><div class="overlay" id="overlay" data-open="r-main"><div class="ovbar"><span class="ovwho" title="文字列分子の衝突と複製（Stringmol 風）">S-04</span><div class="ovtabs"><button class="ovtab" data-go="r-main">文字列分子の衝突と複製（Stringmol 風）</button><button class="ovtab" data-go="comments">💬 コメント（1）</button></div><button class="ovclose" id="ovclose" title="閉じて実行に戻る">✕</button></div><div class="ovbody"><section class="pane" data-pane="r-main" hidden><div class="rmeta"><span class="angle">主レポート（最初の切り口）</span></div><details class="rtoc"><summary>目次</summary><a href="#一行で言うと">一行で言うと</a><a href="#何をやったか">何をやったか</a><a href="#結果-事前登録した解析">結果（事前登録した解析）</a><a href="#事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</a><a href="#本家サブプロジェクトへの含意-候補-要件化はしていない">本家サブプロジェクトへの含意（候補。要件化はしていない）</a><a href="#限界-この実験が言えないこと">限界（この実験が言えないこと）</a></details><article class="md"><h1 id="s-04-文字列分子の衝突と複製-stringmol-風">S-04: 文字列分子の衝突と複製（Stringmol 風）</h1>
+<ul><li><strong>実施日</strong>: 2026-09-11</li><li><strong>アプリ</strong>: <span class="deadlink">apps/alife-sketches/s04-string-replicators/</span></li><li><strong>可視化</strong>: <code>viewer.html</code>（反応槽を1行1分子で描き、秩序変数の時系列と並べて動かす。μ を動かせる）</li><li><strong>生ログ</strong>: <span class="deadlink">raw/sweep.jsonl</span>・<span class="deadlink">raw/replicates.jsonl</span>（60 レプリケート）・<span class="deadlink">raw/trace.jsonl</span>（時系列 720 点）・<span class="deadlink">raw/controls.jsonl</span>・<span class="deadlink">raw/summary.json</span>・事後解析 <span class="deadlink">raw/posthoc-scale.jsonl</span>／<span class="deadlink">raw/posthoc-dominants.jsonl</span>／<span class="deadlink">raw/posthoc-extinction.jsonl</span></li><li><strong>所要</strong>: 掃引 460 秒 ＋ 事後解析 274 秒</li></ul>
+<p><strong>出典</strong>（アイデアのみ。<strong>コードは参照せず仕様書の記述から実装した</strong>）: Hickinbotham, S., Clark, E., Stepney, S., Clarke, T., Nellis, A., Pay, M. &amp; Young, P. (2010) "Specification of the stringmol chemical programming language version 0.1", Technical Report YCS-2010-457, University of York。 <strong>原典（v0.1 の仕様書）には到達し、本文を読めた</strong>——命令表・ポインタの構成・束縛確率の式・ アルファベットの環構造まで確認している。それでも本実装は<strong>原典の再現ではない</strong>（限界の節に相違点を列挙した）。</p>
+<h2 id="一行で言うと">一行で言うと</h2>
+<p>**エラー閾値は μ\*=0.001 に出た。事後に 31 通りの測り方で測り直しても閾値は 0 / 0.001 / 0.002 の3値にしか動かず、S-02 のような結論の反転は起きなかった。<strong> ただし閾値のすぐ内側（μ=0.001、最頻配列が槽の 42% を占める）で槽を占めていたのは</strong>手組み複製子ではない<strong>。 手組み複製子は 5/5 のレプリケートで</strong>第 18〜29 世代に絶滅<strong>しており、 そこに残って槽を占めていたのは </strong>自分では自分を複製できず、まだ働いている変異複製子に写してもらっている配列<strong>だった。 「情報が集団に保たれている」と「その情報が自分を作る機構を持っている」は、</strong>ここでは別の事実**になる。</p>
+<h2 id="何をやったか">何をやったか</h2>
+<h3 id="題材">題材</h3>
+<p>文字列が<strong>データであると同時に実行可能なプログラムでもある</strong>人工化学。2本が出会うと:</p>
+<pre><code>① 相補的な部分列を Smith-Waterman で局所整列する
+② 得点が閾値以上なら束縛する。**整列の終端がそのまま束縛部位**になる
+③ 束縛部位が「どちらが能動側か」と「プログラムのどこから始まるか」を決める
+④ 能動側は自分を命令として実行し、相手（または自分）を読んで新しい文字列を書く
+⑤ 生成物を槽へ戻す。容量を超えたら一様乱数で1本捨てる（希釈）</code></pre>
+<p>S-01（静的な組合せ論）・S-02（連続空間の粒子）に対して、<strong>離散記号列と実行機構</strong>の系統として選んだ。</p>
+<p><strong>アルファベットは 16 記号の環</strong>で、相補は半周ずらし <code>comp(i) = (i+8) mod 16</code>（対合）。 原典と同じく<strong>命令記号とテンプレート記号を環の上で混ぜて</strong>あるので、テンプレート記号の相補が 命令記号になることがある（<code>D</code> と <code>$</code>）:</p>
+<pre><code>添字  0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+記号  A B C = D E ? F G H  I  &gt;  $  ^  %  }
+相補  G H I &gt; $ ^ % } A B  C  =  D  E  F  ?</code></pre>
+<p>命令は7つ。<strong>テンプレート記号 A–I は命令の位置に来ても何もしない</strong>——これが「データがそのまま プログラムでもある」ことの実体にあたる:</p>
+<div class="tw"><table><thead><tr><th>記号</th><th>名</th><th>働き</th></tr></thead><tbody><tr><td><code>=</code></td><td>copy</td><td>読みポインタの記号を書き出し緩衝へ写し、読みポインタを進める</td></tr><tr><td><code>?</code></td><td>if</td><td>読みポインタが末尾を越えていれば、後続テンプレートの相補へ飛ぶ</td></tr><tr><td><code>&gt;</code></td><td>jump</td><td>後続テンプレートの相補を<strong>能動側</strong>から探し、命令ポインタをその直後へ</td></tr><tr><td><code>$</code></td><td>search</td><td>後続テンプレートの相補を<strong>読み対象</strong>から探し、読みポインタをその直後へ（テンプレートが空なら先頭へ戻す）</td></tr><tr><td><code>^</code></td><td>toggle</td><td>読み対象を能動側 / 受動側で切り替える</td></tr><tr><td><code>%</code></td><td>cleave</td><td>緩衝をその時点で1つの生成物として切り出す</td></tr><tr><td><code>}</code></td><td>end</td><td>実行を終了する</td></tr></tbody></table></div>
+<h3 id="束縛の方式に-smith-waterman-を選んだ理由">束縛の方式に Smith-Waterman を選んだ理由</h3>
+<p>指示にあった候補（SW 的な整列 / 最長共通部分列）のうち <strong>Smith-Waterman（局所整列・線形間隙罰）</strong>を採った。 理由は<strong>本実験の制御変数がコピー誤り率だからである</strong>:</p>
+<ul><li><strong>局所整列</strong>なので、文字列のどこにあっても束縛部位を見つける。全体が似ている必要がない</li><li><strong>1点変異で得点が緩やかにしか下がらない</strong>。SW は不一致 −1・間隙 −2 を払って整列を続けられるので、</li></ul>
+<p>変異が入った分子も「少し弱く」束縛する。<strong>エラー閾値を見る実験に必要なのはこの緩やかさ</strong>で、 完全一致や最長共通部分列の長さだけでは「束縛する / しない」が階段状に切り替わってしまう</p>
+<ul><li><strong>整列の終端がそのまま束縛部位になる</strong>ので、原典の「束縛部位が能動側と開始位置を決める」性質を</li></ul>
+<p>そのまま使える（最長共通部分列でも位置は出るが、間隙の扱いに恣意が入る）</p>
+<p><strong>得点は事前に較正した</strong>（<span class="deadlink">K-9</span> にいう「スケール」にあたるので <code>criteria.json</code> へ登録した）。 長さ39の一様乱数どうしの整列得点は 20000 試行で最大 5（P(&gt;=5)=0.00125）、手組み複製子どうしは 11。 <strong>閾値 6</strong> は両者を分離し、複製子側に 5 点の余裕を残す。<strong>この較正は掃引を1回も走らせる前に行っている。</strong></p>
+<h3 id="手で組んだ複製子">手で組んだ複製子</h3>
+<pre><code>AAABBBCCC GGGHHHIII ? CCCC = &gt; AAABBBCCC IIII }
+[ 0..8 ]  [ 9..17 ] 18 [19-22] 23 24 [25..33] [34-37] 38
+
+[0..8]   束縛部位 α
+[9..17]  その相補 β。同じ配列の相手の α と整列する。**繰り返しの戻り先でもある**
+[18]     ? 読み終えたか -&gt; 終わっていれば CCCC の相補 IIII（[34..37]）の直後 = } へ飛ぶ
+[23]     = 1記号写す
+[24]     &gt; AAABBB の相補 GGGHHH（[9..14]）の直後へ戻る
+[38]     } 終了</code></pre>
+<p>同一配列どうしの整列は<strong>得点 11</strong>（[9..22] と [25..37] が1つの間隙を挟んで対応する）で、 束縛部位の直後がちょうど copy 命令にあたる。<strong>「束縛部位が命令の開始位置を決める」という 原典の性質を、この配列は設計として使っている。</strong> 相手が自分と同じ配列なら、生成物は自分自身になる。</p>
+<h3 id="検出器の妥当性検査-node-selftest-js-24-項目すべて通過">検出器の妥当性検査（<code>node selftest.js</code>・24 項目すべて通過）</h3>
+<div class="tw"><table><thead><tr><th>検査</th><th>結果</th></tr></thead><tbody><tr><td>正コントロール①: 手組み複製子どうしが<strong>厳密な</strong>複製を産む</td><td>整列得点 11 / 236 命令 / 生成物 39 記号が原文と一致</td></tr><tr><td>正コントロール②: 100% 複製子の槽で多様度比 &lt;= 0.05</td><td><strong>0.0000</strong></td></tr><tr><td>正コントロール②: 同じ槽で手組み複製子の占有率 &gt;= 0.95</td><td><strong>1.0000</strong></td></tr><tr><td>負コントロール①: 実行を切ると多様度比が<strong>理論的な帰無値 1.0</strong> と一致</td><td><strong>1.0000</strong>（理論 1.0）</td></tr><tr><td>負コントロール①: 記号エントロピー比も理論値と一致</td><td><strong>0.9998</strong>（理論 1.0 = log2(16)/4bit）</td></tr><tr><td>負コントロール②: 複製子を入れない槽で秩序が自然発生しない</td><td>最頻占有 0.003 / 束縛率 0.00027</td></tr><tr><td>同一シードで完全再現 / 違うシードで違う結果</td><td>一致 / 相違</td></tr><tr><td>保存則: 槽の本数が容量から動かない・記号と長さが範囲内</td><td>250/250</td></tr><tr><td>近道の検算: 整列キャッシュが素の再計算と一致</td><td>不一致 0/500</td></tr><tr><td>近道の検算: 間隙を禁じた DP が総当たりの無間隙局所整列と一致</td><td>不一致 0/200</td></tr><tr><td>コピー誤り率の較正</td><td>実測 0.1013 / 設定 0.100（3σ=0.0072・15600 記号）</td></tr><tr><td>命令ごとの単体検査（<code>=</code> <code>^</code> <code>$</code> <code>%</code> <code>&gt;</code> <code>?</code> と暴走の上限）</td><td>8 項目すべて通過</td></tr><tr><td>可視化と核の突き合わせ（<span class="deadlink">K-5</span>）</td><td>参照 6 件・欠落なし</td></tr></tbody></table></div>
+<p>負コントロールが効いた。<strong>この系は帰無値が理論から出る</strong>——実行を切って一様乱数の文字列を 産み続ければ、定常状態は「全て相異なる一様乱数列」で、種エントロピーは log2(N) に、 記号エントロピーは log2(16) に<strong>厳密に</strong>なる。実測 1.0000 / 0.9998 はその一致であり、 検出器と帰無モデルを同時に検証している（<span class="deadlink">K-10</span> を最初から主に据えた形）。</p>
+<h2 id="結果-事前登録した解析">結果（事前登録した解析）</h2>
+<p>判定基準は <code>criteria.json</code>（sha256 <code>9775065eef7956e9</code>・rev1）に走らせる前から固定してある。 主の秩序変数は <strong>種のシャノンエントロピー / log2(N)</strong>（帰無値 1.0・閾値 0.5）、 窓は各レプリケートの<strong>末尾 20%（世代 240–299）</strong>の平均。槽 300 本・300 世代・各 5 シード。</p>
+<div class="tw"><table><thead><tr><th>μ</th><th>多様度比</th><th>最頻占有</th><th>手組み複製子</th><th>記号エントロピー比</th><th>異なる配列</th><th>平均長</th><th>系統の深さ</th><th>判定</th></tr></thead><tbody><tr><td>0</td><td><strong>0.000</strong></td><td>1.000</td><td><strong>1.000</strong></td><td>0.723</td><td>1</td><td>39.0</td><td>308</td><td><strong>秩序あり</strong></td></tr><tr><td>0.0005</td><td>0.403</td><td>0.421</td><td>0.000</td><td>0.680</td><td>46</td><td>70.1</td><td>79</td><td><strong>秩序あり</strong></td></tr><tr><td><strong>0.001</strong></td><td><strong>0.387</strong></td><td>0.423</td><td>0.000</td><td>0.800</td><td>46</td><td>62.2</td><td>72</td><td><strong>秩序あり</strong></td></tr><tr><td>0.002</td><td>0.602</td><td>0.246</td><td>0.000</td><td>0.635</td><td>98</td><td>75.2</td><td>54</td><td>—</td></tr><tr><td>0.005</td><td>0.860</td><td>0.074</td><td>0.000</td><td>0.730</td><td>198</td><td>124.0</td><td>75</td><td>—</td></tr><tr><td>0.01</td><td>0.843</td><td>0.096</td><td>0.000</td><td>0.839</td><td>199</td><td>103.9</td><td>54</td><td>—</td></tr><tr><td>0.02</td><td>0.839</td><td>0.110</td><td>0.000</td><td>0.909</td><td>208</td><td>76.8</td><td>129</td><td>—</td></tr><tr><td>0.05</td><td>0.899</td><td>0.061</td><td>0.000</td><td>0.858</td><td>236</td><td>56.8</td><td>24</td><td>—</td></tr><tr><td>0.12</td><td>0.904</td><td>0.060</td><td>0.0007</td><td>0.892</td><td>236</td><td>39.3</td><td>12</td><td>—</td></tr><tr><td>0.2</td><td>0.959</td><td>0.040</td><td>0.0013</td><td>0.917</td><td>274</td><td>50.5</td><td>9</td><td>—</td></tr></tbody></table></div>
+<p>**エラー閾値（事前登録した定義）: μ\* = 0.001。**</p>
+<h3 id="そこで出たものの規模-k-6">そこで出たものの規模（<span class="deadlink">K-6</span>）</h3>
+<p>閾値の位置だけでは足りない。μ=0.001 で実際に何があったかを併記する:</p>
+<ul><li>最頻配列が槽の <strong>42.3%</strong> を占め、異なる配列は <strong>46</strong> 種、系統の深さは <strong>72</strong> 世代ぶん</li><li>しかし<strong>手組み複製子の占有率は 0.000</strong>。<strong>5 シード中 0 本</strong>で最頻配列が手組み複製子だった</li><li>μ=0（正コントロール相当）とは別物である。そちらは単一配列が槽の 100% を占め、深さ 308</li></ul>
+<h3 id="レプリケート単位の分布-k-3">レプリケート単位の分布（<span class="deadlink">K-3</span>）</h3>
+<p>平均値だけを見ると危ない。閾値付近の5レプリケートの多様度比:</p>
+<div class="tw"><table><thead><tr><th>μ</th><th>各レプリケートの多様度比</th><th>平均</th></tr></thead><tbody><tr><td>0</td><td>0.000 / 0.000 / 0.000 / 0.000 / 0.000</td><td>0.000</td></tr><tr><td>0.0005</td><td><strong>0.792</strong> / 0.244 / 0.297 / 0.431 / 0.251</td><td>0.403</td></tr><tr><td>0.001</td><td>0.214 / 0.259 / 0.468 / <strong>0.714</strong> / 0.280</td><td>0.387</td></tr><tr><td>0.002</td><td>0.466 / <strong>0.813</strong> / 0.526 / 0.303 / <strong>0.901</strong></td><td>0.602</td></tr></tbody></table></div>
+<p><strong>μ=0 以外に「全レプリケートが揃って秩序側」という点は1つも無い。</strong> 閾値の内側でも 5本に1本は帰無値近くまで散らばっており、**μ\*=0.001 は「混合比が半分を越える場所」であって、 相転移点ではない。** μ=0 だけが質的に違う（分散ゼロ）。</p>
+<h3 id="記号エントロピー比は秩序変数として弱かった">記号エントロピー比は秩序変数として弱かった</h3>
+<p>副で置いた記号エントロピー比（帰無値 1.0）は、μ=0 で 0.723、μ=0.2 で 0.917 にしかならない。 <strong>手組み複製子の記号組成がほぼ一様に近い</strong>（16 記号中 8 記号が2個ずつ）ため、 槽が単一配列に占有されても記号の頻度分布はあまり偏らない。 <strong>同じ「理論的な帰無値を持つ量」でも、記述の層（記号 / 配列）を間違えると分離しない。</strong></p>
+<h2 id="事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</h2>
+<p>掃引を走らせた後に気付いた3点を、別のファイル（<code>posthoc.js</code> と <code>posthoc-*.jsonl</code>）へ分けて調べた（<span class="deadlink">K-11</span>）。</p>
+<h3 id="測り方への感度-今回は反転しなかった">① 測り方への感度 — 今回は反転しなかった</h3>
+<p>秩序変数・閾値・シードの集約（平均 / 中央値 / 5本中3本以上）を動かして、<strong>31 通り</strong>の測り方で エラー閾値を測り直した。結果は <strong>3 値にしか動かなかった</strong>:</p>
+<div class="tw"><table><thead><tr><th>秩序変数</th><th>閾値を動かした範囲</th><th>出た μ\*</th></tr></thead><tbody><tr><td>多様度比（主）</td><td>0.3–0.7 × 平均/中央値/多数決</td><td>0 / <strong>0.001</strong> / 0.002</td></tr><tr><td>最頻占有率</td><td>0.2–0.7 × 平均/中央値/多数決</td><td>0 / 0.001 / 0.002</td></tr><tr><td>手組み複製子の割合</td><td>0.05–0.5</td><td>0 のみ</td></tr></tbody></table></div>
+<p>S-02 では同じ手続き（解析上の一数値を動かす）で結論が「到達せず」から「ρ=0.04」へ反転した。 <strong>ここでは反転しなかった</strong>——掃引の刻み1つぶんしか動かない。 ただし<strong>これを「閾値が頑健だ」と読むのは行き過ぎ</strong>で、低 μ 側の刻みが 0 / 0.0005 / 0.001 / 0.002 と 粗いため、<strong>3 値とは「刻み3つぶん」でもある</strong>。言えるのは「S-02 で起きた反転は、 測り方の自由度がある限り必ず起きるわけではない」までにとどまる。</p>
+<h3 id="槽を占めていた配列は-それ自体が複製子ではなかった">② 槽を占めていた配列は、それ自体が複製子ではなかった</h3>
+<p>各レプリケートの最終の最頻配列 D について、<code>D</code> どうしを μ=0 で反応させて <strong>D が出るか</strong>を 20 回試した:</p>
+<div class="tw"><table><thead><tr><th>μ</th><th>最頻占有</th><th>長さ</th><th><strong>D が自分を複製する</strong></th><th>手組み複製子が D を写せる</th><th>命令記号数</th></tr></thead><tbody><tr><td>0</td><td>1.00</td><td>39</td><td><strong>5/5</strong></td><td>0/5</td><td>4.0</td></tr><tr><td>0.0005</td><td>0.42</td><td>78</td><td><strong>0/5</strong></td><td>3/5</td><td>8.2</td></tr><tr><td>0.001</td><td>0.42</td><td>71</td><td><strong>0/5</strong></td><td>4/5</td><td>17.4</td></tr><tr><td>0.002</td><td>0.25</td><td>76</td><td><strong>0/5</strong></td><td>3/5</td><td>11.4</td></tr><tr><td>0.005</td><td>0.07</td><td>47</td><td><strong>0/5</strong></td><td>1/5</td><td>7.6</td></tr><tr><td>0.02 以上</td><td>&lt;=0.11</td><td>4–11</td><td>0/5（0.2 で 1/5）</td><td>0–1/5</td><td>&lt;=2</td></tr></tbody></table></div>
+<p><strong>μ&gt;0 では、槽を占めた配列は一度も自分自身の複製子ではなかった。</strong> 低 μ では 「手組み複製子なら写せる」配列——つまり<strong>まだ働いている変異複製子に写してもらっている配列</strong>である。 長さも 39 から 70 台へ伸びている。高 μ では長さ 4–11 の断片（生成物の下限付近）に落ちる。</p>
+<h3 id="手組み複製子は-いったん槽を占めてから絶滅する">③ 手組み複製子は、いったん槽を占めてから絶滅する</h3>
+<div class="tw"><table><thead><tr><th>μ</th><th>最高到達占有（世代）</th><th>絶滅世代</th><th>絶滅後に槽を占めた配列の長さ</th></tr></thead><tbody><tr><td>0</td><td>1.00（13）</td><td><strong>絶滅せず</strong></td><td>39</td></tr><tr><td>0.0005</td><td>0.75（7）</td><td><strong>29</strong>（5/5）</td><td>78</td></tr><tr><td>0.001</td><td>0.67（6）</td><td><strong>19</strong>（5/5）</td><td>71</td></tr><tr><td>0.002</td><td>0.57（6）</td><td><strong>18</strong>（5/5）</td><td>76</td></tr><tr><td>0.005</td><td>0.42（6）</td><td><strong>20</strong>（5/5）</td><td>47</td></tr></tbody></table></div>
+<p>時系列で見ると分かりやすい（μ=0.0005・シード0、世代ごと）:</p>
+<pre><code>世代   1    3    5    7    9   11   15   20   25
+複製子 .26  .38  .65  .79  .27  .05  .00  .00  .00
+最頻   .26  .38  .65  .79  .39  .48  .72  .46  .54</code></pre>
+<p><strong>第7世代までに槽の 79% を占め、第20世代までに消える。</strong> そのあいだ最頻配列の占有率は 落ちない——占めている配列が入れ替わっただけである。 μ=0.0005 は1本あたりの複製で 98% の確率で完全複製になる誤り率であり、 <strong>「複製がほぼ正確でも、元の配列は 30 世代もたない」</strong>。</p>
+<h2 id="本家サブプロジェクトへの含意-候補-要件化はしていない">本家サブプロジェクトへの含意（候補。要件化はしていない）</h2>
+<ul><li><strong>「情報が保たれているか」と「その情報が自分を作る機構を持っているか」を別の観測量にする。</strong></li></ul>
+<p>本スケッチでは両者が μ&gt;0 で完全に分離した（最頻占有 0.42 / 自己複製能 0/5）。 片方だけを見ていると、寄生的な配列の占有を「複製子が維持されている」と読んでしまう</p>
+<ul><li><strong>理論的な帰無値を持つ秩序変数は、記述の層を選ぶ必要がある。</strong> 同じ「エントロピー比・帰無値1.0」でも</li></ul>
+<p>配列の層では 0.000 と 0.959 のあいだで分離し、記号の層では 0.723 と 0.917 のあいだでしか動かなかった</p>
+<ul><li><strong>束縛（認識）の方式が、変異に対する系の応答を決める。</strong> 局所整列を選んだのは</li></ul>
+<p>「1点変異で得点が緩やかに下がる」ためで、完全一致にすれば同じ化学でもエラー閾値の形が変わる。 <strong>認識機構は観測器ではなく系の定義に属し、そこに入るスケールも事前に固定する対象になる</strong></p>
+<h2 id="限界-この実験が言えないこと">限界（この実験が言えないこと）</h2>
+<h3 id="原典との相違-本実装は原典の再現ではない">原典との相違（<strong>本実装は原典の再現ではない</strong>）</h3>
+<p>原典 v0.1 の仕様書には<strong>到達し本文を読めた</strong>が、<strong>意図的に簡略化した箇所が多い</strong>。 「同じ問いを自分の設計で見たもの」として読むこと:</p>
+<div class="tw"><table><thead><tr><th></th><th>原典（YCS-2010-457 v0.1）</th><th>本実装</th></tr></thead><tbody><tr><td>アルファベット</td><td>33 記号（テンプレート A–Z 26 ＋ 命令 7）</td><td><strong>16 記号</strong>（テンプレート 9 ＋ 命令 7）</td></tr><tr><td>ポインタ</td><td>命令・<strong>フロー</strong>・読み・書き の4種 × 2 実体（計8）</td><td>命令1・読み2・書き出し緩衝1（<strong>フローポインタが無い</strong>）</td></tr><tr><td><code>&gt;</code></td><td>move（ポインタをフローポインタの位置へ）</td><td><strong>無条件ジャンプ</strong>（テンプレート探索）。<strong>意味が違う</strong></td></tr><tr><td><code>$</code></td><td>search（<strong>フロー</strong>ポインタをテンプレートへ）</td><td><strong>読み</strong>ポインタをテンプレートへ。<strong>対象が違う</strong></td></tr><tr><td><code>=</code> copy</td><td>受動側の文字列の末尾へ書き込む</td><td><strong>別の追記専用緩衝</strong>へ書き、それが新しい分子になる</td></tr><tr><td><code>%</code> cleave</td><td>実際の文字列を切って新分子を作る</td><td>緩衝を切り出すだけ（元の文字列は切れない）</td></tr><tr><td>束縛</td><td><strong>確率的</strong>。P = (σ/λ)^λ を整列得点 σ と長さ λ から作る</td><td><strong>決定的な得点閾値</strong>（6 以上）</td></tr><tr><td>能動側の決定</td><td>束縛部位の位置から決まる</td><td>束縛部位より後ろの命令記号数（決定的な自作規則）</td></tr><tr><td>置換行列</td><td>記号ごとの置換・indel 得点を持つ行列 ω</td><td>一律 +1 / −1 / −2</td></tr><tr><td>崩壊</td><td><strong>長さに依存する崩壊過程</strong>がある（複製子が junk を持つ理由）</td><td><strong>無し</strong>。容量超過時の一様な希釈だけ</td></tr><tr><td>変異</td><td>v0.1 には<strong>無い</strong></td><td>copy 1回あたりの置換誤り（挿入・欠失は無し）</td></tr></tbody></table></div>
+<p>さらに、<strong>原典の反応槽の運用（Hickinbotham et al. 2012 の well-mixed system）は読んでいない</strong>。 容量・希釈・世代の定義はすべて本実装の独自設計であり、<strong>原典の数値と比較できる形になっていない。</strong></p>
+<h3 id="実験そのものの限界">実験そのものの限界</h3>
+<ul><li><strong>相転移だと主張できない</strong>。レプリケート分布は μ=0 を除きどの点でも広く、μ\*=0.001 は</li></ul>
+<p>混合比が半分を越える位置にすぎない。<strong>分散ゼロなのは μ=0 だけ</strong></p>
+<ul><li><strong>掃引の刻みが低 μ 側で粗い</strong>。0 / 0.0005 / 0.001 / 0.002 の4点で閾値を決めており、</li></ul>
+<p>事後解析で「3 値しか動かない」ことの一部は<strong>刻みの粗さそのもの</strong>である</p>
+<ul><li><strong>槽 300 本・300 世代は小さい</strong>。系統の深さ 300 程度で、集団遺伝的な浮動が強く効く大きさにある。</li></ul>
+<p>手組み複製子の絶滅が選択によるものか浮動によるものかを、本実験は<strong>分離していない</strong></p>
+<ul><li><strong>初期条件を1つしか見ていない</strong>（手組み複製子 20% ＋ 一様乱数 80%）。</li></ul>
+<p>複製子が自然発生するかは見ていない（負コントロール②で 50 世代のあいだ発生しなかった、までしか言えない）</p>
+<ul><li><strong>Claude は可視化を目視できない</strong>。<code>viewer.html</code> の API の食い違いは機械的に潰したが</li></ul>
+<p>（<span class="deadlink">K-5</span>）、絵が意味を成しているかは分からない</p>
+<ul><li><strong>命令セットは自作である</strong>。「この命令セットでこうなった」以上のことは言えず、</li></ul>
+<p>別の命令セットで同じ閾値が出る保証はまったく無い</p></article><p class="src">原典: <code>docs/subprojects/alife-sketches/sketches/S-04-string-replicators/reports/main.md</code></p></section><section class="pane" data-pane="comments" hidden><div class="comments" data-slug="S-04-string-replicators" data-run="main" data-readonly><div id="clist" class="clist">読み込み中…</div><script type="application/json" id="cdata">{"version":1,"sketch":"S-04-string-replicators","comments":[{"id":"c-877aae83b2dc","author":"user","body":"謝り率を上げても、一定期間経つと絵が動かなくなる。これは、この系では自己を複製できるコードのアトラクタが非常に強く、陥ると抜け出せない　ということか。また、そうだとしても、世代交代があれば一定の確率で変異するはずである。それが観察できないということは、世代交代していないのか","createdAt":"2026-09-11T17:09:06.932Z","updatedAt":"2026-09-11T17:09:06.932Z","deleted":false,"aiThread":false,"replies":[]}]}</script></div></section></div></div></div><button class="fab" id="fab" title="メニュー" aria-label="メニュー">☰</button><div class="menu" id="menu" hidden><div class="menuhead">人工生命スケッチ</div><a href="../../../../index.html">🏠 ホーム（スケッチ一覧）</a><a href="../../../../reports/index.html">📄 レポート一覧</a></div><script src="../../../../assets/menu.js"></script><script src="../../../../assets/overlay.js"></script><script src="../../../../assets/comments-ui.js"></script></body></html>

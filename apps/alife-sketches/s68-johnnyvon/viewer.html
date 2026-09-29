@@ -1,0 +1,210 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-68 — JohnnyVon</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:15px}
+  .sub{color:var(--dim);font-size:12px;margin:0;max-width:980px}
+  .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  select,input[type=number]{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px;font-size:12px}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;background:#05060a}
+  table{border-collapse:collapse;font-size:12px;width:100%}
+  th,td{padding:3px 8px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  .col{display:flex;flex-direction:column;gap:14px;flex:1;min-width:260px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:980px}
+  footer b{color:var(--fg)}
+  @media(max-width:760px){.wrap{flex-direction:column}}
+</style>
+
+<header>
+  <h1>S-68 — JohnnyVon: 連続空間を漂うT字のcodonの場と局所の状態機械だけで作る階層</h1>
+  <p class="sub">腕の先の5色の場で結合・反発するT字のcodonが、局所の有限状態機械（自分と結合で指す
+    最大3つの近傍の状態だけを読む）で場の大きさを切り替える系。上位の単位（鎖・二本鎖・系譜）は
+    書かず、検出器の側で結合の指し先から数える。判定基準は <code>criteria.json</code>、
+    実装の注記は <code>raw/notes.md</code>。<b>この画面は本物の力学（core.js）をそのまま動かす</b>
+    （近似は無い。検出は簡略化した表示専用のもので、判定に使う検出は本番走行の生ログだけが担う）。</p>
+</header>
+
+<div class="bar">
+  <button id="run">開始</button>
+  <button id="reset">配置をやり直す</button>
+  <label>腕<select id="arm">
+    <option value="M-spont" selected>M-spont（種なし・主）</option>
+    <option value="M-wide">M-wide（角の許容4倍）</option>
+    <option value="M-flow">M-flow（入れ替え）</option>
+    <option value="R-seed8">R-seed8（種00011001・参照）</option>
+    <option value="R-seed82">R-seed82（種2本・参照）</option>
+    <option value="NC-notemplate">NC-notemplate（負・鋳型を切る）</option>
+    <option value="NC-nosplit">NC-nosplit（負・割る力を切る）</option>
+    <option value="NC-notemplate-flow">NC-notemplate-flow（負・定常系）</option>
+  </select></label>
+  <label>kT<input type="number" id="kT" value="0.05" step="0.01" min="0.001" style="width:5em"></label>
+  <label>c_y<input type="number" id="cy" value="8" step="1" min="1" style="width:4em"></label>
+  <label>seed<input type="number" id="seed" value="6801" step="1" style="width:6em"></label>
+  <label>速さ<select id="speed"><option value="1">標準</option><option value="4" selected>速い</option><option value="10">最速</option></select></label>
+</div>
+
+<div class="wrap">
+  <div class="col" style="flex:2;min-width:420px">
+    <div class="panel">
+      <h2>場（赤青=一本鎖の結合／紫緑=鋳型の上の保持／黄=割れる合図）</h2>
+      <canvas id="field" width="600" height="600"></canvas>
+    </div>
+  </div>
+  <div class="col">
+    <div class="panel">
+      <h2>いま</h2>
+      <table>
+        <tr><th></th><th>今</th></tr>
+        <tr><td>歩</td><td id="t">0</td></tr>
+        <tr><td>自由な codon</td><td id="free">―</td></tr>
+        <tr><td>一本鎖 U1（表示用）</td><td id="u1n">―</td></tr>
+        <tr><td>紫緑の結合</td><td id="pg">―</td></tr>
+        <tr><td>z 状態の codon</td><td id="zn">―</td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>台帳（記録のみ。K-146）</h2>
+      <table>
+        <tr><td>運動エネルギー</td><td id="ke">―</td></tr>
+        <tr><td>ばね</td><td id="spe">―</td></tr>
+        <tr><td>黄</td><td id="ype">―</td></tr>
+        <tr><td>|ΣF|/Σ|F| 最大</td><td id="fr">―</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p><b>読み方</b>: 既定の M-spont は種を置かない自由な codon 88 個から出発する（原典の実験2）。
+    赤青の自発の結合はまれ（見積もり約7×10⁵歩に1回）なので、この画面で創始が見える保証は無い——
+    早く見たいときは腕を R-seed8（種00011001を置く。原典の実験1）へ切り替えるとよい。
+    色は赤青の腕（結合すると太く光る）・紫緑の腕（鋳型の上で保持）・黄の点（z状態で反発）を表す。
+    <b>ここで見た段の数・性質は判定に使わない</b>——主張は事前登録した本番走行（<code>run.js</code>）の
+    生ログだけが担う。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  var Core = window.S68Core;
+  var canvas = document.getElementById('field');
+  var ctx = canvas.getContext('2d');
+  var sys = null, rng = null, params = null, running = false, speed = 4;
+
+  function buildParams(kT, c_y, arm) {
+    return {
+      kT: kT, c_y: c_y, delta: arm.indexOf('flow') >= 0 ? 0.002 : 0,
+      angleTolRB: arm === 'M-wide' ? Core.ANGLE_TOL_RB_WIDE : Core.ANGLE_TOL_RB_DEFAULT,
+      forcePySmall: arm.indexOf('notemplate') >= 0, forceYellowSmall: arm === 'NC-nosplit',
+      turnoverEnabled: arm.indexOf('flow') >= 0, L: 165,
+    };
+  }
+  function reset() {
+    var arm = document.getElementById('arm').value;
+    var kT = Number(document.getElementById('kT').value) || 0.05;
+    var cy = Number(document.getElementById('cy').value) || 8;
+    var seed = Number(document.getElementById('seed').value) || 6801;
+    sys = Core.buildInitial({ arm: arm, N: 88, L: 165, seed: seed, kT: kT });
+    rng = Core.makeRng(Core.subSeed(seed, 'dyn'));
+    params = buildParams(kT, cy, arm);
+    draw();
+  }
+  function stepN(n) {
+    var maxRatio = 0;
+    for (var i = 0; i < n; i++) { var r = Core.step(sys, rng, params); if (r.forceRatio > maxRatio) maxRatio = r.forceRatio; }
+    return maxRatio;
+  }
+  var lastMaxRatio = 0;
+  function loop() {
+    if (!running) return;
+    speed = Number(document.getElementById('speed').value) || 4;
+    lastMaxRatio = Math.max(lastMaxRatio * 0.9, stepN(speed));
+    draw();
+    requestAnimationFrame(loop);
+  }
+  function draw() {
+    var W = canvas.width, H = canvas.height, L = sys.L, scale = W / L;
+    ctx.fillStyle = '#05060a'; ctx.fillRect(0, 0, W, H);
+    function toPx(x, y) { return [x * scale, y * scale]; }
+    // 結合
+    ctx.lineWidth = 2;
+    for (var i = 0; i < sys.N; i++) {
+      var j = sys.blueBond[i];
+      if (j !== -1) {
+        var a = toPx(sys.x[i], sys.y[i]), b = toPx(sys.x[j], sys.y[j]);
+        ctx.strokeStyle = '#e05a5a'; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+      }
+      var k = sys.pyBond[i];
+      if (k !== -1 && i < k) {
+        var c = toPx(sys.x[i], sys.y[i]), d = toPx(sys.x[k], sys.y[k]);
+        ctx.strokeStyle = 'rgba(150,110,220,0.5)'; ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.lineTo(d[0], d[1]); ctx.stroke();
+      }
+    }
+    // codon本体
+    var freeCount = 0, pgCount = 0, zCount = 0;
+    for (i = 0; i < sys.N; i++) {
+      var p = toPx(sys.x[i], sys.y[i]);
+      var bonded = sys.redBond[i] !== -1 || sys.blueBond[i] !== -1;
+      if (!bonded) freeCount++;
+      if (sys.pyBond[i] !== -1) pgCount++;
+      if (sys.sps[i] === Core.SPS_Z) zCount++;
+      ctx.fillStyle = sys.type[i] === 0 ? '#b09cf0' : '#7fd08a';
+      ctx.beginPath(); ctx.arc(p[0], p[1], bonded ? 3 : 2, 0, Math.PI * 2); ctx.fill();
+      if (sys.yellowLarge[i]) { ctx.strokeStyle = '#e8d24a'; ctx.beginPath(); ctx.arc(p[0], p[1], 6, 0, Math.PI * 2); ctx.stroke(); }
+    }
+    document.getElementById('t').textContent = sys.step;
+    document.getElementById('free').textContent = freeCount;
+    document.getElementById('pg').textContent = pgCount / 2;
+    document.getElementById('zn').textContent = zCount;
+    document.getElementById('ke').textContent = Core.kineticEnergy(sys).toFixed(2);
+    document.getElementById('spe').textContent = Core.springEnergy(sys).toFixed(2);
+    document.getElementById('ype').textContent = Core.yellowEnergy(sys, params).toFixed(2);
+    document.getElementById('fr').textContent = lastMaxRatio.toExponential(2);
+    // U1(表示用): 赤青のつながりの本数を数えるだけの簡易表示（判定には使わない）
+    var visited = new Array(sys.N).fill(false), u1n = 0;
+    for (i = 0; i < sys.N; i++) {
+      if (visited[i] || (sys.redBond[i] === -1 && sys.blueBond[i] === -1)) continue;
+      var stack = [i], size = 0;
+      while (stack.length) { var c2 = stack.pop(); if (visited[c2]) continue; visited[c2] = true; size++; if (sys.redBond[c2] !== -1) stack.push(sys.redBond[c2]); if (sys.blueBond[c2] !== -1) stack.push(sys.blueBond[c2]); }
+      if (size >= 2) u1n++;
+    }
+    document.getElementById('u1n').textContent = u1n;
+  }
+
+  document.getElementById('run').addEventListener('click', function () {
+    running = !running;
+    this.textContent = running ? '止める' : '開始';
+    if (running) loop();
+  });
+  document.getElementById('reset').addEventListener('click', reset);
+  reset();
+
+  Harness.mount({
+    id: 'S-68', version: '1.0.0',
+    inputs: ['arm', 'kT', 'cy', 'seed', 'speed'],
+    canvases: ['field'],
+    paramNames: {
+      arm: { category: 's', code: 'arm', full: 'arm' },
+      kT: { category: 'p', code: 'kt', full: 'kT' },
+      cy: { category: 'p', code: 'cy', full: 'cy' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      speed: { category: 's', code: 'spd', full: 'speed' },
+    },
+    onRestore: function () { reset(); },
+    pause: function () { running = false; document.getElementById('run').textContent = '開始'; },
+  });
+})();
+</script>

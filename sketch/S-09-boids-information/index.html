@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>群れの中を情報がどう伝わるか（Boids） — 人工生命スケッチ</title><link rel="stylesheet" href="../../assets/style.css"></head><body class="sketchpage"><nav class="crumbs"><a href="../../index.html">人工生命スケッチ</a><span class="sep">›</span><span aria-current="page">S-09 群れの中を情報がどう伝わるか（Boids）</span></nav><header class="shead"><div class="sline"><span class="cid">S-09</span><h1>群れの中を情報がどう伝わるか（Boids）</h1><span class="ver">v1.0.0</span></div><div class="tags"><span class="tag">群れ</span><span class="tag">情報伝播</span><span class="tag">摂動</span></div><div class="sacts"><button class="btn ovopen" data-go="r-main">📄 群れの中を情報がどう伝わるか（Boids）</button><button class="btn ovopen" data-go="comments">💬 コメント（0）</button></div></header><div class="stagewrap"><iframe class="stage" title="実行窓" data-run="main" src="../../apps/alife-sketches/s09-boids-information/viewer.html"></iframe><div class="overlay" id="overlay" hidden data-open=""><div class="ovbar"><span class="ovwho" title="群れの中を情報がどう伝わるか（Boids）">S-09</span><div class="ovtabs"><button class="ovtab" data-go="r-main">群れの中を情報がどう伝わるか（Boids）</button><button class="ovtab" data-go="comments">💬 コメント（0）</button></div><button class="ovclose" id="ovclose" title="閉じて実行に戻る">✕</button></div><div class="ovbody"><section class="pane" data-pane="r-main" hidden><div class="rmeta"><span class="angle">主レポート（最初の切り口）</span></div><details class="rtoc"><summary>目次</summary><a href="#一行で言うと">一行で言うと</a><a href="#何をやったか">何をやったか</a><a href="#結果-事前登録した解析">結果（事前登録した解析）</a><a href="#事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</a><a href="#原典との照合">原典との照合</a><a href="#本家サブプロジェクトへの含意-候補として挙げるだけ-要件化しない">本家サブプロジェクトへの含意（<strong>候補として挙げるだけ。要件化しない</strong>）</a><a href="#限界-この実験が言えないこと">限界（この実験が言えないこと）</a></details><article class="md"><h1 id="s-09-群れの中を情報がどう伝わるか-boids">S-09: 群れの中を情報がどう伝わるか（Boids）</h1>
+<ul><li><strong>実施日</strong>: 2026-09-11</li><li><strong>アプリ</strong>: <span class="deadlink">apps/alife-sketches/s09-boids-information/</span></li><li><strong>可視化</strong>: <code>viewer.html</code>（群れが飛ぶ様子に、<strong>擾乱がどこまで届いたかを色で重ねる</strong>。届いた直後の個体が光るので波面が見える）</li><li><strong>生ログ</strong>: <span class="deadlink">raw/sweep.jsonl</span>（21 点）・<span class="deadlink">raw/replicates.jsonl</span>（<strong>125 レプリケート</strong>）・<span class="deadlink">raw/controls.jsonl</span>（4 コントロール）・<span class="deadlink">raw/front.jsonl</span>（<strong>波面の生データ 500 個体分</strong>）・<span class="deadlink">raw/trace.jsonl</span>（時系列 2025 点）・<span class="deadlink">raw/summary.json</span>／事後解析 <span class="deadlink">raw/posthoc-eps.jsonl</span>・<span class="deadlink">raw/posthoc-magnitude.jsonl</span>・<span class="deadlink">raw/posthoc-index.jsonl</span>・<span class="deadlink">raw/posthoc-frontshape.jsonl</span></li><li><strong>所要</strong>: 掃引 188.3 秒（125 レプリケート）＋ 妥当性検査 23 項目 ＋ 事後解析 4 本</li><li><strong>判定基準</strong>: <code>criteria.json</code> sha256:<code>d8192571f5470f24</code>（事前登録 2026-09-11 rev2）</li></ul>
+<p><strong>出典</strong>（アイデアのみ。<strong>コードは参照せず定義から実装した</strong>）: Reynolds, C. W. (1987) "Flocks, herds and schools: A distributed behavioral model", *SIGGRAPH '87*, *Computer Graphics* 21(4), 25–34。</p>
+<p><strong>原典には到達できた</strong>（<a href="https://www.red3d.com/cwr/papers/1987/SIGGRAPH87.pdf">著者自身が公開している再版 PDF</a>。本文の取り出しには <code>work/2026-08-30-pdf-text-extractor.py</code> を使った）。照合は下の「原典との照合」の節に分けてある。 <strong>実装と事前登録を終えた後に読んだ</strong>のではなく、実装の途中で到達したが、<code>criteria.json</code> は原典を読む前に固定してある。</p>
+<h2 id="一行で言うと">一行で言うと</h2>
+<p><strong>整列度 1.00——古典的な尺度では「完璧な群れ」——でありながら、1個体の向きを変えても擾乱が誰にも伝わらない系を作れる。</strong> 見た目の群れらしさと、群れの中を情報が伝わることは、別々に測らなければ区別できない。さらに<strong>到達率だけでは足りない</strong>——無作為に結線した系は到達率 0.80 まで行くのに波面相関は 0.024 で、<strong>波面を持たないまま伝わる</strong>。特異なのは2つの連言だけだった。そして情報を運んでいるのは知覚ではなかった: <strong>近傍を1個体も持たない鳥が向きを変えても、その擾乱は 5 シード中 4 つで群れ全体（100%）に届く</strong>——後から群れに飛び込むからである。</p>
+<h2 id="何をやったか">何をやったか</h2>
+<h3 id="題材-原典が立てておいて-測っていない問い">題材——原典が立てておいて、測っていない問い</h3>
+<p>Reynolds (1987) の Boids は、分離・整列・結合の3規則だけから群れが生まれる古典である。 <strong>群れらしさ（整列度）は既に測り尽くされている</strong>ので、本スケッチはそこを測らない。測るのは、 <strong>原典が本文で立てておきながら自分の模型では測らなかった問い</strong>のほうである:</p>
+<blockquote>Real flocks do not change direction simultaneously, but rather the turn starts with a single bird and spreads quickly across the flock like a shock wave.（原典 "Scripted Flocking" 節）</blockquote>
+<blockquote>Long-range vision seems to play a part in the incredibly rapid propagation of a "maneuver wave" through a flock of birds. It has been shown that the speed of propagation of this wavefront reaches three times the speed implied by the measured startle reaction time of the individual birds.（原典 "Simulated Perception" 節）</blockquote>
+<p>Reynolds はこの「操縦波」を<strong>実鳥の観察（Potts の chorus line 仮説）として引いているだけ</strong>で、 自分の3規則モデルの中で波が実際にどう伝わるかは測っていない。そこを測る。</p>
+<h3 id="やり方-分岐した2つの世界の距離">やり方——分岐した2つの世界の距離</h3>
+<pre><code>① 同じシードで世界を作り、800 step 助走して群れを作る
+② 世界をまるごと複製する
+③ 片方だけ、1個体の向きを 0.2 rad 回す        ← ここだけが2本の違い
+④ 以降 400 step、両方を同じ手続きで進める
+⑤ 各時刻で、個体ごとの向きの差 d_i(t) を取る</code></pre>
+<p>系に乱数は初期配置（と <code>shuffled</code> の結線）にしか入らない。したがって<strong>擾乱がまだ届いていない個体の 向きは、対照走行とビット単位で一致する</strong>。これが本スケッチの要点で、<strong>「到達したか」を閾値を選ばずに 判定できる</strong>（eps=0）。S-02 が踏んだ「連結半径の選び方で結論が反転する」型の穴（<span class="deadlink">K-9</span>）を、 観測量の側で避けている（<span class="deadlink">K-10</span>）。</p>
+<h3 id="核には-群れ-も-情報-も無い">核には「群れ」も「情報」も無い</h3>
+<p><code>core.js</code> が持つのは粒子・向き・近傍と、次の1本の式だけである:</p>
+<pre><code>target = arg( wSep·ŝep + wAli·âli + wCoh·ĉoh )     &lt;r=5, wSep=2, wAli=1, wCoh=1, v=1, maxTurn=0.35&gt;</code></pre>
+<p>「群れ」「波面」「情報」「到達」という語は、すべて下半分の観測器の側にしかない。 4つのコントロールも<strong>近傍をどこから引くかの違いだけ</strong>で作ってあり、規則・パラメータ・助走・ 摂動の手続きは完全に共通である。分岐はコード上 <code>forEachNeighbor</code> と <code>desiredHeading</code> の 2 箇所にしかない。</p>
+<h3 id="事前登録した秩序変数は-連言">事前登録した秩序変数は「連言」</h3>
+<p><span class="deadlink">K-14</span> に従い、単一のスカラーに固執せず<strong>連言</strong>を主秩序変数として登録した:</p>
+<blockquote><strong>到達率（eps=0）≥ 0.5 かつ 波面相関 ≥ 0.3</strong></blockquote>
+<p>「波面相関」は、摂動時点での摂動個体からの距離と、到達時刻との Pearson 相関である。無次元で帰無値 0。 <strong>スケールも登録した</strong>（K-9）——「伝播の速さ」には長さと時間が両方入るので、長さは world 単位と知覚半径 r の 両方で、時間は step と飛行速度 v の両方で報告する。連結半径は<strong>知覚半径そのもの</strong>（相互作用グラフ自体であり、 自由な選択ではない）。</p>
+<h3 id="妥当性検査-23-項目-すべて通過">妥当性検査（23 項目、すべて通過）</h3>
+<p>本番の前に <code>node selftest.js</code> を通した。核心は次の3つである:</p>
+<ul><li><strong>正コントロール</strong>: 速さ 0 の一列鎖（21 個体・間隔 1.0・知覚半径 1.5）。相互作用グラフが静的な路グラフなので、</li></ul>
+<p>擾乱はちょうど 1 step に 1 個体ずつ進むはず。<strong>21 個体すべてで到達時刻＝添字距離</strong>と厳密に一致した</p>
+<ul><li><strong>摂動 0 なら 2 本がビット単位で一致</strong>（差分ノルム厳密に 0）／<strong>対照走行は摂動の有無に影響されない</strong>（500 個体すべて一致）。</li></ul>
+<p>対にするという仕組み自体の検算</p>
+<ul><li><span class="deadlink">K-12</span> の2つ——<strong>近道の検算</strong>（格子の近傍探索と総当たりが一致）と<strong>生存の検算</strong>（到達台帳が実際の差分と一致し単調に増える）。</li></ul>
+<p>あわせて<strong>観測器が古い格子を見ていない</strong>ことも検査した</p>
+<p>ほかに、<strong>因果律の上限</strong>（1 step に情報が跳べる距離 ≤ 知覚半径 + 2×飛行速度）、 <strong>参加比が擾乱の大きさに不変</strong>であること（1000 倍しても 170.1391 のまま。K-10 の主張そのものの検算）、 <strong>波面の当てはめが既知の傾き 0.75 を取り戻す</strong>こと、<span class="deadlink">K-5</span> の可視化と核の突き合わせを入れてある。</p>
+<h2 id="結果-事前登録した解析">結果（事前登録した解析）</h2>
+<h3 id="コントロール-近傍の引き方だけが違う4つ">コントロール——近傍の引き方だけが違う4つ</h3>
+<div class="tw"><table><thead><tr><th>条件</th><th>平均近傍</th><th><strong>整列度</strong></th><th><strong>到達率</strong></th><th>参加比</th><th><strong>波面相関</strong></th><th>速さ</th><th>連言</th></tr></thead><tbody><tr><td><strong>local</strong>（半径 r 内・本物）</td><td>10.4</td><td>0.814</td><td><strong>1.000</strong></td><td>169.4</td><td><strong>0.669</strong></td><td>0.381</td><td><strong>5/5</strong></td></tr><tr><td><code>none</code>（相互作用なし）</td><td>0.0</td><td>0.040</td><td>0.002</td><td>1.000</td><td>0.000</td><td>0.00</td><td>0/5</td></tr><tr><td><code>drive</code>（共通の外部方向場）</td><td>0.0</td><td><strong>1.000</strong></td><td>0.002</td><td>0.0</td><td>0.000</td><td>0.00</td><td>0/5</td></tr><tr><td><code>shuffled</code>（無作為の固定結線）</td><td>4.0</td><td>0.946</td><td><strong>0.801</strong></td><td>89.8</td><td><strong>0.024</strong></td><td>0.16</td><td>0/5</td></tr></tbody></table></div>
+<p><strong>負①（<code>none</code>）は帰無値を厳密に返した</strong>——到達率 0.002 = 1/N ちょうど、参加比 1.000000、リャプノフ指数 0（厳密）。 検出器と帰無モデルが同時に検証できている。</p>
+<p><strong>負②（<code>drive</code>）が本スケッチの中心にある。</strong> 個体どうしの結合を一切持たず、全員が共通の外部方向場を向くだけの系である。 <strong>整列度は 1.000</strong>——古典的な群れらしさの尺度では local（0.814）を上回り、満点を取る。それでも 1個体の向きを変えると、 擾乱は次の 1 step で<strong>厳密に 0 へ消える</strong>（差分ノルム 0、リャプノフ指数は定義できない）。 <strong>「群れて見えること」と「群れの中を情報が伝わること」は、別々に測らないと区別できない。</strong></p>
+<p><strong>負③（<code>shuffled</code>）が、連言が要る理由そのものである。</strong> 次数を local の平均近傍数に合わせた固定の無作為グラフで、 空間構造だけを取り除いてある。<strong>到達率は 0.801——単独なら事前登録した閾値 0.5 を優に超える。</strong> 落とせるのは波面相関（0.024）だけで、<span class="deadlink">K-14</span> が言うとおり<strong>特異なのは連言だけ</strong>だった。</p>
+<h3 id="掃引-連言が壊れるのは-伝わらなくなる-ときではなく-波でなくなる-とき">掃引——連言が壊れるのは「伝わらなくなる」ときではなく「波でなくなる」とき</h3>
+<div class="tw"><table><thead><tr><th>知覚半径 r</th><th>平均近傍</th><th>到達率</th><th>波面相関</th><th>速さ(world/step)</th><th>r 比</th><th>飛行比</th><th>連言</th></tr></thead><tbody><tr><td>2</td><td>0.2</td><td>1.000</td><td>0.558</td><td>0.159</td><td>0.079</td><td>0.16</td><td>5/5</td></tr><tr><td>3</td><td>1.7</td><td>1.000</td><td>0.535</td><td>0.275</td><td>0.092</td><td>0.27</td><td>5/5</td></tr><tr><td>4</td><td>4.7</td><td>1.000</td><td>0.712</td><td>0.407</td><td>0.102</td><td>0.41</td><td>5/5</td></tr><tr><td><strong>5</strong></td><td>10.4</td><td>1.000</td><td>0.669</td><td>0.381</td><td>0.076</td><td>0.38</td><td>5/5</td></tr><tr><td>6</td><td>15.9</td><td>1.000</td><td>0.668</td><td>0.491</td><td>0.082</td><td>0.49</td><td>5/5</td></tr><tr><td>8</td><td>55.1</td><td>1.000</td><td>0.399</td><td>0.630</td><td>0.079</td><td>0.63</td><td>4/5</td></tr><tr><td>10</td><td>110.1</td><td>1.000</td><td>0.380</td><td>0.350</td><td>0.035</td><td>0.35</td><td>3/5</td></tr><tr><td>12</td><td>136.1</td><td>1.000</td><td><strong>0.211</strong></td><td>0.298</td><td>0.025</td><td>0.30</td><td><strong>0/5</strong></td></tr></tbody></table></div>
+<p><strong>到達率はどの半径でも 1.000 のまま</strong>で、崩れるのは波面相関だけである。知覚半径を広げると群れは 1つの密な塊になり、擾乱はほぼ同時に全員へ届く——<strong>伝わらなくなるのではなく、波であることをやめる</strong>。 r=12 は <code>shuffled</code>（相関 0.024）へ連続的に近づいた姿にあたる。<strong>連言を登録していなければ、 この転移は「何も起きない」ことになっていた。</strong></p>
+<p>整列の重みの掃引では、<strong>整列規則を完全に切っても（wAli=0、整列度 0.015）到達率は 1.000 のまま、 速さはむしろ最速の部類（0.553）</strong>だった。分離と結合だけで情報は伝わる。 <strong>したがって「整列を切った系」は負コントロールとして機能しない</strong>——これは本スケッチが実地で確かめた点である。</p>
+<p>密度（個体数）の掃引では、速さが単調に増えた: 125 個体で 0.161、1500 個体で 0.896 world/step（飛行速度比 0.16 → 0.90）。 波面相関も 0.577 → 0.800 と上がる。<strong>混んでいるほど、情報は速く・きれいな波として伝わる。</strong></p>
+<h3 id="レプリケート単位で見ると-k-3">レプリケート単位で見ると（<span class="deadlink">K-3</span>）</h3>
+<p>基準条件 5 シードの生ログ。<strong>平均を見ていたら気付けない</strong>ものが1つある:</p>
+<div class="tw"><table><thead><tr><th>シード</th><th>到達率</th><th>波面相関</th><th>速さ</th><th><strong>摂動時点の連結成分</strong></th></tr></thead><tbody><tr><td>20260911</td><td>1.000</td><td>0.625</td><td>0.419</td><td>0.84</td></tr><tr><td>20268830</td><td>1.000</td><td>0.778</td><td>0.623</td><td>0.80</td></tr><tr><td>20276749</td><td>1.000</td><td>0.757</td><td>0.371</td><td><strong>0.04</strong></td></tr><tr><td>20284668</td><td>1.000</td><td>0.801</td><td>0.316</td><td><strong>0.01</strong></td></tr><tr><td>20292587</td><td>1.000</td><td>0.382</td><td>0.177</td><td>0.84</td></tr></tbody></table></div>
+<p><strong>2つのシードでは、向きを変えた個体が属する群れは全体の 1〜4% しかなかった。それでも擾乱は 100% に届いている。</strong> 相互作用グラフは群れが動くたびに繋ぎ変わるので、<strong>擾乱は「そのとき同じ群れにいた仲間」に閉じない</strong>。 平均の連結成分割合（0.51）は、どのシードにも実在しない数である。</p>
+<h3 id="因果律の検査が-破れた-件-欠陥ではなく非局所性の証拠">因果律の検査が「破れた」件——欠陥ではなく非局所性の証拠</h3>
+<p><code>summary.json</code> の <code>causalityRespected</code> は <strong>false</strong> を返した。事前登録した上限 （1 step に情報が跳べる距離 ≤ 知覚半径 + 2×飛行速度 = 7 world/step）を超えた条件がある。</p>
+<p>調べると、<strong>破っていたのは <code>shuffled</code> だけ</strong>（最大 15.59、上限の 2.2 倍。5 レプリケート中 4 つ）で、 <strong>空間的な近傍を使う 120 レプリケートすべてでは守られていた</strong>（違反 0 件）。 <code>shuffled</code> は近傍を空間と無関係に引くので、この上限はそもそも適用されない—— <strong>破れていることのほうが、その系に空間的局所性が無いことの独立した証拠</strong>にあたる。</p>
+<p><code>criteria.json</code> に書いた検査の文言が「局所的な系について」と限定していなかったのが、 判定を広く取りすぎた原因である。<strong>事前登録したものなので書き換えず、ここに記録する。</strong></p>
+<h2 id="事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</h2>
+<p><span class="deadlink">K-11</span> に従い、結果を見てから足した解析を別枠にする。</p>
+<h3 id="到達の閾値-eps-を動かしても-結論は動かなかった">① 到達の閾値 eps を動かしても、結論は動かなかった</h3>
+<p>本番は eps=0（ビット単位）を使った。eps を 0 から 0.1 rad まで 8 段階動かしても、 <strong>到達率 1.000・波面相関 0.669→0.670・速さ 0.381→0.384</strong> とほとんど動かない。 S-02 で連結半径が結論を反転させたのとは対照的である。<strong>ただしこれは「確かめた結果」であって、 「スケール自由な量だから大丈夫」という推論ではない</strong>（K-10 の限定）。</p>
+<h3 id="リャプノフ指数は摂動の大きさに強く依存する-速さは依存しない">② リャプノフ指数は摂動の大きさに強く依存する（速さは依存しない）</h3>
+<div class="tw"><table><thead><tr><th>摂動 (rad)</th><th>速さ</th><th>リャプノフ指数</th></tr></thead><tbody><tr><td>1e-9</td><td>0.286</td><td><strong>0.2422</strong></td></tr><tr><td>1e-3</td><td>0.352</td><td>0.1095</td></tr><tr><td>0.2（本番）</td><td>0.381</td><td>0.0533</td></tr><tr><td>3.11</td><td>0.371</td><td>0.0196</td></tr></tbody></table></div>
+<p>速さと波面相関は摂動の大きさに実質的に依存しない（0.286〜0.393／0.641〜0.671）が、 <strong>リャプノフ指数は 12 倍動く</strong>。大きな摂動は早く飽和するので、固定窓 [1,100] で測った成長率が下がる。 <strong>本スケッチが登録したリャプノフ指数は、摂動の大きさを添えなければ意味を持たない量だった。</strong></p>
+<h3 id="近傍を1個体も持たない鳥の擾乱も-群れ全体に届く">③ 近傍を1個体も持たない鳥の擾乱も、群れ全体に届く</h3>
+<div class="tw"><table><thead><tr><th>摂動する個体の選び方</th><th>その個体の近傍数</th><th>到達率</th><th>波面相関</th><th>速さ</th></tr></thead><tbody><tr><td>添字 0（本番）</td><td>10.8</td><td>1.000</td><td>0.669</td><td>0.381</td></tr><tr><td>最も近傍が多い個体</td><td>26.6</td><td>1.000</td><td>0.732</td><td>0.466</td></tr><tr><td><strong>最も近傍が少ない個体</strong></td><td><strong>0.4</strong></td><td><strong>0.800</strong></td><td>0.464</td><td>0.233</td></tr></tbody></table></div>
+<p>生ログを見ると、<strong>近傍数 0（＝孤立していて、連結成分が自分1個体だけ）の鳥を摂動した 3 シードすべてで 到達率が 1.000</strong> になっていた。届かなかったのは近傍数 1 のシードが1つだけである。 <strong>孤立した鳥の向きの変化も、その鳥が後から群れに飛び込むことで全体に届く。</strong></p>
+<h3 id="波面の先端は速く-中身が埋まるのは遅い">④ 波面の先端は速く、中身が埋まるのは遅い</h3>
+<p>事前登録した「速さ」は、全個体の距離を到達時刻へ回帰した傾きである。前線の<strong>先端</strong>を別に追うと像が変わる:</p>
+<div class="tw"><table><thead><tr><th>経過</th><th>到達率</th><th>前線半径</th><th>先端の平均速さ</th></tr></thead><tbody><tr><td>1 step</td><td>3 個体</td><td><strong>4.6</strong></td><td>4.59 world/step（知覚半径 5.0 のほぼ上限）</td></tr><tr><td>10 step</td><td>0.068</td><td>20.2</td><td>2.02</td></tr><tr><td>50 step</td><td>0.474</td><td><strong>70.2</strong>（トーラスの最大距離）</td><td>1.40</td></tr><tr><td>200 step</td><td>1.000</td><td>70.2</td><td>0.35</td></tr></tbody></table></div>
+<p><strong>先端は 50 step で世界の端まで届く</strong>（平均 1.40 world/step ＝ 飛行速度の 1.4 倍）。 一方で<strong>全員が受け取るには 200 step かかる</strong>。事前登録した 0.381 world/step は先端の速さではなく、 <strong>中身が埋まる速さ</strong>である。K-6 が言う「規模を併記する」の、速さ版にあたる。</p>
+<p>実鳥との比較の目安として、平均最近傍距離は 1.86 world だった。「1 step ＝ 1 反応時間」と見れば 素朴な上限は 1.86 world/step で、<strong>先端（1.40）はその 0.75 倍</strong>——原典が引く Potts の「反応時間から 予想される速さの 3 倍」には届かない。原典が長距離視覚と chorus line 仮説を持ち出した理由が、 3規則モデルの側から見える。</p>
+<p>なお、どの時刻でも<strong>個体の 80〜85% は回頭が上限 <code>maxTurn</code> で切られていた</strong>。切られた個体は 回頭の大きさが入力に依らなくなるが、<strong>符号は依るので情報は通る</strong>——伝達を止めはしないが、 減衰させる段として効いている可能性がある。<strong>これは測っていない。</strong></p>
+<h2 id="原典との照合">原典との照合</h2>
+<p>実装と事前登録を終える前に原典に到達したので、忠実性を確認できた範囲を書く。</p>
+<p><strong>一致している点</strong>: 3規則の内容（Collision Avoidance / Velocity Matching / Flock Centering）と、 「nearby flockmates」＝局所的な近傍からしか情報を取らないという中心的な主張。 規則を<strong>重み付き平均</strong>で混ぜる点も原典が明示的に挙げている方式である （"An early version of the boid model showed that navigation by simple weighted averaging of acceleration requests works 'pretty well.'"）。乱数を初期条件にしか入れない点も一致する （"all other aspects of the flock model are completely deterministic and repeatable"）。</p>
+<p><strong>違う点（本スケッチの側の単純化）</strong>:</p>
+<ul><li>原典の近傍は<strong>半径と指数の2つのパラメータを持つ感度の球</strong>（距離の逆指数で重み付け）。本実装は<strong>半径での硬い打ち切り</strong>（指数 → 階段関数）</li><li>原典は最終的に<strong>優先順位つきの調停</strong>（prioritized acceleration allocation）を採る。本実装は重み付き平均のまま</li><li>原典は <strong>3D・速度可変・慣性あり</strong>。本実装は <strong>2D トーラス・速さ一定・回頭速度に上限</strong></li><li>原典が操縦波の説明に持ち出す<strong>長距離視覚は入れていない</strong></li></ul>
+<p>したがって本スケッチは <strong>Reynolds の模型そのものの再現ではなく、その3規則を最小の形に落とした系</strong>である。 上の「先端は Potts の 3 倍に届かない」という観測も、この単純化の範囲でしか言えない。</p>
+<h2 id="本家サブプロジェクトへの含意-候補として挙げるだけ-要件化しない">本家サブプロジェクトへの含意（<strong>候補として挙げるだけ。要件化しない</strong>）</h2>
+<ul><li><strong>「分岐した2つの世界の距離」は、上位概念の語彙を1つも使わない観測器になる。</strong> 系に「何が起きたか」を</li></ul>
+<p>問う代わりに「1点を変えたら何が変わるか」を問うので、観測器の側に生命の語彙が要らない。 <span class="deadlink">spec-method</span> の観測器の定義への入力候補になりうる</p>
+<ul><li><strong>「状態の秩序」と「状態の伝達」は別の観測量である。</strong> 整列度 1.00 かつ伝達ゼロの系が作れる以上、</li></ul>
+<p>秩序変数を1つだけ選ぶ設計は、片方を見落とす</p>
+<ul><li><strong>相互作用グラフの連結成分は、動く系では観測量として弱い。</strong> 摂動時点の成分が 1% でも擾乱は 100% へ届いた。</li></ul>
+<p>「いま繋がっているか」ではなく「いずれ繋がるか」が効く</p>
+<h2 id="限界-この実験が言えないこと">限界（この実験が言えないこと）</h2>
+<ul><li><strong>Reynolds の模型そのものを測ったのではない</strong>。上の「原典との照合」に挙げた4点で単純化してある。</li></ul>
+<p>とくに<strong>長距離視覚を入れていない</strong>ので、原典が操縦波の説明に使った機構を試していない</p>
+<ul><li><strong><code>maxTurn</code> で回頭が切られる個体が常時 80〜85% いる</strong>。この飽和が伝達をどれだけ減衰させているかは測っていない。</li></ul>
+<p>パラメータを変えればこの割合は変わり、速さも変わりうる</p>
+<ul><li><strong>リャプノフ指数は摂動の大きさに依存する量だった</strong>（事後解析②）。事前登録した値 0.0533 は「摂動 0.2 rad・窓 [1,100]」</li></ul>
+<p>という条件つきでしか読めない</p>
+<ul><li><strong>「速さ」は先端と中身で 4 倍違う</strong>（事後解析④）。事前登録した回帰の傾きは中身が埋まる速さであり、</li></ul>
+<p>「操縦波の速さ」として実鳥の観測と直接比べられる量ではない</p>
+<ul><li><strong>因果律の検査の文言が広すぎた</strong>。空間的に局所な系にしか当てはまらない上限を全条件に適用していた。</li></ul>
+<p>結論は変わらないが、事前登録の記述としては欠陥である</p>
+<ul><li><strong>2D トーラス・500 個体・単一のパラメータ組が中心</strong>である。掃引したのは知覚半径・整列の重み・密度の3軸だけで、</li></ul>
+<p>分離の重み・結合の重み・回頭上限・飛行速度は既定値に固定した</p>
+<ul><li><strong>絵が意味を成しているかは確認できていない</strong>（method の既知の弱点）。<code>viewer.html</code> の API 整合は機械検査したが、</li></ul>
+<p>波面が実際に見えるかはユーザが最初に開いたときに分かる</p></article><p class="src">原典: <code>docs/subprojects/alife-sketches/sketches/S-09-boids-information/reports/main.md</code></p></section><section class="pane" data-pane="comments" hidden><div class="comments" data-slug="S-09-boids-information" data-run="main" data-readonly><div id="clist" class="clist">読み込み中…</div><script type="application/json" id="cdata">{"version":1,"sketch":"S-09-boids-information","comments":[]}</script></div></section></div></div></div><button class="fab" id="fab" title="メニュー" aria-label="メニュー">☰</button><div class="menu" id="menu" hidden><div class="menuhead">人工生命スケッチ</div><a href="../../index.html">🏠 ホーム（スケッチ一覧）</a><a href="../../reports/index.html">📄 レポート一覧</a></div><script src="../../assets/menu.js"></script><script src="../../assets/overlay.js"></script><script src="../../assets/comments-ui.js"></script></body></html>

@@ -1,0 +1,261 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-62 — Rasmussen の動的階層</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--hot:#fbbf24;--h:#60a5fa;--t:#fb923c;--w:#12141b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0;max-width:1000px}
+  .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  button.on{border-color:var(--hot);color:var(--hot)}
+  select,input[type=number]{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  input[type=number]{width:6em}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;background:var(--w)}
+  table{border-collapse:collapse;font-size:12px;width:100%}
+  th,td{padding:3px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  td{font-variant-numeric:tabular-nums;min-width:6ch}
+  .ok{color:#4ade80}.no{color:#f87171}
+  .col{display:flex;flex-direction:column;gap:14px;flex:1;min-width:280px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:1000px}
+  footer b{color:var(--fg)}
+  @media(max-width:760px){.wrap{flex-direction:column}}
+</style>
+
+<header>
+  <h1>S-62 — Rasmussen の動的階層(単量体だけから重合体とミセルが出るか)</h1>
+  <p class="sub">三角格子に水(暗)・親水の単量体H(青)・疎水の単量体T(橙)を無作為に置く。隣の水との交換(接触エネルギーχ)と、
+    隣り合う2単量体の結合の形成・切断(熱浴とεb=8をやり取り)だけを実装した。上位の単位(重合体・ミセル)は
+    この画面(観測器)の側だけが検出器で数える――核(core.js)は型・位置・結合しか持たない。
+    結合の線(白)・検出したミセル(U2)の輪郭(黄緑)を重ねる。</p>
+</header>
+
+<div class="bar">
+  <button id="run">開始</button>
+  <button id="reset">配置をやり直す</button>
+  <label>結合の速さ<select id="kbMode"><option value="fast" selected>速い(kb=3)</option><option value="slow">遅い(kb=0.03)</option><option value="insitu">t=2000で解禁(PC-insitu)</option><option value="none">結合なし(NC-nobond)</option></select></label>
+  <label>χ<select id="chi"><option value="0">0(NC-athermal)</option><option value="0.8">0.8</option><option value="1.2" selected>1.2</option><option value="1.6">1.6</option></select></label>
+  <label>f_H<select id="fH"><option value="0.25" selected>0.25</option><option value="0.5">0.5</option></select></label>
+  <label>頭も疎水(NC-allphobic)<input type="checkbox" id="allphobic"></label>
+  <label>開始<select id="startMode"><option value="uniform" selected>単量体(一様)</option><option value="prePlaced">既製の四量体(R-pre)</option></select></label>
+  <label>Tだけ熱く(E-2T)<input type="checkbox" id="e2t"></label>
+  <label>seed<input type="number" id="seed" value="6201" step="1"></label>
+</div>
+<div class="bar">
+  <span style="color:var(--dim)">腕プリセット(criteria.jsonの登録):</span>
+  <div id="presets" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+</div>
+
+<div class="wrap">
+  <div class="col" style="flex:2">
+    <div class="panel">
+      <h2>格子(既定 L=96 に縮小。水=暗・H=青・T=橙。白線=結合。黄緑の輪郭=検出したU2)</h2>
+      <canvas id="mainCanvas" width="640" height="640"></canvas>
+    </div>
+  </div>
+  <div class="col">
+    <div class="panel">
+      <h2>いま</h2>
+      <table>
+        <tr><th></th><th>値</th></tr>
+        <tr><td>時刻 t(刻み)</td><td id="t">0</td></tr>
+        <tr><td>N_mon(H/T)</td><td id="counts">―</td></tr>
+        <tr><td>結合の数</td><td id="nbond">―</td></tr>
+        <tr><td>Φ1(U1・鎖)</td><td id="phi1">―</td></tr>
+        <tr><td>U2候補の数</td><td id="nu2">―</td></tr>
+        <tr><td>Φ2_inst</td><td id="phi2">―</td></tr>
+        <tr><td>段の数(瞬間・Rasmussen番号)</td><td id="levels">―</td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>台帳(整数。K-1)</h2>
+      <table>
+        <tr><th></th><th>値</th></tr>
+        <tr><td>E_conf</td><td id="econf">―</td></tr>
+        <tr><td>Q(熱浴の受け取り)</td><td id="qtot">―</td></tr>
+        <tr><td>数え直しとの差</td><td id="closure">―</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p><b>読み方</b>: 「開始」で時間発展する。結合の速さ・χ・f_H・開始(単量体/既製の鎖)・頭を疎水にする(NC-allphobic)・
+    結合を止める(NC-nobond)・Tだけ熱くする(E-2T。熱の流れのポンプ検出の較正)を切り替えて比べられる。
+    段の数はRasmussenの番号(要素=1・重合体=2・ミセル=3・ミセルの集まり=4)。
+    事前登録・全24走行・判定基準は <code>criteria.json</code>、レポートはS4が書く。</p>
+  <p>⚠ この画面は<b>探索・観察のための窓</b>であり、ここで見たものは判定に使わない――
+    主張は事前登録した本番走行(<code>run.js</code>)の生ログだけが担う。速度優先で既定 L=96(本番は128)、
+    観測(U1・U2・U3の検出)は数フレームに1回に間引く。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="tracking.js"></script>
+<script>
+'use strict';
+var $ = function (id) { return document.getElementById(id); };
+var mCanvas = $('mainCanvas'), mctx = mCanvas.getContext('2d');
+
+var L = 96;
+var OBS = { n2min: 6, u2Persist: 3, g3: 2, tau3: 20, bThr: 0.2, rhoThr: 1.3 };
+var running = false;
+var sim = null; // {sys,p,rng,u2Tracker,lastTagged}
+
+function kbFor(mode) { return mode === 'fast' ? 3 : mode === 'slow' ? 0.03 : mode === 'insitu' ? 3 : 0; }
+
+function buildSim() {
+  var chi = parseFloat($('chi').value), fH = parseFloat($('fH').value), allphobic = $('allphobic').checked;
+  var seed = parseInt($('seed').value, 10) || 1;
+  var startMode = $('startMode').value, kbMode = $('kbMode').value;
+  var kTT = $('e2t').checked ? 2 : null;
+  var kb0 = kbMode === 'insitu' ? 0 : kbFor(kbMode);
+  var p = S62.defaultParams({ L: L, phi: 0.20, fH: fH, chi: chi, epsB: 8, kb: kb0, allphobic: allphobic, seed: seed, kTT: kTT });
+  var sys = startMode === 'prePlaced' ? S62.initPrePlaced(p) : S62.initUniform(p);
+  var rng = S62.subStream(seed, 2);
+  return { sys: sys, p: p, rng: rng, kbMode: kbMode, kbTarget: kbFor(kbMode),
+    u2Tracker: new S62T.U2IdentityTracker(), lastTagged: [], frame: 0 };
+}
+
+function stepOnce() {
+  if (sim.kbMode === 'insitu') sim.p.kb = sim.sys.t < 2000 ? 0 : sim.kbTarget;
+  S62.stepSystem(sim.sys, sim.p, sim.rng, {});
+}
+
+function analyze() {
+  var sys = sim.sys, p = sim.p;
+  $('t').textContent = sys.t;
+  var nH = 0, nT = 0;
+  for (var m = 0; m < sys.Nmon; m++) { if (sys.monType[m] === S62.SITE_H) nH++; else nT++; }
+  $('counts').textContent = nH + ' / ' + nT;
+  $('nbond').textContent = sys.Nbond;
+
+  var chains = S62T.buildU1(sys);
+  var chainMonCount = 0; for (var c = 0; c < chains.length; c++) chainMonCount += chains[c].size;
+  var phi1 = chainMonCount / sys.Nmon;
+  $('phi1').textContent = phi1.toFixed(3);
+
+  var cands = S62T.buildU2Candidates(sys, OBS.n2min);
+  var idResults = sim.u2Tracker.step(cands);
+  var tagged = cands.map(function (cd, i) { return { trackId: idResults[i].trackId, tMembers: cd.tMembers, hMembers: cd.hMembers, members: cd.tMembers.concat(cd.hMembers), nT: cd.nT }; });
+  sim.lastTagged = tagged;
+  $('nu2').textContent = cands.length;
+  var tInCand = 0; for (var u = 0; u < cands.length; u++) tInCand += cands[u].nT;
+  $('phi2').textContent = (nT > 0 ? tInCand / nT : 0).toFixed(3);
+
+  var levels = 1 + (chains.length > 0 ? 1 : 0) + (cands.length > 0 ? 1 : 0);
+  $('levels').textContent = levels + '(要素=1・重合体=' + (chains.length > 0 ? '在' : '無') + '・ミセル=' + (cands.length > 0 ? '在' : '無') + ')';
+
+  var recount = S62.recomputeContactCounts(sys);
+  var active = p.allphobic ? recount.C_TW + recount.C_HW : recount.C_TW + recount.C_TH;
+  var activeSys = S62.activeContacts(sys);
+  $('econf').textContent = S62.energyConf(sys, p).toFixed(1);
+  var Q = p.chi * (sys.q.exH.chi + sys.q.exT.chi + sys.q.form.chi + sys.q.brk.chi) + p.epsB * (sys.q.exH.b + sys.q.exT.b + sys.q.form.b + sys.q.brk.b);
+  $('qtot').textContent = Q.toFixed(1);
+  var closureEl = $('closure');
+  closureEl.textContent = active - activeSys;
+  closureEl.className = active === activeSys ? 'ok' : 'no';
+}
+
+function drawMain() {
+  var sys = sim.sys, W = mCanvas.width, H = mCanvas.height, scale = W / sys.L;
+  mctx.fillStyle = '#12141b'; mctx.fillRect(0, 0, W, H);
+  for (var m = 0; m < sys.Nmon; m++) {
+    var site = sys.monSite[m], i = Math.floor(site / sys.L), j = site % sys.L;
+    var x = (i + j * 0.5) * scale, y = j * scale * 0.87;
+    mctx.fillStyle = sys.monType[m] === S62.SITE_H ? '#60a5fa' : '#fb923c';
+    mctx.beginPath(); mctx.arc(x % W, y % H, Math.max(1, scale * 0.42), 0, 7); mctx.fill();
+  }
+  mctx.strokeStyle = 'rgba(255,255,255,0.5)'; mctx.lineWidth = 1;
+  for (m = 0; m < sys.Nmon; m++) {
+    var partners = [sys.monBond0[m], sys.monBond1[m]];
+    for (var pi = 0; pi < 2; pi++) {
+      var pnr = partners[pi];
+      if (pnr < 0 || pnr < m) continue;
+      var s1 = sys.monSite[m], s2 = sys.monSite[pnr];
+      var i1 = Math.floor(s1 / sys.L), j1 = s1 % sys.L, i2 = Math.floor(s2 / sys.L), j2 = s2 % sys.L;
+      if (Math.abs(i1 - i2) > sys.L / 2 || Math.abs(j1 - j2) > sys.L / 2) continue; // 周期境界を跨ぐ線は省く
+      var x1 = (i1 + j1 * 0.5) * scale, y1 = j1 * scale * 0.87, x2 = (i2 + j2 * 0.5) * scale, y2 = j2 * scale * 0.87;
+      mctx.beginPath(); mctx.moveTo(x1, y1); mctx.lineTo(x2, y2); mctx.stroke();
+    }
+  }
+  var tagged = sim.lastTagged || [];
+  mctx.strokeStyle = '#a3e635'; mctx.lineWidth = 2;
+  for (var ti = 0; ti < tagged.length; ti++) {
+    var members = tagged[ti].members, cx = 0, cy = 0, n = members.length, maxR = 0;
+    var pts = members.map(function (mm) { var s = sys.monSite[mm], ii = Math.floor(s / sys.L), jj = s % sys.L; return [(ii + jj * 0.5) * scale, jj * scale * 0.87]; });
+    for (var pj = 0; pj < pts.length; pj++) { cx += pts[pj][0]; cy += pts[pj][1]; }
+    cx /= n; cy /= n;
+    for (pj = 0; pj < pts.length; pj++) maxR = Math.max(maxR, Math.hypot(pts[pj][0] - cx, pts[pj][1] - cy));
+    if (maxR > W / 3) continue; // 周期境界を跨ぐ塊の輪郭は省く(簡略表示)
+    mctx.beginPath(); mctx.arc(cx, cy, maxR + scale, 0, 7); mctx.stroke();
+  }
+}
+
+function loop() {
+  if (running) {
+    for (var s = 0; s < 3; s++) stepOnce();
+    sim.frame++;
+    if (sim.frame % 2 === 0) analyze();
+    drawMain();
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function reset() { sim = buildSim(); analyze(); drawMain(); }
+$('reset').addEventListener('click', reset);
+$('run').addEventListener('click', function () { running = !running; $('run').textContent = running ? '止める' : '開始'; });
+['kbMode', 'chi', 'fH', 'allphobic', 'startMode', 'e2t', 'seed'].forEach(function (id) { $(id).addEventListener('change', reset); });
+
+var PRESETS = [
+  { label: 'M-F25(既定)', kbMode: 'fast', chi: '1.2', fH: '0.25', allphobic: false, startMode: 'uniform', e2t: false },
+  { label: 'M-S25(遅い)', kbMode: 'slow', chi: '1.2', fH: '0.25', allphobic: false, startMode: 'uniform', e2t: false },
+  { label: 'R-pre(既製の鎖)', kbMode: 'none', chi: '1.2', fH: '0.25', allphobic: false, startMode: 'prePlaced', e2t: false },
+  { label: 'PC-insitu', kbMode: 'insitu', chi: '1.2', fH: '0.25', allphobic: false, startMode: 'uniform', e2t: false },
+  { label: 'NC-nobond', kbMode: 'none', chi: '1.2', fH: '0.25', allphobic: false, startMode: 'uniform', e2t: false },
+  { label: 'NC-athermal', kbMode: 'fast', chi: '0', fH: '0.25', allphobic: false, startMode: 'uniform', e2t: false },
+  { label: 'NC-allphobic', kbMode: 'fast', chi: '1.2', fH: '0.25', allphobic: true, startMode: 'uniform', e2t: false },
+];
+var presetRow = $('presets');
+PRESETS.forEach(function (pr) {
+  var b = document.createElement('button');
+  b.textContent = pr.label;
+  b.addEventListener('click', function () {
+    $('kbMode').value = pr.kbMode; $('chi').value = pr.chi; $('fH').value = pr.fH;
+    $('allphobic').checked = pr.allphobic; $('startMode').value = pr.startMode; $('e2t').checked = pr.e2t;
+    reset();
+  });
+  presetRow.appendChild(b);
+});
+
+reset();
+
+Harness.mount({
+  id: 'S-62', version: '1.0.0',
+  inputs: ['kbMode', 'chi', 'fH', 'allphobic', 'startMode', 'e2t', 'seed'],
+  canvases: ['mainCanvas'],
+  onRestore: function () { reset(); },
+  pause: function () { running = false; $('run').textContent = '開始'; },
+  resize: function (scale) { L = Math.max(24, Math.round(96 * scale)); reset(); },
+  paramNames: {
+    kbMode: { category: 'p', code: 'kb', full: 'bondSpeed' },
+    chi: { category: 'p', code: 'chi', full: 'chi' },
+    fH: { category: 'p', code: 'fh', full: 'fracH' },
+    allphobic: { category: 'p', code: 'aph', full: 'allphobic' },
+    e2t: { category: 'p', code: 'e2t', full: 'hotTExchange' },
+    startMode: { category: 's', code: 'start', full: 'startMode' },
+    seed: { category: 's', code: 'seed', full: 'seed' },
+  },
+});
+</script>

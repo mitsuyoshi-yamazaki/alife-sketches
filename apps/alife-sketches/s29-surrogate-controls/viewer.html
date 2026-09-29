@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-29 代理データを負コントロールの生成器にする</title>
+<style>
+  :root{
+    --bg:#0e1014; --panel:#171a21; --line:#2a2f3a; --fg:#d7dce5; --dim:#7e8797;
+    --orig:#ffd166; --sur:#4aa3ff; --fire:#ff6b6b; --hold:#4ade80; --dead:#343b47;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1100px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070a;border:1px solid var(--line);border-radius:4px;
+         max-width:100%;height:auto}
+  aside{width:352px;min-width:300px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 13px;margin-bottom:12px}
+  .box h2{margin:0 0 9px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.06em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:96px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  select{background:#0c0e13;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  button{background:#20252f;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#2a3140}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat th,table.stat td{padding:3px 4px;border-bottom:1px solid var(--line);text-align:right}
+  table.stat th{color:var(--dim);font-weight:600;font-size:11px}
+  table.stat td.lv,table.stat th.lv{text-align:left;color:var(--fg)}
+  .num{font-variant-numeric:tabular-nums;display:inline-block;text-align:right;min-width:5ch}
+  .legend{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.7}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .note{font-size:11px;color:var(--dim);margin-top:8px}
+  @media(max-width:820px){ aside{width:auto} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>S-29 — 代理データを負コントロールの生成器にする</h1>
+  <p>既作スケッチの<strong>生ログそのもの</strong>から、出力だけ同じで機構を持たない代理を 6 段の忘れ方で作り、
+     その源が事前登録した検出器と<strong>収支</strong>を当て続ける。上の帯が元の系列、下の 6 段が代理。
+     右の表は毎回の判定を積み上げた偽陽性率で、走らせているあいだ動き続ける。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <canvas id="series" width="720" height="470"></canvas>
+    <canvas id="tally" width="720" height="200"></canvas>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>つまみ</h2>
+      <label><span class="k">源（生ログ）</span><select id="src"></select></label>
+      <label><span class="k">チャネル</span><select id="chan"></select></label>
+      <label><span class="k">速さ</span><input id="speed" type="range" min="1" max="30" value="8"><span id="speedv" class="num">8</span></label>
+      <div class="row">
+        <button id="play" class="primary">止める</button>
+        <button id="reset">積み上げを消す</button>
+      </div>
+      <div class="note">⇲ の「広さ」は<strong>1 回に作る代理の本数</strong>（この系の空間にあたるもの）。
+        ½ で 1 本、2 で 4 本ずつ積み上がる。</div>
+    </div>
+
+    <div class="box">
+      <h2>積み上げた偽陽性率</h2>
+      <table class="stat">
+        <thead><tr><th class="lv">段</th><th>1項</th><th>2項</th><th>＋収支</th><th>収支◯</th></tr></thead>
+        <tbody id="rates"></tbody>
+      </table>
+      <div class="legend">
+        <span class="sw" style="background:var(--fire)"></span>発火＝「本物」と判定された（＝偽陽性）
+        <span class="sw" style="background:var(--hold)"></span>収支が全部保たれた<br>
+        1項＝その源が登録した主の規則／2項＝同じ源の連言／＋収支＝第三項に収支を足したもの
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>いま作った代理</h2>
+      <table class="stat">
+        <thead><tr><th class="lv">段</th><th class="lv" style="text-align:left">保つもの</th><th>判定</th></tr></thead>
+        <tbody id="now"></tbody>
+      </table>
+      <div class="note" id="srcnote"></div>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="sample.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var SAMPLE = S29.getSample();
+  var LEVELS = S29.LEVEL_IDS;
+  var elSrc = document.getElementById('src');
+  var elChan = document.getElementById('chan');
+  var elSpeed = document.getElementById('speed');
+  var elSpeedV = document.getElementById('speedv');
+  var elPlay = document.getElementById('play');
+  var elReset = document.getElementById('reset');
+  var elRates = document.getElementById('rates');
+  var elNow = document.getElementById('now');
+  var elNote = document.getElementById('srcnote');
+  var cvS = document.getElementById('series'), ctxS = cvS.getContext('2d');
+  var cvT = document.getElementById('tally'), ctxT = cvT.getContext('2d');
+
+  var state = { rec: null, table: null, chan: 0, tally: {}, seed: 1, running: true, batch: 2, last: {} };
+
+  function buildTable(rec) {
+    return S29.makeTable(rec.cols, rec.data, { source: rec.source, note: rec.note, particles: rec.meta.particles }, rec.fixed);
+  }
+
+  function resetTally() {
+    state.tally = {};
+    LEVELS.forEach(function (L) { state.tally[L] = { n: 0, t1: 0, t2: 0, t3: 0, bud: 0 }; });
+    state.seed = 1;
+    state.last = {};
+  }
+
+  function fillSources() {
+    SAMPLE.records.forEach(function (r, i) {
+      var o = document.createElement('option');
+      o.value = String(i);
+      o.textContent = r.source + '  (' + r.note + ')';
+      elSrc.appendChild(o);
+    });
+    // 既定は S-16。段によって「＋収支」の行だけが動く（G5 でだけ収支が通る）ので、
+    // 階層が効いていることが表の上で一目で分かる。S-13（K-28 の出所）は選べば全段 0.000 になる。
+    elSrc.value = '4';
+  }
+
+  function fillChannels() {
+    elChan.innerHTML = '';
+    var movable = S29.movableIndices(state.table);
+    movable.forEach(function (ci) {
+      var o = document.createElement('option');
+      o.value = String(ci);
+      o.textContent = state.table.cols[ci];
+      elChan.appendChild(o);
+    });
+    state.chan = movable[0];
+    elChan.value = String(state.chan);
+  }
+
+  function selectSource() {
+    var rec = SAMPLE.records[Number(elSrc.value) || 0];
+    state.rec = rec;
+    state.table = buildTable(rec);
+    fillChannels();
+    resetTally();
+    elNote.textContent = rec.source + ' の生ログ 1 枚（' + rec.note + '・' + rec.n + ' 行 × ' +
+      S29.movableIndices(state.table).length + ' チャネル）。元の判定は 1項 ' +
+      (rec.reported.t1 ? '発火' : '不発') + '／2項 ' + (rec.reported.t2 ? '発火' : '不発') + '。';
+    drawAll(null);
+  }
+
+  // ---------------------------------------------------------------- 描画
+
+  function colExtent(col) {
+    var lo = Infinity, hi = -Infinity;
+    for (var i = 0; i < col.length; i++) { lo = Math.min(lo, col[i]); hi = Math.max(hi, col[i]); }
+    if (!(hi > lo)) { hi = lo + 1; lo -= 1; }
+    return [lo, hi];
+  }
+
+  function drawTrace(ctx, x0, y0, w, h, col, ext, colour, width) {
+    ctx.strokeStyle = colour; ctx.lineWidth = width || 1.4; ctx.beginPath();
+    var n = col.length;
+    for (var i = 0; i < n; i++) {
+      var x = x0 + (n === 1 ? 0 : (i / (n - 1)) * w);
+      var y = y0 + h - ((col[i] - ext[0]) / (ext[1] - ext[0])) * h;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  function drawAll(surros) {
+    var W = cvS.width, H = cvS.height;
+    ctxS.fillStyle = '#05070a'; ctxS.fillRect(0, 0, W, H);
+    var rows = 1 + LEVELS.length;
+    var padL = 96, padR = 14, padT = 12, gap = 6;
+    var rh = (H - padT - 10) / rows - gap;
+    var w = W - padL - padR;
+    var base = state.table.data[state.chan];
+    var name = state.table.cols[state.chan];
+
+    // 値域は元と代理をまたいで共通にする（同じ物差しで見るため）
+    var ext = colExtent(base);
+    if (surros) {
+      LEVELS.forEach(function (L) {
+        var e2 = colExtent(surros[L].table.data[state.chan]);
+        ext = [Math.min(ext[0], e2[0]), Math.max(ext[1], e2[1])];
+      });
+    }
+
+    ctxS.font = '11px ui-monospace,Menlo,monospace';
+    ctxS.textBaseline = 'middle';
+
+    function row(i) { return padT + i * (rh + gap); }
+
+    // 元の系列
+    ctxS.fillStyle = '#0a0d12'; ctxS.fillRect(padL, row(0), w, rh);
+    drawTrace(ctxS, padL, row(0), w, rh, base, ext, '#ffd166', 2);
+    ctxS.fillStyle = '#ffd166';
+    ctxS.fillText('元の生ログ', 8, row(0) + rh / 2);
+
+    LEVELS.forEach(function (L, i) {
+      var y = row(i + 1);
+      var s = surros ? surros[L] : null;
+      ctxS.fillStyle = '#0a0d12'; ctxS.fillRect(padL, y, w, rh);
+      // 元を薄く重ねる
+      drawTrace(ctxS, padL, y, w, rh, base, ext, 'rgba(255,209,102,0.28)', 1);
+      if (s) drawTrace(ctxS, padL, y, w, rh, s.table.data[state.chan], ext, '#4aa3ff', 1.6);
+      // 左の見出しと判定の印
+      ctxS.fillStyle = '#d7dce5';
+      ctxS.fillText(L, 8, y + rh / 2 - 6);
+      if (s) {
+        ctxS.fillStyle = s.j.term3 ? '#ff6b6b' : (s.j.budgetOk ? '#4ade80' : '#7e8797');
+        ctxS.fillText(s.j.term3 ? '通った' : (s.j.budgetOk ? '収支◯' : '収支×'), 8, y + rh / 2 + 8);
+        // 右端に収支の破れ具合を短い棒で
+        var d = s.j.budget;
+        for (var k = 0; k < d.length; k++) {
+          ctxS.fillStyle = d[k].pass ? '#4ade80' : '#ff6b6b';
+          ctxS.fillRect(padL + w - 6 - k * 8, y + 4, 5, 5);
+        }
+      }
+    });
+
+    ctxS.fillStyle = '#7e8797';
+    ctxS.fillText('チャネル: ' + name + '（薄い線＝元／濃い線＝代理）', padL, H - 6);
+  }
+
+  function drawTally() {
+    var W = cvT.width, H = cvT.height;
+    ctxT.fillStyle = '#05070a'; ctxT.fillRect(0, 0, W, H);
+    var padL = 52, padR = 12, padT = 26, padB = 26;
+    var w = (W - padL - padR) / LEVELS.length;
+    var h = H - padT - padB;
+    ctxT.font = '11px ui-monospace,Menlo,monospace';
+    ctxT.textBaseline = 'middle';
+    // 目盛り
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (v) {
+      var y = padT + h - v * h;
+      ctxT.strokeStyle = '#1b2029'; ctxT.beginPath(); ctxT.moveTo(padL, y); ctxT.lineTo(W - padR, y); ctxT.stroke();
+      ctxT.fillStyle = '#4b5364'; ctxT.fillText(v.toFixed(2), 8, y);
+    });
+    LEVELS.forEach(function (L, i) {
+      var t = state.tally[L];
+      var x = padL + i * w;
+      var bw = (w - 10) / 4;
+      var vals = t.n ? [t.t1 / t.n, t.t2 / t.n, t.t3 / t.n, t.bud / t.n] : [0, 0, 0, 0];
+      var cols = ['#93a3b8', '#c48fd8', '#ff6b6b', '#4ade80'];
+      vals.forEach(function (v, k) {
+        ctxT.fillStyle = cols[k];
+        var bh = v * h;
+        ctxT.fillRect(x + 4 + k * bw, padT + h - bh, bw - 2, bh);
+      });
+      ctxT.fillStyle = '#d7dce5';
+      ctxT.fillText(L, x + w / 2 - 8, H - 12);
+    });
+    ctxT.fillStyle = '#7e8797';
+    ctxT.fillText('積み上げ ' + (state.tally.G0 ? state.tally.G0.n : 0) + ' 本／段  ' +
+      '□1項  □2項  ■＋収支（偽陽性）  ■収支が全部保たれた割合', padL, 12);
+  }
+
+  function renderTables(surros) {
+    var html = '';
+    LEVELS.forEach(function (L) {
+      var t = state.tally[L];
+      var p = function (v) { return t.n ? (v / t.n).toFixed(3) : '—'; };
+      html += '<tr><td class="lv">' + L + '</td><td><span class="num">' + p(t.t1) +
+        '</span></td><td><span class="num">' + p(t.t2) + '</span></td><td><span class="num" style="color:#ff6b6b">' +
+        p(t.t3) + '</span></td><td><span class="num" style="color:#4ade80">' + p(t.bud) + '</span></td></tr>';
+    });
+    elRates.innerHTML = html;
+
+    var h2 = '';
+    LEVELS.forEach(function (L) {
+      var meta = S29.LEVELS.filter(function (o) { return o.id === L; })[0];
+      var s = surros ? surros[L] : null;
+      var verdict = s ? (s.j.term3 ? '<span style="color:#ff6b6b">通った</span>'
+        : (s.j.term2 ? '収支で落ちた' : (s.j.term1 ? '2項で落ちた' : '1項で落ちた'))) : '—';
+      h2 += '<tr><td class="lv">' + L + '</td><td class="lv" style="font-size:11px;color:#7e8797">' +
+        meta.preserves.join('・') + '</td><td style="font-size:11px">' + verdict + '</td></tr>';
+    });
+    elNow.innerHTML = h2;
+  }
+
+  // ---------------------------------------------------------------- 1 ティック
+
+  function tick() {
+    var surros = null;
+    for (var b = 0; b < state.batch; b++) {
+      surros = {};
+      LEVELS.forEach(function (L) {
+        var su = S29.surrogate(state.table, L, 20260913 + state.seed * 97);
+        var j = S29.judge(state.rec.source, su, S29.DEFAULT_KNOB);
+        surros[L] = { table: su, j: j };
+        var t = state.tally[L];
+        t.n++; if (j.term1) t.t1++; if (j.term2) t.t2++; if (j.term3) t.t3++; if (j.budgetOk) t.bud++;
+      });
+      state.seed++;
+    }
+    state.last = surros;
+    drawAll(surros);
+    drawTally();
+    renderTables(surros);
+  }
+
+  // ---------------------------------------------------------------- 進行
+
+  var acc = 0, lastTs = 0;
+  function loop(ts) {
+    if (state.running) {
+      var dt = lastTs ? ts - lastTs : 16;
+      lastTs = ts;
+      acc += dt * (Number(elSpeed.value) / 1000);
+      if (acc >= 1) { acc = 0; tick(); }
+    } else { lastTs = ts; }
+    requestAnimationFrame(loop);
+  }
+
+  elSrc.addEventListener('change', selectSource);
+  elChan.addEventListener('change', function () { state.chan = Number(elChan.value); drawAll(state.last); });
+  elSpeed.addEventListener('input', function () { Harness.num(elSpeedV, elSpeed.value, 3); });
+  elPlay.addEventListener('click', function () {
+    state.running = !state.running;
+    elPlay.textContent = state.running ? '止める' : '動かす';
+  });
+  elReset.addEventListener('click', function () { resetTally(); drawTally(); renderTables(state.last); });
+
+  fillSources();
+  selectSource();
+  Harness.num(elSpeedV, elSpeed.value, 3);
+  drawTally();
+  renderTables(null);
+  requestAnimationFrame(loop);
+
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (state.running) document.getElementById('play').click(); },
+    id: 'S-29', version: '1.0.0',
+    inputs: ['src', 'chan', 'speed'],
+    // この系に系の力学（p）と呼べるものが無い（実在ログを読み込み代理系列と比較するだけ）。
+    // src/chan はどのデータを見るかの選択なので s にした（判断に迷った点として報告済み）
+    paramNames: {
+      src: { category: 's', code: 'src', full: 'source_log' },
+      chan: { category: 's', code: 'chan', full: 'channel' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+    },
+    canvases: ['series', 'tally'],
+    // 「広さ」＝1 回に作る代理の本数。この系で空間にあたるのは掃引の広さである
+    resize: function (scale) {
+      state.batch = Math.max(1, Math.round(2 * scale));
+      Harness.say('1 回に作る代理 ' + state.batch + ' 本');
+    },
+    onRestore: function () { selectSource(); Harness.num(elSpeedV, elSpeed.value, 3); },
+  });
+})();
+</script>
+</body>
+</html>

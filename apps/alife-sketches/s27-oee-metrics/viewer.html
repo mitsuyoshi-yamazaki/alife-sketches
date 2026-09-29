@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-27 OEE 評価指標の系譜 — 指標は登録項目のどこを埋めてきたか</title>
+<style>
+  :root{
+    --bg:#0e1014; --panel:#171a21; --line:#2a2f3a; --fg:#d7dce5; --dim:#7e8797;
+    --filled:#4ade80; --open:#fbbf24; --absent:#39414f; --unreached:#5b4048;
+    --ours:#4aa3ff; --hot:#ff7a59;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1100px}
+  b.hi{color:#fff}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070a;border:1px solid var(--line);border-radius:4px;
+         max-width:100%;height:auto}
+  aside{width:340px;min-width:290px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 13px;margin-bottom:12px}
+  .box h2{margin:0 0 9px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.06em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:104px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  select{background:#0c0e13;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+      padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  button{background:#20252f;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#2a3140}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #20242c}
+  table.stat td.k{color:var(--dim);width:58%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:9ch}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;color:var(--dim);font-size:11px;margin-top:6px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .cap{color:var(--dim);font-size:11px;margin:0 0 3px}
+  .note{color:var(--dim);font-size:11px;margin-top:8px}
+  code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#a5b4fc}
+  blockquote{margin:6px 0 0;padding:7px 9px;background:#0c0e13;border-left:2px solid #3b4453;
+             border-radius:0 4px 4px 0;font-size:11.5px;color:#c2cad6}
+  blockquote cite{display:block;margin-top:5px;color:var(--dim);font-style:normal;font-size:10.5px}
+  .banner{margin-top:9px;padding:8px 10px;border-radius:4px;font-size:12px;
+          border:1px solid var(--line);background:#12161d;color:var(--dim)}
+  .banner.warn{border-color:var(--open);background:#241d0c;color:#ffe9b0}
+  @media(max-width:880px){aside{width:auto;min-width:0}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-27 — OEE の評価指標は、登録項目のどこを埋めてきたか</h1>
+  <p>横軸は年（1992→2019）。<b class="hi">▶ を押すと年表が進み</b>、その年までに公表された指標が
+     <b class="hi">秩序変数・スケール・閾値・参照点・母集団</b>の欄をどれだけ埋めたかが積み上がる。
+     <b class="hi">重ねると</b>、同じ5列を本サブプロジェクトの既作26本がどれだけ埋めているかが青で重なる。
+     緑＝明示して埋めた／黄＝読み手に委ねた／灰＝触れない。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <div>
+      <p class="cap">系譜。丸が1件、丸の下の5マスが <code>V S Th R P</code>。<b class="hi">掃引線の左側だけが集計に入る。</b></p>
+      <canvas id="timeline" width="620" height="300"></canvas>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--filled)"></i>明示して埋めた</span>
+        <span><i class="sw" style="background:var(--open)"></i>読み手に委ねた</span>
+        <span><i class="sw" style="background:var(--absent)"></i>触れない</span>
+        <span><i class="sw" style="background:var(--unreached)"></i>原典へ到達できず</span>
+        <span><i class="sw" style="background:var(--ours)"></i>既作26本</span>
+      </div>
+    </div>
+    <div>
+      <p class="cap">列ごとの積み上げ。<b class="hi">高さ＝その年までに欄を埋めた件数</b>。細い青は既作26本の登録率（右目盛）。</p>
+      <canvas id="columns" width="620" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="col">
+    <div>
+      <p class="cap">重ね合わせ: 既作26本（実装23本）× 7列。<b class="hi">明るいマスが登録した欄</b>。</p>
+      <canvas id="overlay" width="420" height="330"></canvas>
+    </div>
+    <div>
+      <p class="cap">事前登録した予測表との差。<b class="hi">×が外れたマス</b>（予測→実測）。</p>
+      <canvas id="pred" width="420" height="160"></canvas>
+    </div>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>操作</h2>
+      <label><span class="k">年</span><input id="year" type="range" min="1992" max="2019" step="1" value="2019"><output class="num" id="yearv">2019</output></label>
+      <label><span class="k">速さ</span><input id="speed" type="range" min="1" max="20" step="1" value="6"><output class="num" id="speedv">6</output></label>
+      <label><span class="k">母集団</span>
+        <select id="pop">
+          <option value="P1">P1: 到達できたものだけ</option>
+          <option value="P2">P2: 全件（未到達は absent）</option>
+        </select></label>
+      <label><span class="k">判定の単位</span>
+        <select id="unit">
+          <option value="U1">U1: 1マス</option>
+          <option value="U2">U2: 1件（5列すべて）</option>
+        </select></label>
+      <label><span class="k">既作を重ねる</span>
+        <select id="lay"><option value="on">重ねる</option><option value="off">重ねない</option></select></label>
+      <label><span class="k">選ぶ</span><select id="pick"></select></label>
+      <div class="row">
+        <button id="play" class="primary">▶ 再生</button>
+        <button id="rew">⟲ 1992 へ</button>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>いま数えているもの</h2>
+      <table class="stat"><tbody id="stats"></tbody></table>
+      <div class="banner" id="banner"></div>
+    </div>
+
+    <div class="box">
+      <h2>選んだ1件</h2>
+      <div id="detail"></div>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="coding.js"></script>
+<script src="overlay.js"></script>
+<script>
+(function () {
+  'use strict';
+  var C = window.S27;
+  var OV = window.S27_OVERLAY || { rows: [], tally: {} };
+  var PRED = window.S27_PREDICTION || {};
+  var F = C.FIELDS, PF = C.primaryFields();
+  var COLOR = { filled: '#4ade80', open: '#fbbf24', absent: '#39414f' };
+  var UNREACHED = '#5b4048';
+
+  function el(id) { return document.getElementById(id); }
+  function ctx(id) { var c = el(id); return { c: c, g: c.getContext('2d') }; }
+
+  var year = 2019, playing = false, picked = C.ENTRIES[0].id, acc = 0;
+
+  var YEAR_MIN = 1992, YEAR_MAX = 2019;
+
+  function visibleRows() {
+    return C.table(el('pop').value).filter(function (r) { return r.entry.year <= year; });
+  }
+
+  // ---------------------------------------------------------------- 年表
+
+  function drawTimeline() {
+    var o = ctx('timeline'), g = o.g, W = o.c.width, H = o.c.height;
+    g.clearRect(0, 0, W, H);
+    var padL = 34, padR = 16, padT = 26, laneH = 74;
+    var x = function (yr) { return padL + (yr - YEAR_MIN) / (YEAR_MAX - YEAR_MIN) * (W - padL - padR); };
+
+    // 目盛
+    g.strokeStyle = '#1d222b'; g.fillStyle = '#6b7383'; g.font = '10px ui-monospace,monospace';
+    for (var yr = YEAR_MIN; yr <= YEAR_MAX; yr += 4) {
+      g.beginPath(); g.moveTo(x(yr), padT - 8); g.lineTo(x(yr), H - 14); g.stroke();
+      g.fillText(String(yr), x(yr) - 12, H - 3);
+    }
+
+    // 3レーンに散らして重なりを避ける
+    var rows = C.table(el('pop').value).slice().sort(function (a, b) { return a.entry.year - b.entry.year; });
+    var lane = {}, lastX = [-99, -99, -99];
+    rows.forEach(function (r) {
+      var px = x(r.entry.year), L = -1;
+      for (var i = 0; i < 3; i++) { if (px - lastX[i] > 58) { L = i; break; } }
+      if (L < 0) {   // 3レーンとも詰まっていたら、いちばん空いているところへ落とす
+        L = 0;
+        for (var j = 1; j < 3; j++) if (lastX[j] < lastX[L]) L = j;
+      }
+      lane[r.entry.id] = L; lastX[L] = px;
+    });
+
+    rows.forEach(function (r) {
+      var px = x(r.entry.year), py = padT + lane[r.entry.id] * laneH;
+      var on = r.entry.year <= year;
+      var sel = r.entry.id === picked;
+      g.globalAlpha = on ? 1 : 0.22;
+
+      // 丸
+      g.beginPath(); g.arc(px, py, sel ? 7 : 5, 0, Math.PI * 2);
+      g.fillStyle = r.entry.reached ? '#cbd5e1' : UNREACHED; g.fill();
+      if (sel) { g.strokeStyle = '#ff7a59'; g.lineWidth = 2; g.stroke(); g.lineWidth = 1; }
+
+      // 名前
+      g.fillStyle = sel ? '#ffffff' : '#93a0b4'; g.font = (sel ? 'bold ' : '') + '10px -apple-system,sans-serif';
+      var label = r.entry.who.split(' ')[0] + (r.entry.who.indexOf('et al') >= 0 ? '+' : '');
+      g.fillText(label, Math.min(px - 14, W - 46), py - 10);
+
+      // 5マス
+      PF.forEach(function (f, i) {
+        var cx = px - 16 + i * 7, cy = py + 9;
+        g.fillStyle = r.entry.reached ? COLOR[r.cells[f.key].verdict] : UNREACHED;
+        g.fillRect(cx, cy, 6, 10);
+      });
+      g.globalAlpha = 1;
+    });
+
+    // 掃引線
+    g.strokeStyle = '#ff7a59'; g.globalAlpha = 0.85;
+    g.beginPath(); g.moveTo(x(year), padT - 12); g.lineTo(x(year), H - 16); g.stroke();
+    g.globalAlpha = 1;
+    g.fillStyle = '#ff7a59'; g.font = 'bold 11px ui-monospace,monospace';
+    g.fillText(String(year), Math.min(x(year) + 4, W - 34), padT - 14);
+  }
+
+  // ---------------------------------------------------------------- 列の積み上げ
+
+  function drawColumns() {
+    var o = ctx('columns'), g = o.g, W = o.c.width, H = o.c.height;
+    g.clearRect(0, 0, W, H);
+    var rows = visibleRows();
+    var padL = 30, padB = 34, padT = 14;
+    var bw = (W - padL - 16) / F.length;
+    var maxN = Math.max(1, C.table(el('pop').value).length);
+    var ovOn = el('lay').value === 'on';
+
+    F.forEach(function (f, i) {
+      var t = { filled: 0, open: 0, absent: 0 };
+      rows.forEach(function (r) { t[r.cells[f.key].verdict]++; });
+      var bx = padL + i * bw + 6, bwi = bw - 14;
+      var h = H - padT - padB;
+      var y = H - padB;
+      var filledTop = y, filledH = 0;
+      ['absent', 'open', 'filled'].forEach(function (k) {
+        var hh = t[k] / maxN * h;
+        g.fillStyle = COLOR[k]; g.globalAlpha = f.primary ? 1 : 0.55;
+        g.fillRect(bx, y - hh, bwi, hh); y -= hh; g.globalAlpha = 1;
+        if (k === 'filled') { filledTop = y; filledH = hh; }
+      });
+      // 既作の重ね（細い縦線）
+      if (ovOn && OV.tally && OV.tally[f.key]) {
+        var ot = OV.tally[f.key];
+        var oh = ot.n / ot.of * h;
+        g.fillStyle = '#4aa3ff'; g.globalAlpha = 0.9;
+        g.fillRect(bx + bwi - 5, H - padB - oh, 5, oh); g.globalAlpha = 1;
+        g.fillStyle = '#4aa3ff'; g.font = '9px ui-monospace,monospace';
+        g.fillText(ot.n + '/' + ot.of, bx + bwi - 20, H - padB - oh - 3);
+      }
+      g.fillStyle = f.primary ? '#cbd5e1' : '#79808f';
+      g.font = '10px -apple-system,sans-serif';
+      g.fillText(f.name, bx - 2, H - padB + 13);
+      // filled の数は、緑の帯そのものの中へ置く（帯は積み上げの一番上にある）
+      g.fillStyle = filledH > 14 ? '#0b1a12' : '#4ade80';
+      g.font = 'bold 11px ui-monospace,monospace';
+      g.fillText(String(t.filled), bx + bwi / 2 - 4,
+        filledH > 14 ? (filledTop + filledH / 2 + 4) : (filledTop - 3));
+    });
+    g.strokeStyle = '#242a34';
+    g.beginPath(); g.moveTo(padL, H - padB); g.lineTo(W - 10, H - padB); g.stroke();
+    g.fillStyle = '#6b7383'; g.font = '9px ui-monospace,monospace';
+    g.fillText('件数 /' + maxN, 2, H - padB - 3);
+  }
+
+  // ---------------------------------------------------------------- 既作の重ね合わせ
+
+  function drawOverlay() {
+    var o = ctx('overlay'), g = o.g, W = o.c.width, H = o.c.height;
+    g.clearRect(0, 0, W, H);
+    if (!OV.rows.length) {
+      g.fillStyle = '#6b7383'; g.font = '12px -apple-system,sans-serif';
+      g.fillText('overlay.js が無い。node run.js <出力先> で作る。', 14, 28);
+      return;
+    }
+    var padL = 116, padT = 26, cw = Math.min(34, (W - padL - 10) / F.length);
+    var ch = Math.min(11, (H - padT - 12) / OV.rows.length);
+    g.font = '9px ui-monospace,monospace';
+    F.forEach(function (f, i) {
+      g.fillStyle = f.primary ? '#cbd5e1' : '#79808f';
+      g.save(); g.translate(padL + i * cw + cw / 2, padT - 6); g.rotate(-Math.PI / 3.2);
+      g.fillText(f.name, 0, 0); g.restore();
+    });
+    OV.rows.forEach(function (r, j) {
+      var y = padT + j * ch;
+      g.fillStyle = '#8b95a6'; g.font = '9px ui-monospace,monospace';
+      g.fillText(r.slug.slice(0, 14), 4, y + ch - 2);
+      F.forEach(function (f, i) {
+        var cell = r.fields[f.key];
+        g.fillStyle = cell.registered ? (f.primary ? '#4aa3ff' : '#2f6ea8') : '#1b2029';
+        g.fillRect(padL + i * cw, y, cw - 2, ch - 1.5);
+        if (cell.corrected) {
+          g.strokeStyle = '#ff7a59'; g.lineWidth = 1;
+          g.strokeRect(padL + i * cw + .5, y + .5, cw - 3, ch - 2.5);
+        }
+      });
+    });
+    g.fillStyle = '#6b7383'; g.font = '9px -apple-system,sans-serif';
+    g.fillText('橙枠＝語の一致が誤りだったマス（訂正表で外した）', 4, H - 3);
+  }
+
+  // ---------------------------------------------------------------- 予測との差
+
+  function drawPred() {
+    var o = ctx('pred'), g = o.g, W = o.c.width, H = o.c.height;
+    g.clearRect(0, 0, W, H);
+    var score = C.scorePrediction(PRED);
+    var padL = 96, padT = 24;
+    var reached = C.ENTRIES.filter(function (e) { return e.reached; });
+    var cw = Math.min(30, (W - padL - 10) / PF.length);
+    var ch = Math.min(11, (H - padT - 26) / reached.length);
+    g.font = '9px ui-monospace,monospace';
+    PF.forEach(function (f, i) {
+      g.fillStyle = '#cbd5e1';
+      g.fillText(f.key, padL + i * cw + cw / 2 - 4, padT - 8);
+    });
+    reached.forEach(function (e, j) {
+      var y = padT + j * ch;
+      g.fillStyle = e.id === picked ? '#ffffff' : '#8b95a6';
+      g.fillText(e.id + ' ' + e.who.split(' ')[0].slice(0, 9), 4, y + ch - 2);
+      PF.forEach(function (f, i) {
+        var got = ((C.CODING[e.id] || {})[f.key] || { verdict: 'absent' }).verdict;
+        var pre = (PRED[e.id] || {})[f.key];
+        var hit = pre === got;
+        g.fillStyle = hit ? '#1f3a2a' : '#4a1f22';
+        g.fillRect(padL + i * cw, y, cw - 2, ch - 1.5);
+        g.fillStyle = hit ? '#4ade80' : '#ff7a59';
+        g.font = '8px ui-monospace,monospace';
+        g.fillText(hit ? '=' : '×', padL + i * cw + cw / 2 - 3, y + ch - 3);
+      });
+    });
+    g.fillStyle = '#6b7383'; g.font = '10px ui-monospace,monospace';
+    g.fillText('的中 ' + score.hits.length + '/' + score.n +
+               ' = ' + (score.rate * 100).toFixed(1) + '%', 4, H - 6);
+  }
+
+  // ---------------------------------------------------------------- 数値と詳細
+
+  function refreshStats() {
+    var rows = visibleRows();
+    var t = {};
+    F.forEach(function (f) {
+      t[f.key] = rows.filter(function (r) { return r.cells[f.key].verdict === 'filled'; }).length;
+    });
+    var full = rows.filter(function (r) {
+      return PF.every(function (f) { return r.cells[f.key].verdict === 'filled'; });
+    });
+    var unit = el('unit').value;
+    var html = '';
+    html += '<tr><td class="k">年</td><td class="v" id="s-year">' + year + '</td></tr>';
+    html += '<tr><td class="k">数えている件数</td><td class="v" id="s-n">' + rows.length + '</td></tr>';
+    PF.forEach(function (f) {
+      html += '<tr><td class="k">' + f.name + ' を埋めた</td><td class="v" id="s-' + f.key + '">' +
+        t[f.key] + ' / ' + rows.length + '</td></tr>';
+    });
+    html += '<tr><td class="k">5列すべて埋めた件</td><td class="v">' +
+      (full.length ? full.map(function (r) { return r.entry.id; }).join(' ') : '0 件') + '</td></tr>';
+    F.filter(function (f) { return !f.primary; }).forEach(function (f) {
+      html += '<tr><td class="k">（補助）' + f.name + '</td><td class="v">' + t[f.key] + ' / ' + rows.length + '</td></tr>';
+    });
+    if (OV.tally && OV.tally.P) {
+      html += '<tr><td class="k">既作の母集団の欄</td><td class="v">' + OV.tally.P.n + ' / ' + OV.tally.P.of + '</td></tr>';
+      html += '<tr><td class="k">既作の判定の単位</td><td class="v">' + OV.tally.U.n + ' / ' + OV.tally.U.of + '</td></tr>';
+    }
+    el('stats').innerHTML = html;
+
+    var lowest = null;
+    PF.forEach(function (f) {
+      if (lowest === null || t[f.key] < t[lowest]) lowest = f.key;
+    });
+    var lf = PF.filter(function (f) { return f.key === lowest; })[0];
+    var b = el('banner');
+    if (unit === 'U2') {
+      b.className = 'banner' + (full.length ? '' : ' warn');
+      b.textContent = full.length
+        ? '判定の単位 U2: 5列すべてを埋めた件は ' + full.map(function (r) { return r.entry.id; }).join('・')
+        : '判定の単位 U2 では、この年までに5列すべてを埋めた指標は1件も無い。';
+    } else {
+      b.className = 'banner';
+      b.textContent = 'いちばん空いている列は「' + (lf ? lf.name : '—') + '」（' +
+        t[lowest] + '/' + rows.length + '）。' +
+        (OV.tally && OV.tally[lowest] ? '既作26本でも ' + OV.tally[lowest].n + '/' + OV.tally[lowest].of + '。' : '');
+    }
+  }
+
+  // why の文には **強調** を書いてあるので、画面へ出す前に印に変える
+  // （印がそのまま出るのは S-10 が見つけた欠陥と同じ種類。描画して初めて見える層）
+  function md(t) {
+    return String(t == null ? "" : t)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/\*\*([^*]+)\*\*/g, "<b class=\"hi\">$1</b>");
+  }
+
+  function refreshDetail() {
+    var e = C.entryById(picked);
+    var d = el('detail');
+    if (!e) { d.textContent = '—'; return; }
+    var html = '<div style="font-size:12px"><b class="hi">' + e.who + ' (' + e.year + ')</b><br>' +
+      '<span style="color:var(--dim)">' + e.title + '<br>' + e.venue + ' ／ ' + e.role + '</span></div>';
+    if (!e.reached) {
+      html += '<div class="banner warn" style="margin-top:8px">原典へ到達できなかった。' + (e.unreachedWhy || '') + '</div>';
+      d.innerHTML = html; return;
+    }
+    PF.forEach(function (f) {
+      var cell = (C.CODING[e.id] || {})[f.key] || { verdict: 'absent', why: '', quotes: [] };
+      html += '<div style="margin-top:9px;font-size:12px">' +
+        '<i class="sw" style="background:' + COLOR[cell.verdict] + '"></i>' +
+        '<b class="hi">' + f.name + '</b> — ' + C.LEVEL_LABEL[cell.verdict] +
+        '<div style="color:var(--dim);font-size:11px">' + md(cell.why) + '</div>';
+      (cell.quotes || []).forEach(function (qid) {
+        var q = C.QUOTES[qid];
+        if (q) html += '<blockquote>' + md(q.readable) + '<cite>' + e.who + ' ' + e.year + ' ／ 引用 ' + qid + '</cite></blockquote>';
+      });
+      html += '</div>';
+    });
+    d.innerHTML = html;
+  }
+
+  function draw() { drawTimeline(); drawColumns(); drawOverlay(); drawPred(); refreshStats(); refreshDetail(); }
+
+  // ---------------------------------------------------------------- つまみ
+
+  function bind() {
+    var sel = el('pick');
+    C.ENTRIES.slice().sort(function (a, b) { return a.year - b.year; }).forEach(function (e) {
+      var o = document.createElement('option');
+      o.value = e.id; o.textContent = e.year + ' ' + e.who + (e.reached ? '' : '（未到達）');
+      sel.appendChild(o);
+    });
+    sel.value = picked;
+    sel.addEventListener('change', function () { picked = sel.value; draw(); });
+
+    el('year').addEventListener('input', function () {
+      year = +el('year').value; el('yearv').textContent = year; draw();
+    });
+    el('speed').addEventListener('input', function () { el('speedv').textContent = el('speed').value; });
+    ['pop', 'unit', 'lay'].forEach(function (id) {
+      el(id).addEventListener('change', draw);
+    });
+    el('play').addEventListener('click', function () {
+      playing = !playing; el('play').textContent = playing ? '⏸ 止める' : '▶ 再生';
+      if (playing && year >= YEAR_MAX) { year = YEAR_MIN; el('year').value = year; }
+    });
+    el('rew').addEventListener('click', function () {
+      year = YEAR_MIN; el('year').value = year; el('yearv').textContent = year; draw();
+    });
+  }
+
+  function tick() {
+    if (playing) {
+      acc += +el('speed').value;
+      if (acc >= 30) {
+        acc = 0;
+        year = year >= YEAR_MAX ? YEAR_MIN : year + 1;
+        el('year').value = year; el('yearv').textContent = year;
+        draw();
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  bind();
+  picked = 'M01';
+  el('pick').value = picked;
+  draw();
+  requestAnimationFrame(tick);
+
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (playing) document.getElementById('play').click(); },
+    id: 'S-27',
+    version: '1.0.0',
+    inputs: ['year', 'speed', 'pop', 'unit', 'lay', 'pick'],
+    // URLパラメータの短縮名/フル名。対象は固定した文献と既作の criteria.json で系の力学を持たず、
+    // 全て観測・表示の設定なので s（p・d 以外すべて）
+    paramNames: {
+      year: { category: 's', code: 'year', full: 'year' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+      pop: { category: 's', code: 'pop', full: 'population' },
+      unit: { category: 's', code: 'unit', full: 'judgement_unit' },
+      lay: { category: 's', code: 'lay', full: 'overlay_existing' },
+      pick: { category: 's', code: 'pick', full: 'pick' },
+    },
+    canvases: ['timeline', 'columns', 'overlay', 'pred'],
+    // resize（「広さ」）は出さない。対象は 14 件の固定した文献と 23 本の固定した
+    // criteria.json で、空間・メモリ・集団の大きさに当たる量が系の側に無い。理由は README に書いた。
+    onRestore: function () {
+      year = +el('year').value; el('yearv').textContent = year;
+      el('speedv').textContent = el('speed').value;
+      picked = el('pick').value || picked;
+      draw();
+    }
+  });
+})();
+</script>
+</body>
+</html>

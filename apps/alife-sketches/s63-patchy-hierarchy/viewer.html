@@ -1,0 +1,261 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-63 — 2つの結合尺度の自己集合（パッチ粒子）</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--hot:#fbbf24}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0;max-width:960px}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  select{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  label b{color:var(--fg);font-variant-numeric:tabular-nums;min-width:2.6em}
+  input[type=range]{width:100px}
+  input[type=number]{width:6em;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;background:#05060a}
+  table{border-collapse:collapse;font-size:12px;width:100%}
+  th,td{padding:4px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  td{font-variant-numeric:tabular-nums}
+  .legend{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.9}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:5px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:960px}
+  footer b{color:var(--fg)}
+  .col{display:flex;flex-direction:column;gap:14px;flex:1;min-width:280px}
+  @media(max-width:760px){.wrap{flex-direction:column}}
+</style>
+
+<header>
+  <h1>S-63 — 強く広いパッチ A・弱く狭いパッチ B を持つ円板が、1つの対ポテンシャルから出る力と
+    トルクだけ（粒子ごとの Langevin・集団移動なし）で、要素→三角形（U1）→網目（U2）の2段を作るか</h1>
+  <p class="sub">熱浴の温度を下げながら、A で閉じた三角形（強い結合・広い窓）ができ、さらに B で
+    三角形どうしがつながる（弱い結合・狭い窓）かを見る。強さの比 R=ε_AA/ε_BB を振ると、
+    段が温度の上で分かれるか（Simon のほぼ分解可能な系の物理版）が変わる、というのが問いの芯。</p>
+</header>
+
+<div class="bar">
+  <button id="run">開始</button>
+  <button id="reset">配置をやり直す</button>
+  <label>強さの比 R=ε_AA/ε_BB
+    <select id="rr"><option value="1">1（分離なし）</option><option value="2">2</option>
+      <option value="5" selected>5（C1の成功比）</option><option value="10">10</option></select>
+  </label>
+  <label>交差結合
+    <select id="cross"><option value="normal" selected>√(εAAεBB)</option><option value="off">切る（A-R1x）</option></select>
+  </label>
+  <label>粒子数 N<input type="range" id="n" min="60" max="240" step="6" value="150"><b id="nV">150</b></label>
+  <label>冷却の速さ<select id="speed"><option value="0.25">遅い</option><option value="1" selected>標準</option><option value="4">速い</option></select></label>
+  <label>seed<input type="number" id="seed" value="6301" step="1"></label>
+</div>
+
+<div class="wrap">
+  <div class="col">
+    <div class="panel">
+      <h2>粒子（赤=A極、青=B極。塗り=U1(三角形)の所属、白い縁=U2(網目)の所属）</h2>
+      <canvas id="particleCanvas" width="640" height="640"></canvas>
+      <div class="legend">
+        <span class="sw" style="background:#666"></span>単体・未所属
+        &nbsp;&nbsp;色つき=U1（三角形）ごとに別の色相&nbsp;&nbsp;<span style="color:#fff">白い縁</span>=U2（網目）に所属
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="panel">
+      <h2>いま</h2>
+      <div>相 <span id="phase">準備</span>　t=<b id="t">0.00</b>τ　T=<b id="temp">―</b></div>
+      <table style="margin-top:8px">
+        <tr><th></th><th>今</th></tr>
+        <tr><td>段の数 n_G（幾何）</td><td id="nG">―</td></tr>
+        <tr><td>Y1（最頻U1の粒子割合）</td><td id="y1">―</td></tr>
+        <tr><td>U1の数（size≥2の凝集成分）</td><td id="nu1">―</td></tr>
+        <tr><td>f_U2（U2に属する粒子割合の目安）</td><td id="fu2">―</td></tr>
+        <tr><td>台帳の残差 |R|</td><td id="ledger">―</td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>温度の折れ線</h2>
+      <canvas id="tCanvas" width="420" height="100"></canvas>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p><b>読み方</b>: 熱浴の温度を T_hi=2.5 から T_lo=0.04 へ下げる。円板の向かい合う極に強く広い
+  パッチ A（結合相手2つまで）と弱く狭いパッチ B（結合相手1つまで）を持ち、この幾何だけで
+  U1（A–Aの三角形）が長さ3の閉路として、U2（三角形どうしがBでつながった網目）がそれを縮約した
+  グラフの連結成分として定義される（criteria.json observerDetails）。<b>本画面は探索用の簡易表示</b>
+  ――U1/U2は年齢による資格判定（τ_age=25τ）を省いた「今の瞬間の凝集成分」で近似しており、
+  本番の判定（run.js・selftest.jsが担う）とは一致しない。判定基準・全16走行+PC-Eの一覧は
+  <code>criteria.json</code>、レポートはS4が書く。</p>
+  <p>⚠ ここで見たものは判定に使わない――主張は事前登録した本番走行（<code>run.js</code>）の生ログだけが担う。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="detectors.js"></script>
+<script>
+'use strict';
+var $ = function (id) { return document.getElementById(id); };
+var canvas = $('particleCanvas'), ctx = canvas.getContext('2d');
+var tCanvas = $('tCanvas'), tctx = tCanvas.getContext('2d');
+
+var RHO = 0.30;
+var sim = null;
+var running = false;
+var noiseRng = null;
+
+function strengthsForR(R, crossOff) {
+  var epsAA = 5, epsBB = 5 / R, epsAB = crossOff ? 0 : Math.sqrt(epsAA * epsBB);
+  return { epsAA: epsAA, epsBB: epsBB, epsAB: epsAB };
+}
+
+function buildSim() {
+  var R = parseFloat($('rr').value), crossOff = $('cross').value === 'off';
+  var N = parseInt($('n').value, 10), seed = parseInt($('seed').value, 10) || 1;
+  var speed = parseFloat($('speed').value);
+  var L = Math.sqrt(N / RHO);
+  var st = strengthsForR(R, crossOff);
+  var params = S63.buildParams({ epsAA: st.epsAA, epsBB: st.epsBB, epsAB: st.epsAB, dt: 0.002, gammaT: 1.0 });
+  var sys = S63.createSystem(N, L);
+  var posRng = S63.subStream(seed, 0), velRng = S63.subStream(seed, 1), phiRng = S63.subStream(seed, 2);
+  noiseRng = S63.subStream(seed, 3);
+  var fill = S63.randomSequentialFill(N, L, 0.95, posRng);
+  sys.x.set(fill.x); sys.y.set(fill.y);
+  for (var i = 0; i < N; i++) sys.phi[i] = phiRng() * 2 * Math.PI;
+  var Thi = 2.5;
+  var mv = S63.maxwellVelocities(N, Thi, velRng);
+  sys.vx.set(mv.vx); sys.vy.set(mv.vy); sys.omega.set(mv.omega);
+  S63.zeroMomentum(sys);
+  var schedule = { hold1: 50, q1: 400 / speed, q2: 1600 / speed, hold2: 400, Thi: 2.5, Tmid: 0.6, Tlo: 0.04 };
+  var Q = S63.kahanNew();
+  var f0 = S63.computeForcesTorques(sys, params);
+  var k0 = S63.kineticEnergyBoth(sys);
+  return { sys: sys, params: params, schedule: schedule, t: 0, Q: Q, E0: k0.Kt + k0.Kr + f0.U, history: [], nG: 0, Y1: 0, nu1: 0, fu2: 0 };
+}
+
+function Tat(sim, t) {
+  var s = sim.schedule;
+  if (t <= s.hold1) return s.Thi;
+  if (t <= s.hold1 + s.q1) { var f1 = (t - s.hold1) / s.q1; return s.Thi * Math.pow(s.Tmid / s.Thi, f1); }
+  if (t <= s.hold1 + s.q1 + s.q2) { var f2 = (t - s.hold1 - s.q1) / s.q2; return s.Tmid * Math.pow(s.Tlo / s.Tmid, f2); }
+  return s.Tlo;
+}
+
+var SUBSTEPS = 8;
+function stepOnce() {
+  var T = Tat(sim, sim.t);
+  S63.baoabStep(sim.sys, sim.params, T, S63.computeForcesTorques, sim.Q, { rng: noiseRng });
+  sim.t += sim.params.dt;
+}
+
+var lastAnalysis = -999;
+function analyze() {
+  var sys = sim.sys;
+  var be = S63D.bondEdges(sys, { rb: 1.35, gb: 0.5 });
+  var levels = S63D.recursionLevels(sys.N, be.edges, { ell: 3, maxLevels: 4 });
+  sim.levels = levels;
+  var u1 = levels[1] ? levels[1].units.filter(function (u) { return u.length >= 2; }) : [];
+  var sizeHist = {};
+  u1.forEach(function (u) { sizeHist[u.length] = (sizeHist[u.length] || 0) + 1; });
+  var n1star = 0, best = -1;
+  Object.keys(sizeHist).forEach(function (k) { if (sizeHist[k] > best) { best = sizeHist[k]; n1star = Number(k); } });
+  var Y1 = u1.filter(function (u) { return u.length === n1star; }).reduce(function (s, u) { return s + u.length; }, 0) / sys.N;
+  var nG = levels.length - 1;
+  var u2 = levels[2] ? levels[2].units.filter(function (u) { return u.length >= 6; }) : [];
+  var fU2 = u2.reduce(function (s, u) { return s + u.length; }, 0) / sys.N;
+
+  sim.u1Membership = new Int32Array(sys.N).fill(-1);
+  u1.forEach(function (u, idx) { u.forEach(function (p) { sim.u1Membership[p] = idx; }); });
+  sim.u2Membership = {};
+  u2.forEach(function (u) { u.forEach(function (p) { sim.u2Membership[p] = true; }); });
+
+  var k = S63.kineticEnergyBoth(sys);
+  var f = sys._f || S63.computeForcesTorques(sys, sim.params);
+  var E = k.Kt + k.Kr + f.U, R = E - sim.E0 - sim.Q.sum;
+
+  $('nG').textContent = nG; $('y1').textContent = Y1.toFixed(2); $('nu1').textContent = u1.length;
+  $('fu2').textContent = fU2.toFixed(2); $('ledger').textContent = R.toExponential(2);
+  $('t').textContent = sim.t.toFixed(1); $('temp').textContent = Tat(sim, sim.t).toFixed(3);
+  $('phase').textContent = sim.t < sim.schedule.hold1 ? '高温保持' : (sim.t < sim.schedule.hold1 + sim.schedule.q1 + sim.schedule.q2 ? '徐冷' : '低温保持');
+  sim.history.push(Tat(sim, sim.t));
+  if (sim.history.length > 600) sim.history.shift();
+}
+
+function hueForUnit(id) { return (id * 137.508) % 360; }
+
+function draw() {
+  var sys = sim.sys, L = sys.L, W = canvas.width, scale = W / L;
+  ctx.clearRect(0, 0, W, W);
+  for (var i = 0; i < sys.N; i++) {
+    var px = sys.x[i] * scale, py = sys.y[i] * scale;
+    var uid = sim.u1Membership ? sim.u1Membership[i] : -1;
+    var color = uid >= 0 ? 'hsl(' + hueForUnit(uid) + ',70%,55%)' : '#555';
+    ctx.beginPath(); ctx.arc(px, py, Math.max(1.8, scale * 0.48), 0, 7);
+    ctx.fillStyle = color; ctx.fill();
+    if (sim.u2Membership && sim.u2Membership[i]) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke(); }
+    // パッチの向き（A=赤の短い線、B=反対側の青い点）
+    var ax = Math.cos(sys.phi[i]), ay = Math.sin(sys.phi[i]);
+    var r = Math.max(1.8, scale * 0.48);
+    ctx.strokeStyle = '#f87171'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + ax * r, py + ay * r); ctx.stroke();
+    ctx.fillStyle = '#60a5fa';
+    ctx.beginPath(); ctx.arc(px - ax * r, py - ay * r, 1.2, 0, 7); ctx.fill();
+  }
+}
+
+function drawT() {
+  var W = tCanvas.width, H = tCanvas.height;
+  tctx.clearRect(0, 0, W, H);
+  var hist = sim.history;
+  if (hist.length < 2) return;
+  tctx.strokeStyle = '#fbbf24'; tctx.beginPath();
+  for (var i = 0; i < hist.length; i++) {
+    var x = (i / (hist.length - 1)) * W, y = H - (hist[i] / 2.5) * (H - 8) - 4;
+    if (i === 0) tctx.moveTo(x, y); else tctx.lineTo(x, y);
+  }
+  tctx.stroke();
+}
+
+var frame = 0;
+function loop() {
+  if (running) {
+    for (var s = 0; s < SUBSTEPS; s++) stepOnce();
+    frame++;
+    if (frame % 6 === 0) { analyze(); drawT(); }
+    draw();
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function reset() { sim = buildSim(); analyze(); draw(); drawT(); }
+$('reset').addEventListener('click', reset);
+$('run').addEventListener('click', function () { running = !running; $('run').textContent = running ? '止める' : '開始'; });
+$('n').addEventListener('input', function () { $('nV').textContent = $('n').value; });
+
+reset();
+
+Harness.mount({
+  id: 'S-63', version: '1.0.0',
+  inputs: ['rr', 'cross', 'n', 'speed', 'seed'],
+  canvases: ['particleCanvas', 'tCanvas'],
+  onRestore: function () { reset(); },
+  pause: function () { running = false; $('run').textContent = '開始'; },
+  paramNames: {
+    rr: { category: 'p', code: 'rr', full: 'strength_ratio' },
+    cross: { category: 'p', code: 'x', full: 'cross_coupling' },
+    n: { category: 's', code: 'n', full: 'n_particles' },
+    speed: { category: 's', code: 'sp', full: 'cooling_speed' },
+    seed: { category: 's', code: 'seed', full: 'seed' },
+  },
+});
+</script>

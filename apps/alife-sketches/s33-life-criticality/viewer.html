@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-33 ライフゲームは臨界か — 雪崩が広がるのと、分布が積み上がるのを同時に見る</title>
+<style>
+  :root{ --bg:#0c0f14; --panel:#151a22; --line:#262d39; --fg:#d8dee9; --dim:#78829a;
+         --hot:#ff7a45; --act:#ffffff; --one:#3d6ea8; --fit:#c084fc; --good:#4ade80; --warn:#fbbf24; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1100px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:10px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070b;border:1px solid var(--line);border-radius:4px;
+         max-width:100%;height:auto;image-rendering:pixelated}
+  aside{width:330px;min-width:290px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:11px 12px;margin-bottom:11px}
+  .box h2{margin:0 0 8px;font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.07em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:108px;color:var(--dim);flex:none}
+  select,input[type=number]{background:#0a0d13;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  input[type=range]{flex:1;min-width:0}
+  button{background:#1d2430;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#27303e}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #1d2430}
+  table.stat td.k{color:var(--dim);width:52%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:10ch}
+  .banner{margin-top:8px;padding:7px 9px;border-radius:4px;font-size:12px;
+          border:1px solid var(--line);background:#10141b;color:var(--dim)}
+  .banner.pl{border-color:var(--good);background:#0f1f18;color:#c5f3d8}
+  .banner.no{border-color:var(--hot);background:#211410;color:#ffd6c7}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;color:var(--dim);font-size:11px;margin-top:4px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .cap{color:var(--dim);font-size:11px;margin:0 0 2px}
+  .note{color:var(--dim);font-size:11px;margin-top:7px}
+  code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#a5b4fc}
+  b.hi{color:#fff}
+  @media(max-width:860px){aside{width:auto;min-width:0}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-33 ライフゲームは臨界か（自己組織化臨界の論争）</h1>
+  <p>格子を静止するまで走らせ、<b class="hi">1 点だけ値を反転</b>して、活動が止まるまでの変化の回数（雪崩）を数える。
+     Bak–Chen–Creutz (1989) はこれが冪則に従うと言い、Bennett–Bourzutschky (1991) は否定した。
+     <b class="hi">「冪則か」の判定は x<sub>min</sub>・当てはめ法・打ち切り・ビン幅という観測器の自由度の塊</b>である——
+     ここではそれを1つずつ回して、同じ走行から違う答えが出るのを見る。<b class="hi">「広さ」は格子の一辺 L で、それが打ち切りそのもの</b>。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <p class="cap" id="cap1">格子。<span style="color:#3d6ea8">青</span>が値 1、<span style="color:#fff">白</span>がこの歩で変わった点、<span style="color:var(--hot)">橙</span>が基準とまだ食い違っている点</p>
+    <canvas id="field" width="420" height="420"></canvas>
+    <div class="legend">
+      <span><span class="sw" style="background:#3d6ea8"></span>値 1</span>
+      <span><span class="sw" style="background:#fff"></span>この歩で変わった</span>
+      <span><span class="sw" style="background:#ff7a45"></span>基準と食い違い</span>
+    </div>
+    <div class="banner" id="phase">「静止させる」を押すと始まる</div>
+  </div>
+
+  <div class="col">
+    <p class="cap">積み上がる分布（両対数の CCDF）。<span style="color:var(--fit)">紫</span>が当てはめた冪則、縦の破線が x<sub>min</sub></p>
+    <canvas id="dist" width="400" height="300"></canvas>
+    <p class="cap">1 雪崩ごとの大きさ（直近 200 本）。<span style="color:var(--warn)">黄</span>は上限で切られた雪崩</p>
+    <canvas id="series" width="400" height="130"></canvas>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>系</h2>
+      <label><span class="k">規則</span>
+        <select id="rule">
+          <option value="life">B3/S23（ライフ）</option>
+          <option value="highlife">B36/S23（HighLife）</option>
+          <option value="nc2">B3/S012345678（1 が戻らない）</option>
+          <option value="nc3">B/S23（新しい 1 が生まれない）</option>
+        </select></label>
+      <label><span class="k">境界</span>
+        <select id="bnd"><option value="free">free（外は 0）</option><option value="torus">torus（輪状）</option></select></label>
+      <label><span class="k">格子の一辺 L</span><output class="num" id="sideOut" style="min-width:5ch">128</output></label>
+      <div class="row">
+        <button class="primary" id="go">静止させる</button>
+        <button id="run">走らせる</button>
+        <button id="one">1 雪崩</button>
+      </div>
+      <label><span class="k">速さ</span><input type="range" id="speed" min="1" max="400" value="40"><output class="num" id="speedOut" style="min-width:4ch">40</output></label>
+    </div>
+
+    <div class="box">
+      <h2>観測器のノブ</h2>
+      <label><span class="k">秩序変数</span>
+        <select id="sizevar">
+          <option value="sAct">sAct 活動の超過（主）</option>
+          <option value="tAct">tAct 寿命</option>
+          <option value="sDmg">sDmg 食い違いの時空体積</option>
+          <option value="extAct">extAct 活動の広がり</option>
+        </select></label>
+      <label><span class="k">x_min</span>
+        <select id="xmin"><option value="ks">KS 距離が最小</option><option value="1">1 に固定</option><option value="2">2</option><option value="4">4</option><option value="16">16</option><option value="64">64</option></select></label>
+      <label><span class="k">当てはめ法</span>
+        <select id="method"><option value="mle">最尤（離散）</option><option value="logbin12">対数ビン ×1.2</option><option value="logbin15">対数ビン ×1.5</option><option value="logbin20">対数ビン ×2.0</option><option value="ccdf">CCDF の最小二乗</option><option value="approx">近似式（x_min≳6 で有効）</option></select></label>
+      <label><span class="k">上限（歩）</span>
+        <select id="cap"><option value="4096">4096</option><option value="512">512</option><option value="128">128</option></select></label>
+      <label><span class="k">母集団</span>
+        <select id="pop"><option value="P1">P1 sAct≥1 の全部</option><option value="P2">P2 即死を除く</option><option value="P3">P3 切られていないもの</option><option value="P4">P4 0→1 の摂動だけ</option><option value="P5">P5 1→0 の摂動だけ</option></select></label>
+      <p class="note">ノブを変えると<b class="hi">同じ走行のまま</b>当てはめ直す。系は動かない。</p>
+    </div>
+
+    <div class="box">
+      <h2>いま出ている答え</h2>
+      <table class="stat">
+        <tr><td class="k">雪崩の本数</td><td class="v" id="nAval">0</td></tr>
+        <tr><td class="k">母集団の大きさ</td><td class="v" id="nPop">0</td></tr>
+        <tr><td class="k">x̂_min</td><td class="v" id="oXmin">–</td></tr>
+        <tr><td class="k">裾の点の数</td><td class="v" id="oNtail">–</td></tr>
+        <tr><td class="k">指数 α̂</td><td class="v" id="oAlpha">–</td></tr>
+        <tr><td class="k">KS 距離 D</td><td class="v" id="oD">–</td></tr>
+        <tr><td class="k">上限で切られた数</td><td class="v" id="oCut">0</td></tr>
+        <tr><td class="k">切られた側の中央値</td><td class="v" id="oCutMed">–</td></tr>
+        <tr><td class="k">残った側の中央値</td><td class="v" id="oKeepMed">–</td></tr>
+        <tr><td class="k">sAct ≤ 0 で落ちた数</td><td class="v" id="oDrop">0</td></tr>
+      </table>
+      <div class="banner" id="verdict">まだ判定していない</div>
+      <p class="note">判定は <code>n_tail ≥ 1000</code> かつ <code>p_gof ≥ 0.10</code> かつ対立分布に負けないこと（Clauset ら 2009）。
+        p 値はブートストラップが要るので、この画面では <b class="hi">n_tail と α̂ と D まで</b>を出す。</p>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="stats.js"></script>
+<script>
+(function () {
+  'use strict';
+  var S = window.S33, T = window.S33stats;
+  var $ = function (id) { return document.getElementById(id); };
+
+  var RULES = {
+    life: S.makeTable([2, 3], [3]),
+    highlife: S.makeTable([2, 3], [3, 6]),
+    nc2: S.makeTable([0, 1, 2, 3, 4, 5, 6, 7, 8], [3]),
+    nc3: S.makeTable([2, 3], [])
+  };
+  var WINDOW = 64;
+
+  var st = {
+    side: 128, wrap: false, table: RULES.life,
+    nbr: null, keys: null, rnd: null, stepper: null,
+    phase: 'idle', relaxLeft: 0, cyc: null,
+    // 雪崩の状態
+    pert: null, mark: null, seenD: null, seenA: null, ref: null,
+    t: 0, actTotal: 0, refTotal: 0, sDmg: 0, dmg: 0, extA: 0, extD: 0,
+    rec: null, fx: 0, fy: 0, site: 0, startVal: 0, cap: 4096,
+    lastChanged: [],
+    records: [], running: true, fitCache: null, dirty: true
+  };
+
+  var fieldC = $('field'), fctx = fieldC.getContext('2d');
+  var distC = $('dist'), dctx = distC.getContext('2d');
+  var serC = $('series'), sctx = serC.getContext('2d');
+  var img = null;
+
+  function setSide(n) {
+    st.side = n;
+    $('sideOut').textContent = n;
+    var px = Math.max(1, Math.floor(420 / n));
+    fieldC.width = n * px; fieldC.height = n * px;
+    st.px = px;
+    img = fctx.createImageData(fieldC.width, fieldC.height);
+    reset();
+  }
+
+  function reset() {
+    st.nbr = S.neighbours(st.side, st.wrap);
+    st.keys = S.zobrist(st.side * st.side, S.rng(1234567 + st.side));
+    st.rnd = S.rng(20260913 + st.side + (st.wrap ? 5000 : 0));
+    st.stepper = new S.Stepper(st.side, st.table, st.nbr);
+    st.stepper.reset(S.randomField(st.side, 0.5, st.rnd));
+    st.relaxLeft = 64 * st.side;
+    st.phase = 'relax';
+    st.cyc = null; st.records = []; st.fitCache = null; st.dirty = true;
+    st.lastChanged = [];
+    draw();
+    $('phase').textContent = '静止させている… 残り ' + st.relaxLeft + ' 歩';
+    $('phase').className = 'banner';
+  }
+
+  function startAvalanche() {
+    var n = st.side * st.side;
+    st.site = (st.rnd() * n) | 0;
+    st.startVal = st.cyc.start[st.site];
+    st.pert = new S.Stepper(st.side, st.table, st.nbr);
+    var f = new Uint8Array(st.cyc.start); f[st.site] ^= 1;
+    st.pert.reset(f);
+    st.mark = new Uint8Array(n); st.mark[st.site] = 1;
+    st.seenD = new Uint8Array(n); st.seenD[st.site] = 1;
+    st.seenA = new Uint8Array(n); st.seenA[st.site] = 1;
+    st.dmg = 1; st.extD = 1; st.extA = 1;
+    st.t = 0; st.actTotal = 0; st.refTotal = 0; st.sDmg = 1;
+    st.rec = new S.Recurrence(WINDOW);
+    var fp = S.fingerprint(f, st.keys);
+    st.fx = fp[0]; st.fy = fp[1];
+    st.rec.push(st.fx, st.fy, 0);
+    st.lastChanged = [st.site];
+    st.phase = 'aval';
+  }
+
+  /** 雪崩を 1 歩進める。終わったら記録して次へ。 */
+  function stepAvalanche() {
+    var cyc = st.cyc, p = cyc.period, k, c;
+    if (st.t + 1 >= st.cap) { finish(1, 0); return; }
+    var nl = st.pert.step();
+    st.actTotal += nl;
+    var touched = [];
+    for (k = 0; k < nl; k++) {
+      c = st.pert.changed[k];
+      st.fx ^= st.keys.a[c]; st.fy ^= st.keys.b[c];
+      if (!st.seenA[c]) { st.seenA[c] = 1; st.extA++; }
+      if (st.mark[c]) { st.mark[c] = 0; st.dmg--; } else { st.mark[c] = 1; st.dmg++; }
+      touched.push(c);
+    }
+    var ph = cyc.phases[st.t % p];
+    st.refTotal += ph.length;
+    for (k = 0; k < ph.length; k++) {
+      c = ph[k];
+      if (st.mark[c]) { st.mark[c] = 0; st.dmg--; } else { st.mark[c] = 1; st.dmg++; }
+      touched.push(c);
+    }
+    for (k = 0; k < touched.length; k++) { c = touched[k]; if (st.mark[c] && !st.seenD[c]) { st.seenD[c] = 1; st.extD++; } }
+    st.lastChanged = [];
+    for (k = 0; k < nl; k++) st.lastChanged.push(st.pert.changed[k]);
+    st.t++;
+    st.sDmg += st.dmg;
+    var pr = st.rec.push(st.fx, st.fy, st.t);
+    if (pr) finish(0, pr);
+  }
+
+  function finish(cut, period) {
+    var tDetect = st.t;
+    st.records.push({
+      sAct: st.actTotal - st.refTotal, tAct: tDetect - period, sDmg: st.sDmg,
+      extAct: st.extA, extDmg: st.extD, cut: cut, v: st.startVal
+    });
+    st.dirty = true;
+    startAvalanche();
+  }
+
+  // ------------------------------------------------------------- 当てはめ
+  var POPS = {
+    P1: function (r) { return r.sAct >= 1; },
+    P2: function (r) { return r.sAct >= 1 && r.tAct > 1; },
+    P3: function (r) { return r.sAct >= 1 && !r.cut; },
+    P4: function (r) { return r.sAct >= 1 && r.v === 0; },
+    P5: function (r) { return r.sAct >= 1 && r.v === 1; }
+  };
+
+  function refit() {
+    var sv = $('sizevar').value, pk = $('pop').value, xm = $('xmin').value;
+    var pop = st.records.filter(POPS[pk]);
+    var vals = pop.map(function (r) { return r[sv]; }).filter(function (v) { return v >= 1; });
+    var res = null;
+    if (vals.length >= 40) {
+      res = T.analyse(vals, { xminMode: xm === 'ks' ? 'ks' : parseInt(xm, 10), full: false, minTail: 20 });
+    }
+    st.fitCache = { res: res, vals: vals, nPop: pop.length };
+    st.dirty = false;
+    return st.fitCache;
+  }
+
+  // ------------------------------------------------------------- 描画
+  function draw() {
+    var n = st.side, px = st.px, W = fieldC.width, d = img.data;
+    var f = st.phase === 'aval' && st.pert ? st.pert.field : st.stepper.field;
+    var mark = st.phase === 'aval' ? st.mark : null;
+    var chSet = null;
+    if (st.lastChanged && st.lastChanged.length && st.lastChanged.length < 40000) {
+      chSet = {};
+      for (var q = 0; q < st.lastChanged.length; q++) chSet[st.lastChanged[q]] = 1;
+    }
+    for (var y = 0; y < n; y++) {
+      for (var x = 0; x < n; x++) {
+        var i = y * n + x, r = 5, g = 7, b = 11;
+        if (f[i]) { r = 61; g = 110; b = 168; }
+        if (chSet && chSet[i]) { r = 255; g = 255; b = 255; }
+        if (mark && mark[i]) { r = 255; g = 122; b = 69; }
+        for (var dy = 0; dy < px; dy++) {
+          var base = ((y * px + dy) * W + x * px) * 4;
+          for (var dx = 0; dx < px; dx++) {
+            d[base] = r; d[base + 1] = g; d[base + 2] = b; d[base + 3] = 255;
+            base += 4;
+          }
+        }
+      }
+    }
+    fctx.putImageData(img, 0, 0);
+  }
+
+  function drawDist() {
+    var W = distC.width, H = distC.height;
+    dctx.clearRect(0, 0, W, H);
+    dctx.fillStyle = '#05070b'; dctx.fillRect(0, 0, W, H);
+    var fc = st.dirty ? refit() : st.fitCache;
+    if (!fc || !fc.vals.length) { label(dctx, '雪崩を溜めている…', 12, 20); return; }
+    var vals = fc.vals.slice().sort(function (a, b) { return a - b; });
+    var maxV = vals[vals.length - 1], nV = vals.length;
+    var lx0 = 0, lx1 = Math.log10(Math.max(10, maxV));
+    var ly0 = Math.log10(1 / nV) - 0.2, ly1 = 0;
+    var m = { l: 44, r: 8, t: 10, b: 26 };
+    function X(v) { return m.l + (Math.log10(Math.max(1, v)) - lx0) / (lx1 - lx0) * (W - m.l - m.r); }
+    function Y(v) { return m.t + (1 - (Math.log10(v) - ly0) / (ly1 - ly0)) * (H - m.t - m.b); }
+    // 目盛り
+    dctx.strokeStyle = '#1c2330'; dctx.lineWidth = 1; dctx.fillStyle = '#78829a'; dctx.font = '10px ui-monospace,monospace';
+    for (var e = 0; e <= Math.ceil(lx1); e++) {
+      var xx = X(Math.pow(10, e));
+      dctx.beginPath(); dctx.moveTo(xx, m.t); dctx.lineTo(xx, H - m.b); dctx.stroke();
+      dctx.fillText('1e' + e, xx - 8, H - m.b + 13);
+    }
+    for (var q = Math.ceil(ly0); q <= 0; q++) {
+      var yy = Y(Math.pow(10, q));
+      dctx.beginPath(); dctx.moveTo(m.l, yy); dctx.lineTo(W - m.r, yy); dctx.stroke();
+      dctx.fillText('1e' + q, 4, yy + 3);
+    }
+    // CCDF
+    dctx.strokeStyle = '#7fb3ff'; dctx.lineWidth = 1.6; dctx.beginPath();
+    var started = false, i = 0;
+    while (i < nV) {
+      var v = vals[i], j = i;
+      while (j < nV && vals[j] === v) j++;
+      var cc = (nV - i) / nV;
+      var px2 = X(v), py2 = Y(cc);
+      if (!started) { dctx.moveTo(px2, py2); started = true; } else dctx.lineTo(px2, py2);
+      i = j;
+    }
+    dctx.stroke();
+    // 当てはめた冪則
+    var res = fc.res;
+    if (res && res.xmin && isFinite(res.alpha)) {
+      var method = $('method').value;
+      var a = method === 'mle' ? res.alpha : (res.alphaByMethod && res.alphaByMethod[method]);
+      if (a && isFinite(a)) {
+        var xs = res.xmin, frac = res.ntail / nV;
+        dctx.strokeStyle = '#c084fc'; dctx.lineWidth = 1.6; dctx.setLineDash([]);
+        dctx.beginPath();
+        for (var s = 0; s <= 40; s++) {
+          var lv = Math.log10(xs) + (lx1 - Math.log10(xs)) * s / 40;
+          var vv = Math.pow(10, lv);
+          var cy = frac * Math.pow(vv / xs, -(a - 1));
+          if (cy < Math.pow(10, ly0)) break;
+          var xp = X(vv), yp = Y(cy);
+          if (s === 0) dctx.moveTo(xp, yp); else dctx.lineTo(xp, yp);
+        }
+        dctx.stroke();
+        dctx.strokeStyle = '#c084fc'; dctx.setLineDash([3, 3]); dctx.lineWidth = 1;
+        dctx.beginPath(); dctx.moveTo(X(xs), m.t); dctx.lineTo(X(xs), H - m.b); dctx.stroke();
+        dctx.setLineDash([]);
+      }
+    }
+  }
+
+  function drawSeries() {
+    var W = serC.width, H = serC.height;
+    sctx.clearRect(0, 0, W, H); sctx.fillStyle = '#05070b'; sctx.fillRect(0, 0, W, H);
+    var recs = st.records.slice(-200);
+    if (!recs.length) return;
+    var sv = $('sizevar').value;
+    var mx = 1;
+    recs.forEach(function (r) { if (r[sv] > mx) mx = r[sv]; });
+    var lm = Math.log10(Math.max(10, mx));
+    for (var i = 0; i < recs.length; i++) {
+      var v = Math.max(1, recs[i][sv]);
+      var h = (Math.log10(v) / lm) * (H - 10);
+      sctx.fillStyle = recs[i].cut ? '#fbbf24' : '#5b8fd4';
+      sctx.fillRect(i * (W / 200), H - h, Math.max(1, W / 200 - 0.5), h);
+    }
+    sctx.fillStyle = '#78829a'; sctx.font = '10px ui-monospace,monospace';
+    sctx.fillText('最大 ' + mx, 4, 11);
+  }
+
+  function label(ctx, s, x, y) { ctx.fillStyle = '#78829a'; ctx.font = '12px sans-serif'; ctx.fillText(s, x, y); }
+
+  function median(v) { if (!v.length) return null; var s = v.slice().sort(function (a, b) { return a - b; }); return s[(s.length / 2) | 0]; }
+
+  function updatePanel() {
+    var fc = st.dirty ? refit() : st.fitCache;
+    $('nAval').textContent = st.records.length;
+    $('nPop').textContent = fc ? fc.nPop : 0;
+    var sv = $('sizevar').value;
+    var cut = st.records.filter(function (r) { return r.cut; });
+    var keep = st.records.filter(function (r) { return !r.cut && r.sAct >= 1; });
+    $('oCut').textContent = cut.length;
+    $('oCutMed').textContent = cut.length ? median(cut.map(function (r) { return r[sv]; })) : '–';
+    $('oKeepMed').textContent = keep.length ? median(keep.map(function (r) { return r[sv]; })) : '–';
+    $('oDrop').textContent = st.records.filter(function (r) { return r.sAct <= 0; }).length;
+    var res = fc && fc.res;
+    var method = $('method').value;
+    var a = res ? (method === 'mle' ? res.alpha : (res.alphaByMethod && res.alphaByMethod[method])) : null;
+    $('oXmin').textContent = res && res.xmin !== undefined ? res.xmin : '–';
+    $('oNtail').textContent = res && res.ntail !== undefined ? res.ntail : '–';
+    $('oAlpha').textContent = (a && isFinite(a)) ? a.toFixed(3) : '–';
+    $('oD').textContent = res && res.D !== undefined ? res.D.toFixed(4) : '–';
+    var vb = $('verdict');
+    if (!res || res.ntail === undefined) { vb.textContent = 'まだ判定していない'; vb.className = 'banner'; }
+    else if (res.ntail < 1000) {
+      vb.textContent = '裾が ' + res.ntail + ' 点しかない → 登録した規則では insufficient-tail（借り物の定数 n_tail ≥ 1000 が効いている）';
+      vb.className = 'banner no';
+    } else {
+      vb.textContent = '裾は ' + res.ntail + ' 点。形の検定（p 値）はブートストラップが要るのでここでは出さない';
+      vb.className = 'banner pl';
+    }
+  }
+
+  // ------------------------------------------------------------- ループ
+  var frame = 0;
+  function tick() {
+    var speed = parseInt($('speed').value, 10);
+    if (st.phase === 'relax') {
+      var chunk = Math.min(st.relaxLeft, Math.max(600, speed * 24));
+      for (var i = 0; i < chunk; i++) st.stepper.step();
+      st.relaxLeft -= chunk;
+      st.lastChanged = [];
+      for (var k = 0; k < st.stepper.changedLen && k < 40000; k++) st.lastChanged.push(st.stepper.changed[k]);
+      $('phase').textContent = '静止させている… 残り ' + st.relaxLeft + ' 歩';
+      if (st.relaxLeft <= 0) {
+        st.cyc = S.cycleOf(st.side, st.table, st.nbr, st.stepper.field, st.keys, WINDOW);
+        if (!st.cyc.period) {
+          $('phase').textContent = '周期 ≤ ' + WINDOW + ' の輪に入らなかった（滑空する構造が残っている）。もう一度「静止させる」を押す';
+          st.phase = 'idle';
+        } else {
+          $('phase').textContent = '静止した（周期 ' + st.cyc.period + '・値 1 の数 ' + st.cyc.ones + '）。1 点を反転して雪崩を測る';
+          $('phase').className = 'banner pl';
+          startAvalanche();
+        }
+      }
+      draw();
+    } else if (st.phase === 'aval' && (st.running || st.oneShot)) {
+      var per = Math.max(speed, 60);
+      for (var s = 0; s < per; s++) {
+        var before = st.records.length;
+        stepAvalanche();
+        if (st.oneShot && st.records.length > before) { st.oneShot = false; break; }
+      }
+      draw();
+    }
+    if (++frame % 6 === 0) { drawDist(); drawSeries(); updatePanel(); }
+    requestAnimationFrame(tick);
+  }
+
+  // ------------------------------------------------------------- UI
+  $('go').onclick = function () { st.table = RULES[$('rule').value]; st.wrap = $('bnd').value === 'torus'; reset(); };
+  $('run').onclick = function () {
+    if (!st.cyc) return;
+    st.running = !st.running;
+    if (st.running && st.phase !== 'aval') startAvalanche();
+    $('run').textContent = st.running ? '止める' : '走らせる';
+  };
+  $('one').onclick = function () { if (!st.cyc) return; if (st.phase !== 'aval') startAvalanche(); st.oneShot = true; };
+  $('speed').oninput = function () { $('speedOut').textContent = this.value; };
+  $('cap').onchange = function () { st.cap = parseInt(this.value, 10); };
+  ['sizevar', 'xmin', 'method', 'pop'].forEach(function (id) { $(id).onchange = function () { st.dirty = true; }; });
+
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (st.running) document.getElementById('run').click(); },
+    id: 'S-33', version: '1.0.0',
+    inputs: ['rule', 'bnd', 'speed', 'sizevar', 'xmin', 'method', 'cap', 'pop'],
+    // sizevar/xmin/method/pop はべき乗則の当てはめ・母集団の取り方（統計解析の作法）であって
+    // セル系の力学そのものではないため s にした。bnd（境界条件）は力学に寄ると見て p にした。
+    // cap は世界の一辺 L と同じ「打ち切り」の役割なので s にした（判断に迷った点として報告済み）
+    paramNames: {
+      rule: { category: 'p', code: 'rule', full: 'ca_rule' },
+      bnd: { category: 'p', code: 'bnd', full: 'boundary' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+      sizevar: { category: 's', code: 'sizevar', full: 'order_variable' },
+      xmin: { category: 's', code: 'xmin', full: 'xmin' },
+      method: { category: 's', code: 'method', full: 'fit_method' },
+      cap: { category: 's', code: 'cap', full: 'step_cap' },
+      pop: { category: 's', code: 'pop', full: 'population_filter' },
+    },
+    canvases: ['field', 'dist', 'series'],
+    // 「広さ」は格子の一辺。**この系ではそれが打ち切りそのもの**（雪崩は格子より大きくなれない）
+    resize: function (scale) { setSide(Math.max(24, Math.round(128 * scale))); }
+  });
+
+  setSide(128);
+  $('run').textContent = st.running ? '止める' : '走らせる';
+  $('speedOut').textContent = $('speed').value;
+  tick();
+})();
+</script>
+</body>
+</html>

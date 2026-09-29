@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-19 資源の分布が偏りを生む — 格子とローレンツ曲線</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; padding: 14px 16px 40px; font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+         background: #14161a; color: #e6e8ec; }
+  h1 { font-size: 16px; margin: 0 0 2px; }
+  .sub { color: #9aa3b2; font-size: 12px; margin: 0 0 12px; }
+  .wrap { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+  .panel { background: #1c1f26; border: 1px solid #2b3039; border-radius: 8px; padding: 10px 12px; }
+  .panel h2 { font-size: 12px; margin: 0 0 8px; color: #9aa3b2; font-weight: 600; letter-spacing: .04em; }
+  canvas { display: block; background: #0e1014; border-radius: 4px; }
+  label { display: block; margin: 7px 0 2px; color: #9aa3b2; font-size: 11px; }
+  input[type=range] { width: 190px; vertical-align: middle; }
+  select, button { background: #262b34; color: #e6e8ec; border: 1px solid #39404c; border-radius: 5px;
+                   padding: 4px 8px; font: inherit; }
+  button { cursor: pointer; }
+  button:hover { background: #313846; }
+  .val { color: #e6e8ec; font-variant-numeric: tabular-nums; }
+  table { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums;
+          table-layout: fixed; width: 100%; }
+  #measures th:first-child, #measures td.name { width: 44%; }
+  th, td { padding: 2px 8px 2px 0; text-align: right; }
+  th { color: #9aa3b2; font-weight: 500; text-align: right; }
+  td.name { text-align: left; color: #c7cdd8; }
+  .hi { color: #ffb454; }
+  .lo { color: #6fcf97; }
+  .note { color: #7f8896; font-size: 11px; max-width: 620px; margin-top: 10px; line-height: 1.6; }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+</style>
+</head>
+<body>
+<h1>S-19 資源の分布が偏りを生む（Sugarscape 風）</h1>
+<p class="sub">格子・資源・行為者・保有量だけの規則から、保有量の分布が動く。
+右のローレンツ曲線と Gini が時間とともに動くのを並べて見る。
+<b>「誰を数えるか」のつまみ</b>を動かすと同じ1本の走行で答えが変わる。</p>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>格子（明るいほど資源が多い・丸が行為者）</h2>
+    <canvas id="grid" width="440" height="440"></canvas>
+    <div class="row" style="margin-top:8px">
+      <button id="play">▶ 進める</button>
+      <button id="step1">+1 歩</button>
+      <button id="step50">+50 歩</button>
+      <button id="reset">最初から</button>
+      <span class="val">t = <span id="clock" class="num" style="min-width:4ch">0</span>　場にいる行為者 <span id="present" class="num" style="min-width:4ch">—</span></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>ローレンツ曲線 L(p)（対角線が完全均等・灰色が i.i.d. 一様配分の帯）</h2>
+    <canvas id="lorenz" width="330" height="330"></canvas>
+    <div class="row" style="margin-top:6px">
+      <span class="val">Gini = <b id="giniNow" class="num" style="min-width:6ch">—</b></span>
+      <span class="val">人数 n = <b id="nNow" class="num" style="min-width:4ch">—</b></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>時間とともに動く偏り</h2>
+    <canvas id="series" width="330" height="150"></canvas>
+    <div style="font-size:11px;color:#7f8896;margin-top:4px">
+      <span style="color:#ffb454">■</span> Gini　
+      <span style="color:#61afef">■</span> 上位10%占有率　
+      <span style="color:#c678dd">■</span> 上位1%占有率　
+      <span style="color:#555b66">—</span> i.i.d. 一様配分の Gini
+    </div>
+    <h2 style="margin-top:14px">族の 10 指標（超過比 E = 実測 / ランダム配分）</h2>
+    <table id="measures"><tbody></tbody></table>
+  </div>
+
+  <div class="panel">
+    <h2>制御変数（系のつまみ）</h2>
+    <label>資源の再生速度 α = <span class="val num" id="vAlpha" style="min-width:5ch;text-align:left">1</span></label>
+    <input type="range" id="alpha" min="0" max="5" step="1" value="3">
+    <label>視界の上限 = <span class="val num" id="vRange" style="min-width:3ch;text-align:left">6</span></label>
+    <input type="range" id="rangeMax" min="1" max="12" step="1" value="6">
+    <label>地形</label>
+    <select id="terrain">
+      <option value="peaks">2つの山（原典の形）</option>
+      <option value="flat-total">一様（総容量を固定）</option>
+      <option value="flat-peak">一様（最大容量を固定）</option>
+    </select>
+    <label>移動</label>
+    <select id="motion">
+      <option value="seek">最も多い資源へ向かう</option>
+      <option value="blind">視界内を乱択</option>
+      <option value="still">動かない</option>
+    </select>
+    <label>個体差</label>
+    <select id="hetero">
+      <option value="on">視界・代謝・初期保有量に個体差あり</option>
+      <option value="off">全員同じ</option>
+    </select>
+    <label>補充</label>
+    <select id="replacement">
+      <option value="off">取り除かれたら補充しない</option>
+      <option value="on">取り除かれた数だけ投入する</option>
+    </select>
+
+    <h2 style="margin-top:16px">観測器のつまみ（K-22）</h2>
+    <label>誰を数えるか</label>
+    <select id="population">
+      <option value="present">いま場にいる行為者</option>
+      <option value="ever">投入された全行為者（取り除かれたものは 0）</option>
+      <option value="aged">50 歩以上いる行為者</option>
+    </select>
+    <label>何を数えるか</label>
+    <select id="quantity">
+      <option value="store">保有量</option>
+      <option value="storePlusUnderfoot">保有量 + 足元の資源</option>
+      <option value="uptake">生涯の取得量</option>
+    </select>
+    <p class="note">この2つのつまみは<b>指標の名前を変えていない</b>。
+    それでも Gini は大きく動く。S-11 の K-22 が言う「効いているのは形の名前ではなく、何を固定するか」が
+    偏りの指標でも同じ形で出る。</p>
+  </div>
+</div>
+
+<p class="note">
+出典（アイデアのみ・コードは参照していない）: Epstein, J. M. &amp; Axtell, R. (1996)
+<i>Growing Artificial Societies: Social Science from the Bottom Up</i>, Brookings / MIT Press.
+規則は「視界内の空いている場所で最も資源の多いところへ移り、そこの資源を全部取り、代謝分を引く。払えなくなったら取り除かれる」だけ。
+</p>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="measures.js"></script>
+<script>
+(function () {
+  'use strict';
+  var ALPHAS = [0.125, 0.25, 0.5, 1, 2, 4];
+  var world = null, timer = null, history = [], refCache = {};
+  var SIZE0 = 50, COUNT0 = 250, sizeScale = 1;   // 既定は 1 倍。50x50 格子に 250 人のまま
+
+  var $ = function (id) { return document.getElementById(id); };
+  var gridC = $('grid').getContext('2d');
+  var lorC = $('lorenz').getContext('2d');
+  var serC = $('series').getContext('2d');
+
+  function config() {
+    var het = $('hetero').value === 'off';
+    return {
+      size: Math.round(SIZE0 * sizeScale),
+      terrain: $('terrain').value,
+      regrowth: ALPHAS[+$('alpha').value],
+      count: Math.round(COUNT0 * sizeScale * sizeScale),
+      rangeMin: 1,
+      rangeMax: +$('rangeMax').value,
+      identicalMovers: het,
+      identicalStore: het,
+      motion: $('motion').value,
+      replacement: $('replacement').value === 'on',
+      seed: 20260911
+    };
+  }
+
+  function reset() {
+    world = S19.makeWorld(config());
+    history = [];
+    record();
+    draw();
+  }
+
+  function reference(n) {
+    if (n < 3) return null;
+    var key = String(n);
+    if (!refCache[key]) refCache[key] = S19M.referenceTable(n, 'iid', 199, 20260911);
+    return refCache[key];
+  }
+
+  function values() { return S19.extract(world, $('population').value, $('quantity').value); }
+
+  function record() {
+    var v = values();
+    if (v.length < 3) { history.push({ t: world.time, n: v.length, gini: null, top10: null, top01: null }); return; }
+    history.push({
+      t: world.time, n: v.length,
+      gini: S19M.gini(v),
+      top10: S19M.topShare(v, 0.10),
+      top01: S19M.topShare(v, 0.01)
+    });
+    if (history.length > 2000) history.shift();
+  }
+
+  // ------------------------------------------------------------- 格子
+  function drawGrid() {
+    var size = world.size, px = 440 / size;
+    gridC.fillStyle = '#0e1014';
+    gridC.fillRect(0, 0, 440, 440);
+    var cap = world.capacity, lev = world.level, maxCap = 0, i;
+    for (i = 0; i < cap.length; i++) if (cap[i] > maxCap) maxCap = cap[i];
+    if (maxCap <= 0) maxCap = 1;
+    for (var y = 0; y < size; y++) {
+      for (var x = 0; x < size; x++) {
+        var k = y * size + x, f = lev[k] / maxCap;
+        if (f <= 0.001) { if (cap[k] > 0) { gridC.fillStyle = '#191c22'; gridC.fillRect(x * px, y * px, px, px); } continue; }
+        var g = Math.round(40 + 150 * f), b = Math.round(20 + 40 * f), r = Math.round(60 + 150 * f);
+        gridC.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+        gridC.fillRect(x * px, y * px, px, px);
+      }
+    }
+    var movers = world.movers;
+    for (i = 0; i < movers.length; i++) {
+      var m = movers[i];
+      if (m.removed) continue;
+      gridC.beginPath();
+      gridC.arc((m.x + 0.5) * px, (m.y + 0.5) * px, px * 0.34, 0, 6.2832);
+      gridC.fillStyle = '#dfe6f5';
+      gridC.fill();
+    }
+  }
+
+  // ------------------------------------------------------------- ローレンツ曲線
+  function drawLorenz() {
+    var W = 330, H = 330, pad = 26;
+    lorC.fillStyle = '#0e1014'; lorC.fillRect(0, 0, W, H);
+    var v = values();
+    $('nNow').textContent = v.length;
+    if (v.length < 3) { $('giniNow').textContent = '—'; return; }
+
+    function X(p) { return pad + p * (W - pad - 8); }
+    function Y(q) { return H - pad - q * (H - pad - 8); }
+
+    // ランダム配分の帯
+    var ref = reference(v.length);
+    if (ref) {
+      var rng = S19M.makeRng(99);
+      lorC.strokeStyle = 'rgba(140,150,170,0.20)';
+      lorC.lineWidth = 1;
+      for (var r = 0; r < 25; r++) {
+        var nv = S19M.drawIidUniform(v.length, rng);
+        var LL = S19M.lorenzAt(S19M.sortedAsc(nv), S19M.P_GRID);
+        lorC.beginPath();
+        lorC.moveTo(X(0), Y(0));
+        for (var t = 0; t < S19M.P_GRID.length; t++) lorC.lineTo(X(S19M.P_GRID[t]), Y(LL[t]));
+        lorC.lineTo(X(1), Y(1));
+        lorC.stroke();
+      }
+    }
+
+    // 対角線
+    lorC.strokeStyle = '#4a5262'; lorC.setLineDash([4, 4]); lorC.lineWidth = 1;
+    lorC.beginPath(); lorC.moveTo(X(0), Y(0)); lorC.lineTo(X(1), Y(1)); lorC.stroke();
+    lorC.setLineDash([]);
+
+    // 観測のローレンツ曲線
+    var L = S19M.lorenzAt(S19M.sortedAsc(v), S19M.P_GRID);
+    lorC.strokeStyle = '#ffb454'; lorC.lineWidth = 2.2;
+    lorC.beginPath(); lorC.moveTo(X(0), Y(0));
+    for (var i = 0; i < S19M.P_GRID.length; i++) lorC.lineTo(X(S19M.P_GRID[i]), Y(L[i]));
+    lorC.lineTo(X(1), Y(1)); lorC.stroke();
+
+    // 軸
+    lorC.strokeStyle = '#39404c'; lorC.lineWidth = 1;
+    lorC.beginPath(); lorC.moveTo(X(0), Y(0)); lorC.lineTo(X(1), Y(0)); lorC.moveTo(X(0), Y(0)); lorC.lineTo(X(0), Y(1)); lorC.stroke();
+    lorC.fillStyle = '#7f8896'; lorC.font = '10px sans-serif';
+    lorC.fillText('人数の下からの割合 p', X(0.28), H - 8);
+    lorC.save(); lorC.translate(11, Y(0.30)); lorC.rotate(-Math.PI / 2);
+    lorC.fillText('保有量の累積比 L(p)', 0, 0); lorC.restore();
+
+    $('giniNow').textContent = S19M.gini(v).toFixed(4);
+  }
+
+  // ------------------------------------------------------------- 時系列
+  function drawSeries() {
+    var W = 330, H = 150, pad = 26;
+    serC.fillStyle = '#0e1014'; serC.fillRect(0, 0, W, H);
+    if (history.length < 2) return;
+    var tmax = Math.max(50, history[history.length - 1].t);
+    function X(t) { return pad + (t / tmax) * (W - pad - 8); }
+    function Y(q) { return H - 18 - q * (H - 30); }
+
+    // ランダム配分の Gini（参照線）
+    var last = history[history.length - 1];
+    if (last.n >= 3) {
+      var yr = Y((last.n - 1) / (3 * last.n));
+      serC.strokeStyle = '#555b66'; serC.setLineDash([3, 3]);
+      serC.beginPath(); serC.moveTo(X(0), yr); serC.lineTo(X(tmax), yr); serC.stroke();
+      serC.setLineDash([]);
+    }
+
+    [['gini', '#ffb454'], ['top10', '#61afef'], ['top01', '#c678dd']].forEach(function (s) {
+      serC.strokeStyle = s[1]; serC.lineWidth = 1.6;
+      serC.beginPath();
+      var started = false;
+      for (var i = 0; i < history.length; i++) {
+        var h = history[i];
+        if (h[s[0]] === null) continue;
+        var x = X(h.t), y = Y(h[s[0]]);
+        if (!started) { serC.moveTo(x, y); started = true; } else serC.lineTo(x, y);
+      }
+      serC.stroke();
+    });
+
+    serC.strokeStyle = '#39404c'; serC.lineWidth = 1;
+    serC.beginPath(); serC.moveTo(X(0), Y(0)); serC.lineTo(X(tmax), Y(0)); serC.moveTo(X(0), Y(0)); serC.lineTo(X(0), Y(1)); serC.stroke();
+    serC.fillStyle = '#7f8896'; serC.font = '10px sans-serif';
+    serC.fillText('0', X(0) - 4, Y(0) + 12);
+    serC.fillText('t = ' + tmax, X(tmax) - 30, Y(0) + 12);
+    serC.fillText('1.0', 4, Y(1) + 4);
+  }
+
+  // ------------------------------------------------------------- 指標の表
+  var LABELS = {
+    gini: 'Gini 係数', top10: '上位10% 占有率', top01: '上位1% 占有率',
+    meanMedian: '平均 / 中央値', redundancy: '1 − エントロピー比',
+    hoover: 'Hoover', palma: 'Palma', ratio2020: '20:20 比', theil: 'Theil', cv: '変動係数'
+  };
+  function drawTable() {
+    var v = values(), body = document.querySelector('#measures tbody');
+    body.innerHTML = '';
+    if (v.length < 3) return;
+    var ref = reference(v.length);
+    var m = S19M.allMeasures(v);
+    var E = ref ? S19M.excessRatios(v, ref) : null;
+    var head = document.createElement('tr');
+    head.innerHTML = '<th style="text-align:left">指標</th><th>実測</th><th>ランダム配分</th><th>E</th>';
+    body.appendChild(head);
+    S19M.ALL_CUTS.forEach(function (k) {
+      var tr = document.createElement('tr');
+      var e = E ? E[k] : null;
+      var cls = e === null ? '' : (e > 1.05 ? 'hi' : (e < 0.95 ? 'lo' : ''));
+      tr.innerHTML = '<td class="name">' + LABELS[k] + '</td>'
+        + '<td>' + (m[k] === null ? '—' : m[k].toFixed(3)) + '</td>'
+        + '<td>' + (ref && ref.mean[k] !== null ? ref.mean[k].toFixed(3) : '—') + '</td>'
+        + '<td class="' + cls + '">' + (e === null ? '—' : e.toFixed(3)) + '</td>';
+      body.appendChild(tr);
+    });
+  }
+
+  function draw() {
+    $('clock').textContent = world.time;
+    $('present').textContent = S19.presentCount(world);
+    drawGrid(); drawLorenz(); drawSeries(); drawTable();
+  }
+
+  function advance(n) {
+    for (var i = 0; i < n; i++) { S19.step(world); if (world.time % 2 === 0) record(); }
+    record();
+    draw();
+  }
+
+  $('play').addEventListener('click', function () {
+    if (timer) { clearInterval(timer); timer = null; this.textContent = '▶ 進める'; return; }
+    this.textContent = '❚❚ 止める';
+    var btn = this;
+    timer = setInterval(function () {
+      if (world.time >= 1200) { clearInterval(timer); timer = null; btn.textContent = '▶ 進める'; return; }
+      advance(2);
+    }, 40);
+  });
+  $('step1').addEventListener('click', function () { advance(1); });
+  $('step50').addEventListener('click', function () { advance(50); });
+  $('reset').addEventListener('click', function () {
+    if (timer) { clearInterval(timer); timer = null; $('play').textContent = '▶ 進める'; }
+    reset();
+  });
+
+  ['alpha', 'rangeMax', 'terrain', 'motion', 'hetero', 'replacement'].forEach(function (id) {
+    $(id).addEventListener('input', function () {
+      $('vAlpha').textContent = ALPHAS[+$('alpha').value];
+      $('vRange').textContent = $('rangeMax').value;
+      if (timer) { clearInterval(timer); timer = null; $('play').textContent = '▶ 進める'; }
+      reset();
+    });
+  });
+  ['population', 'quantity'].forEach(function (id) {
+    $(id).addEventListener('input', function () { history = []; record(); draw(); });
+  });
+
+  reset();
+
+  // --- 共通の実行UI（撮る / 広さ / 設定の保存と復元）を載せる ---
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (timer) document.getElementById('play').click(); },
+    id: 'S-19',
+    version: '1.0.0',
+    inputs: ['alpha', 'rangeMax', 'terrain', 'motion', 'hetero', 'replacement', 'population', 'quantity'],
+    paramNames: {
+      alpha: { category: 'p', code: 'alpha', full: 'regrowth_rate' },
+      rangeMax: { category: 'p', code: 'range', full: 'vision_range_max' },
+      terrain: { category: 'p', code: 'terrain', full: 'terrain' },
+      motion: { category: 'p', code: 'motion', full: 'motion' },
+      hetero: { category: 'p', code: 'hetero', full: 'heterogeneity' },
+      replacement: { category: 'p', code: 'repl', full: 'replacement' },
+      population: { category: 's', code: 'pop', full: 'population_filter' },
+      quantity: { category: 's', code: 'qty', full: 'quantity_measure' },
+    },
+    canvases: ['grid', 'lorenz', 'series'],
+    // 格子の縦横を変える。地形（2つの山）は一辺に比例して作られるので形は保たれ、
+    // 行為者は**人口密度を保つ**ために面積ぶん（倍率の2乗）一緒に変える。
+    resize: function (scale) {
+      sizeScale = scale;
+      if (timer) { clearInterval(timer); timer = null; $('play').textContent = '▶ 進める'; }
+      refCache = {};
+      reset();
+      Harness.say('格子 ' + world.size + '×' + world.size + '・行為者 ' + world.config.count
+        + ' 人（密度 ' + (world.config.count / (world.size * world.size)).toFixed(2) + ' のまま）');
+    },
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-36 新奇性探索 vs 目的関数探索</title>
+<style>
+  :root{
+    --bg:#0e1014; --panel:#171a21; --line:#2a2f3a; --fg:#d7dce5; --dim:#7e8797;
+    --wall:#232936; --mark:#ffd166; --home:#4aa3ff; --left:#ff6b6b; --right:#4ade80;
+    --seen:#34405a; --trail:#f472b6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1100px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070a;border:1px solid var(--line);border-radius:4px;
+         max-width:100%;height:auto}
+  aside{width:340px;min-width:280px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 13px;margin-bottom:12px}
+  .box h2{margin:0 0 9px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.06em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:96px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  select{background:#0c0e13;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  button{background:#20252f;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#2a3140}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat th,table.stat td{padding:3px 4px;border-bottom:1px solid var(--line);text-align:right}
+  table.stat th{color:var(--dim);font-weight:600;font-size:11px}
+  table.stat td.lv,table.stat th.lv{text-align:left;color:var(--fg)}
+  .num{font-variant-numeric:tabular-nums;display:inline-block;text-align:right;min-width:7ch}
+  .legend{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.7}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .note{font-size:11px;color:var(--dim);margin-top:8px}
+  @media(max-width:820px){ aside{width:auto} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>S-36 — 新奇性探索 vs 目的関数探索</h1>
+  <p><strong>同じ迷路を2つの探索が並んで探す。</strong>左が<strong>目的関数探索</strong>（的への直線距離だけを頼りに選ぶ）、
+     右が<strong>選んだ探索器</strong>（既定は新奇性探索）。薄い点は<strong>これまでに終点として踏んだ枡</strong>、
+     明るい点は<strong>今の個体群の終点</strong>、桃色の線は今いちばん的に近い個体の経路。
+     <strong>行動の記述</strong>を切り替えると、右側の広がり方が丸ごと変わる——
+     新奇さは「何をもって行動が違うと見なすか」を決めないと測れない。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <canvas id="boards" width="760" height="400"></canvas>
+    <canvas id="curves" width="760" height="140"></canvas>
+  </div>
+  <aside>
+    <div class="box">
+      <h2>つまみ</h2>
+      <label><span class="k">迷路</span><select id="maze"></select></label>
+      <label><span class="k">右の探索器</span><select id="right"></select></label>
+      <label><span class="k">行動の記述</span><select id="desc"></select></label>
+      <label><span class="k">突然変異率</span><input id="rate" type="range" min="0" max="0.5" step="0.01" value="0.10"><b id="rateV" class="num">0.10</b></label>
+      <label><span class="k">k 近傍</span><input id="kk" type="range" min="1" max="40" step="1" value="15"><b id="kkV" class="num">15</b></label>
+      <label><span class="k">速さ</span><input id="speed" type="range" min="1" max="20" step="1" value="4"><b id="speedV" class="num">4</b></label>
+      <div class="row">
+        <button id="go" class="primary">走らせる</button>
+        <button id="pause">止める</button>
+        <button id="reset">最初から</button>
+      </div>
+      <div class="note" id="worldNote"></div>
+    </div>
+    <div class="box">
+      <h2>今の様子</h2>
+      <table class="stat">
+        <tr><th class="lv"></th><th>目的関数</th><th id="rname">新奇性</th></tr>
+        <tr><td class="lv">世代</td><td id="g0" class="num">0</td><td id="g1" class="num">0</td></tr>
+        <tr><td class="lv">最小の距離</td><td id="m0" class="num">–</td><td id="m1" class="num">–</td></tr>
+        <tr><td class="lv">踏んだ終点</td><td id="e0" class="num">0</td><td id="e1" class="num">0</td></tr>
+        <tr><td class="lv">アーカイブ</td><td id="a0" class="num">–</td><td id="a1" class="num">0</td></tr>
+        <tr><td class="lv">経路が的へ(世代)</td><td id="h0" class="num">–</td><td id="h1" class="num">–</td></tr>
+        <tr><td class="lv">終点が的へ(世代)</td><td id="h20" class="num">–</td><td id="h21" class="num">–</td></tr>
+      </table>
+      <div class="legend">
+        <span class="sw" style="background:var(--mark)"></span>的　
+        <span class="sw" style="background:var(--home)"></span>起点　
+        <span class="sw" style="background:var(--seen)"></span>踏んだ終点　
+        <span class="sw" style="background:var(--trail)"></span>最良の経路
+      </div>
+    </div>
+    <div class="box">
+      <h2>この迷路の欺瞞の強さ</h2>
+      <table class="stat">
+        <tr><td class="lv">直線距離と歩数の相関 r</td><td id="wr" class="num">–</td></tr>
+        <tr><td class="lv">先に遠ざかる量</td><td id="wb" class="num">–</td></tr>
+        <tr><td class="lv">起点→的の歩数</td><td id="ws" class="num">–</td></tr>
+      </table>
+      <div class="note">r が 1 に近いほど欺瞞が無い（一本道は厳密に 1.000）。r が 0 以下なら、
+        的へ直線で近い枡ほど歩いては遠い。</div>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="search.js"></script>
+<script src="engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  var byId = function (i) { return document.getElementById(i); };
+  var boards = byId('boards'), curves = byId('curves');
+  var bx = boards.getContext('2d'), cx = curves.getContext('2d');
+
+  var MAZES = [
+    { id: 'd1', label: '主迷路（最も欺瞞が強い・種20）', spec: { kind: 'carve', cells: 11, seed: 20, depth: 0 } },
+    { id: 'd2', label: '欺瞞 中（種5）', spec: { kind: 'carve', cells: 11, seed: 5, depth: 0 } },
+    { id: 'd3', label: '欺瞞 弱（種11）', spec: { kind: 'carve', cells: 11, seed: 11, depth: 0 } },
+    { id: 'line', label: '一本道（正コントロール）', spec: { kind: 'corridor', len: 30 } },
+    { id: 'open', label: '開けた部屋（負コントロール）', spec: { kind: 'hollow', w: 19, h: 19 } },
+    { id: 'seal', label: '封鎖（負コントロール・到達不能）', spec: { kind: 'sealed', cells: 11, seed: 20, depth: 0 } }
+  ];
+
+  var state = { cells: 11, mazeId: 'd1', timer: null, seed: 7919, world: null, left: null, right: null };
+
+  var elMaze = byId('maze'), elDesc = byId('desc'), elRight = byId('right');
+  var elRate = byId('rate'), elKk = byId('kk'), elSpeed = byId('speed');
+
+  MAZES.forEach(function (m) {
+    var o = document.createElement('option'); o.value = m.id; o.textContent = m.label; elMaze.appendChild(o);
+  });
+  Object.keys(S36S.DESCRIPTORS).forEach(function (d) {
+    var o = document.createElement('option'); o.value = d;
+    o.textContent = d + '（' + S36S.DESCRIPTORS[d].group + '）'; elDesc.appendChild(o);
+  });
+  elDesc.value = 'endpoint';
+  ['novelty', 'uniform', 'shuffled-novelty', 'shuffled-objective', 'no-archive', 'crowding', 'resample']
+    .forEach(function (s) {
+      var o = document.createElement('option'); o.value = s; o.textContent = s; elRight.appendChild(o);
+    });
+  elRight.value = 'novelty';
+
+  function mazeSpec() {
+    var m = MAZES.filter(function (x) { return x.id === state.mazeId; })[0];
+    var sp = {}, key;
+    for (key in m.spec) sp[key] = m.spec[key];
+    if (sp.cells !== undefined) sp.cells = state.cells;
+    if (sp.w !== undefined) { sp.w = state.cells * 2 - 3; sp.h = state.cells * 2 - 3; }
+    if (sp.len !== undefined) sp.len = state.cells * 3;
+    return sp;
+  }
+
+  function build() {
+    stop();
+    state.world = S36E.makeWorld(mazeSpec());
+    var common = {
+      seed: state.seed, gens: 100000, steps: 350, pop: 40,
+      rate: parseFloat(elRate.value), k: parseInt(elKk.value, 10)
+    };
+    var lo = {}, ro = {}, key;
+    for (key in common) { lo[key] = common[key]; ro[key] = common[key]; }
+    lo.searcher = 'objective'; lo.descriptor = 'endpoint';
+    ro.searcher = elRight.value; ro.descriptor = elDesc.value;
+    state.left = S36E.makeRun(state.world, lo);
+    state.right = S36E.makeRun(state.world, ro);
+    state.left.step(); state.right.step();
+    byId('rname').textContent = elRight.value;
+    var w = state.world;
+    Harness.num('wr', w.straight.toFixed(3), 7);
+    Harness.num('wb', w.backtrack.toFixed(3), 7);
+    Harness.num('ws', w.reachable ? w.stepsToTarget : '到達不能', 8);
+    byId('worldNote').textContent = '一辺 ' + w.lattice.w + '・開いている枡 ' + w.cells.length;
+    drawAll();
+  }
+
+  /* ----------------------------------------------------------- 描画 */
+
+  function boardGeom() {
+    var w = state.world.lattice.w, h = state.world.lattice.h;
+    var half = (boards.width - 30) / 2;
+    var cell = Math.max(2, Math.floor(Math.min(half / w, (boards.height - 26) / h)));
+    return { cell: cell, w: w, h: h, ox: [10, 20 + half], oy: 22 };
+  }
+
+  function drawBoard(run, side, geom, color) {
+    var lat = state.world.lattice, cell = geom.cell, ox = geom.ox[side], oy = geom.oy, i, x, y;
+    bx.fillStyle = '#05070a';
+    bx.fillRect(ox - 2, oy - 2, geom.w * cell + 4, geom.h * cell + 4);
+    bx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--wall').trim() || '#232936';
+    for (y = 0; y < geom.h; y++) for (x = 0; x < geom.w; x++) {
+      if (lat.blocked[y * lat.w + x]) bx.fillRect(ox + x * cell, oy + y * cell, cell, cell);
+    }
+    /* これまでに踏んだ終点 */
+    bx.fillStyle = '#34405a';
+    var seen = run.state.endSeen;
+    for (i in seen) {
+      x = i % lat.w; y = (i / lat.w) | 0;
+      bx.fillRect(ox + x * cell + 1, oy + y * cell + 1, cell - 2, cell - 2);
+    }
+    /* 的と起点 */
+    bx.fillStyle = '#ffd166';
+    x = state.world.target % lat.w; y = (state.world.target / lat.w) | 0;
+    bx.fillRect(ox + x * cell, oy + y * cell, cell, cell);
+    bx.fillStyle = '#4aa3ff';
+    x = state.world.origin % lat.w; y = (state.world.origin / lat.w) | 0;
+    bx.fillRect(ox + x * cell, oy + y * cell, cell, cell);
+    /* 最良の個体の経路 */
+    var last = run.state.last;
+    if (last) {
+      var bi = 0, bv = -Infinity;
+      for (i = 0; i < last.objScore.length; i++) if (last.objScore[i] > bv) { bv = last.objScore[i]; bi = i; }
+      var tr = last.traces[bi];
+      bx.strokeStyle = 'rgba(244,114,182,0.85)'; bx.lineWidth = Math.max(1, cell / 6);
+      bx.beginPath();
+      for (i = 0; i < tr.visits.length; i += 2) {
+        var px = ox + (tr.visits[i] % lat.w) * cell + cell / 2;
+        var py = oy + (((tr.visits[i] / lat.w) | 0)) * cell + cell / 2;
+        if (i === 0) bx.moveTo(px, py); else bx.lineTo(px, py);
+      }
+      bx.stroke();
+      /* 今の個体群の終点 */
+      bx.fillStyle = color;
+      for (i = 0; i < last.traces.length; i++) {
+        var p = last.traces[i].last;
+        bx.fillRect(ox + (p % lat.w) * cell + cell / 4, oy + (((p / lat.w) | 0)) * cell + cell / 4,
+          Math.max(2, cell / 2), Math.max(2, cell / 2));
+      }
+    }
+    bx.fillStyle = color; bx.font = '12px ui-monospace,Menlo,monospace';
+    bx.fillText(side === 0 ? '目的関数探索' : (elRight.value + ' / ' + elDesc.value), ox, 14);
+  }
+
+  function drawAll() {
+    bx.clearRect(0, 0, boards.width, boards.height);
+    var geom = boardGeom();
+    drawBoard(state.left, 0, geom, '#ff6b6b');
+    drawBoard(state.right, 1, geom, '#4ade80');
+    drawCurves();
+    var L = state.left.state, R = state.right.state;
+    Harness.num('g0', L.gen, 6); Harness.num('g1', R.gen, 6);
+    Harness.num('m0', isFinite(L.minEnd) ? L.minEnd.toFixed(2) : '–', 7);
+    Harness.num('m1', isFinite(R.minEnd) ? R.minEnd.toFixed(2) : '–', 7);
+    Harness.num('e0', L.endCount, 6); Harness.num('e1', R.endCount, 6);
+    Harness.num('a0', '–', 6); Harness.num('a1', R.archive.length, 6);
+    Harness.num('h0', L.firstG1 < 0 ? '–' : L.firstG1, 6);
+    Harness.num('h1', R.firstG1 < 0 ? '–' : R.firstG1, 6);
+    Harness.num('h20', L.firstG2 < 0 ? '–' : L.firstG2, 6);
+    Harness.num('h21', R.firstG2 < 0 ? '–' : R.firstG2, 6);
+  }
+
+  var hist = { l: [], r: [] };
+  function drawCurves() {
+    cx.clearRect(0, 0, curves.width, curves.height);
+    var n = Math.max(hist.l.length, hist.r.length, 40);
+    var maxD = 1;
+    hist.l.concat(hist.r).forEach(function (v) { if (v > maxD) maxD = v; });
+    var pad = 26, W = curves.width - pad - 8, H = curves.height - pad - 8;
+    cx.strokeStyle = '#2a2f3a'; cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(pad, 8); cx.lineTo(pad, 8 + H); cx.lineTo(pad + W, 8 + H); cx.stroke();
+    cx.fillStyle = '#7e8797'; cx.font = '10px ui-monospace,Menlo,monospace';
+    cx.fillText(maxD.toFixed(0), 2, 14); cx.fillText('0', 14, 8 + H);
+    cx.fillText('世代 →', pad + W - 44, 14);
+    [['l', '#ff6b6b'], ['r', '#4ade80']].forEach(function (p) {
+      var arr = hist[p[0]];
+      cx.strokeStyle = p[1]; cx.lineWidth = 1.5; cx.beginPath();
+      for (var i = 0; i < arr.length; i++) {
+        var px = pad + (i / Math.max(1, n - 1)) * W, py = 8 + H - (arr[i] / maxD) * H;
+        if (i === 0) cx.moveTo(px, py); else cx.lineTo(px, py);
+      }
+      cx.stroke();
+    });
+    cx.fillStyle = '#7e8797';
+    cx.fillText('縦 = その世代までの「終点から的への最小直線距離」（小さいほど近い）', pad + 4, curves.height - 4);
+  }
+
+  /* ----------------------------------------------------------- 進行 */
+
+  function tick() {
+    var n = parseInt(elSpeed.value, 10);
+    for (var i = 0; i < n; i++) {
+      state.left.step(); state.right.step();
+      hist.l.push(state.left.state.minEnd); hist.r.push(state.right.state.minEnd);
+    }
+    if (hist.l.length > 4000) { hist.l = hist.l.slice(-4000); hist.r = hist.r.slice(-4000); }
+    drawAll();
+  }
+  function start() { if (state.timer) return; state.timer = setInterval(tick, 40); }
+  function stop() { if (state.timer) { clearInterval(state.timer); state.timer = null; } }
+
+  byId('go').onclick = start;
+  byId('pause').onclick = stop;
+  byId('reset').onclick = function () { state.seed = (state.seed * 7919 + 13) >>> 0; hist = { l: [], r: [] }; build(); };
+  [elMaze, elDesc, elRight, elRate, elKk].forEach(function (e) {
+    e.addEventListener('change', function () {
+      state.mazeId = elMaze.value;
+      Harness.num('rateV', parseFloat(elRate.value).toFixed(2), 5);
+      Harness.num('kkV', elKk.value, 3);
+      hist = { l: [], r: [] };
+      build();
+    });
+  });
+  elSpeed.addEventListener('input', function () { Harness.num('speedV', elSpeed.value, 3); });
+  elRate.addEventListener('input', function () { Harness.num('rateV', parseFloat(elRate.value).toFixed(2), 5); });
+  elKk.addEventListener('input', function () { Harness.num('kkV', elKk.value, 3); });
+
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: stop,
+    id: 'S-36', version: '1.0.0',
+    inputs: ['maze', 'right', 'desc', 'rate', 'kk', 'speed'],
+    paramNames: {
+      maze: { category: 'p', code: 'maze', full: 'maze' },
+      right: { category: 'p', code: 'right', full: 'right_searcher' },
+      desc: { category: 'p', code: 'desc', full: 'descriptor' },
+      rate: { category: 'p', code: 'rate', full: 'mutation_rate' },
+      kk: { category: 'p', code: 'kk', full: 'k_nearest' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+    },
+    canvases: ['boards', 'curves'],
+    // 「広さ」＝迷路の一辺（掘り進きのセル数）。この系で空間にあたるもの
+    resize: function (scale) {
+      state.cells = Math.max(4, Math.round(11 * scale));
+      hist = { l: [], r: [] };
+      build();
+      Harness.say('迷路 ' + state.world.lattice.w + '×' + state.world.lattice.h);
+    },
+    onRestore: function () {
+      state.mazeId = elMaze.value;
+      Harness.num('rateV', parseFloat(elRate.value).toFixed(2), 5);
+      Harness.num('kkV', elKk.value, 3);
+      Harness.num('speedV', elSpeed.value, 3);
+      hist = { l: [], r: [] };
+      build();
+    }
+  });
+
+  Harness.num('rateV', '0.10', 5); Harness.num('kkV', '15', 3); Harness.num('speedV', '4', 3);
+  build();
+  start();
+})();
+</script>
+</body>
+</html>

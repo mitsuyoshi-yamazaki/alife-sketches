@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>2010年以降の boid の派生モデルと応用の調査 — 「どこで切るか」を先に固定して系譜を測る — 人工生命スケッチ</title><link rel="stylesheet" href="../../../../assets/style.css"></head><body class="sketchpage"><nav class="crumbs"><a href="../../../../index.html">人工生命スケッチ</a><span class="sep">›</span><span aria-current="page">S-50 2010年以降の boid の派生モデルと応用の調査 — 「どこで切るか」を先に固定して系譜を測る</span></nav><header class="shead"><div class="sline"><span class="cid">S-50</span><h1>2010年以降の boid の派生モデルと応用の調査 — 「どこで切るか」を先に固定して系譜を測る</h1><span class="ver">v1.0.0</span><span class="kind">文献・考察</span></div><div class="tags"><span class="tag">boids</span><span class="tag">flocking</span><span class="tag">文献調査</span><span class="tag">系譜</span><span class="tag">観測器</span><span class="tag">事前登録</span><span class="tag">非相反</span><span class="tag">swarmalator</span><span class="tag">慣性スピン</span><span class="tag">視覚ベース</span></div><div class="sacts"><button class="btn ovopen" data-go="r-main">📄 2010年以降の boid の派生を、窓を2つ固定して数える</button><button class="btn ovopen" data-go="r-flock2-aerodynamic">📄 Flock2 — 3規則を力ではなく「旋回したい」へ束ね、更新は空力だけに任せる</button><button class="btn ovopen" data-go="r-inertial-spin">📄 慣性スピン模型 — 向きを「回す」ことに慣性を持たせると、保存則がひとつ生まれる</button><button class="btn ovopen" data-go="r-nonreciprocal-turning">📄 非相反にした転回する群れ — 作用と反作用を割ると、情報が速く伝わる</button><button class="btn ovopen" data-go="r-swarmalator">📄 swarmalator — 位置と内部位相を双方向に結合すると、向きの無い群れが生まれる</button><button class="btn ovopen" data-go="comments">💬 コメント（0）</button></div></header><div class="stagewrap"><div class="nostage">このスケッチは可視化を持たない（文献・考察）。上のレポートを開く。</div><div class="overlay" id="overlay" data-open="r-swarmalator"><div class="ovbar"><span class="ovwho" title="2010年以降の boid の派生モデルと応用の調査 — 「どこで切るか」を先に固定して系譜を測る">S-50</span><div class="ovtabs"><button class="ovtab" data-go="r-main">2010年以降の boid の派生を、窓を2つ固定して数える</button><button class="ovtab" data-go="r-flock2-aerodynamic">Flock2 — 3規則を力ではなく「旋回したい」へ束ね、更新は空力だけに任せる</button><button class="ovtab" data-go="r-inertial-spin">慣性スピン模型 — 向きを「回す」ことに慣性を持たせると、保存則がひとつ生まれる</button><button class="ovtab" data-go="r-nonreciprocal-turning">非相反にした転回する群れ — 作用と反作用を割ると、情報が速く伝わる</button><button class="ovtab" data-go="r-swarmalator">swarmalator — 位置と内部位相を双方向に結合すると、向きの無い群れが生まれる</button><button class="ovtab" data-go="comments">💬 コメント（0）</button></div><button class="ovclose" id="ovclose" title="閉じて実行に戻る">✕</button></div><div class="ovbody"><section class="pane" data-pane="r-main" hidden><div class="rmeta"><span class="angle">主レポート（最初の切り口）</span><span class="ver">記載時の版 v1.0.0</span><span class="tag">boids</span><span class="tag">flocking</span><span class="tag">文献調査</span><span class="tag">系譜</span><span class="tag">観測器</span><span class="tag">事前登録</span></div><details class="rtoc"><summary>目次</summary><a href="#一行で言うと">一行で言うと</a><a href="#何をやったか">何をやったか</a><a href="#結果-事前登録した解析">結果（事前登録した解析）</a><a href="#事前登録と食い違ったこと-s4-の一番の仕事">事前登録と食い違ったこと（S4 の一番の仕事）</a><a href="#事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</a><a href="#本家サブプロジェクトへの含意-候補として挙げるだけ-要件化しない">本家サブプロジェクトへの含意（<strong>候補として挙げるだけ。要件化しない</strong>）</a><a href="#限界-この調査が言えないこと">限界（この調査が言えないこと）</a></details><article class="md"><h1 id="s-50-2010年以降の-boid-の派生を-窓を2つ固定して数える">S-50: 2010年以降の boid の派生を、窓を2つ固定して数える</h1>
+<ul><li><strong>実施日</strong>: 2026-09-17</li><li><strong>種別</strong>: 文献・考察（実装・本番走行の段を持たない）</li><li><strong>事前登録</strong>: <span class="deadlink"><code>apps/alife-sketches/s50-boids-derivatives/criteria.json</code></span> sha256 先頭16桁 <code>445f0c6a218d6cc5</code></li><li><strong>生ログ</strong>: <span class="deadlink">raw/</span> — <code>corpus.jsonl</code>（29 行）・<code>candidates.jsonl</code>（順位表 21 行）・<code>dropped-by-window.jsonl</code>（38 行）・<code>lineage.jsonl</code>（9 行）・<code>tally.jsonl</code>（窓2本）・<code>queries.jsonl</code>（機械 5 ＋ 人手 6）・<code>bib-check.jsonl</code>（層A 55 行）・<code>quote-check.jsonl</code>（層B 20 行）・<code>orphan-ids.json</code>（層C）・<code>citation-summary.json</code>・<code>prediction-check.json</code>・<code>eligibility-sensitivity.json</code>・<code>summary.json</code></li><li><strong>再実行できる形で置いた道具</strong>: <code>coding.js</code>（I1〜I4 の符号化そのもの）・<code>tally.js</code>（集計）・<code>bib-verify.js</code>（層A）・<code>verify.js</code>（層B。<strong>S-42 の raw/verify.js を複製</strong>）・<code>orphan-check.js</code>（層C）・<code>fetch-queries.js</code>（arXiv API のクエリ）。<strong><code>bib-verify.js</code> は raw/ から再実行して <code>bib-check.jsonl</code> をバイト単位で再現することを確かめた</strong></li><li><strong>引用の機械検証</strong>: 層A 一致 50 / 不一致 <strong>0</strong>、層B 逐語 <strong>20/20</strong>、層C 孤児 <strong>0</strong>（<span class="deadlink"><code>verify-output.txt</code></span>）</li><li><strong>判定基準</strong>: 調査の窓・「面白い派生」の4条件・引用検証の3層・十分性・レポート方針の5つを、<strong>候補を見る前に</strong>登録してある</li></ul>
+<p><strong>出典</strong>: 本レポートが引く文献はすべて <code>raw/bib-check.jsonl</code> に arXiv API / Crossref の戻り値と照合した形で載っている。 逐語引用は 20 件すべて <code>raw/quotes.json</code> に登録し、取得本文と機械照合した（<code>raw/quote-check.jsonl</code>）。 <strong>記憶から書いた書誌は無い</strong>——本文中の id・表題・日付は API の戻り値が正である。 0点（比較の原点）は Reynolds, C. W. (1987) *Flocks, herds and schools: A distributed behavioral model*, Computer Graphics 21(4):25-34, doi <code>10.1145/37402.37406</code>。</p>
+<h2 id="一行で言うと">一行で言うと</h2>
+<p><strong>2010年以降の boid の派生は 29 系統ぶん集まり、そのうち「原型の規則そのものを置き換えた」（I1）のは 20 件中 12 件だった。しかし本調査で一番効いたのは窓でも閾値でもなく、事前登録した適格性の規則のほうである</strong>——「著者が本文で Reynolds / boids を先行として名指ししているか」という条件が、<strong>非相反・整列なし・位相的近傍・純視覚という物理側の 8 系統をまるごと母集団の外へ落とした</strong>。落ちた中には、登録が「I1 の最有力」と名指しした Bastien &amp; Romanczuk (2020) の純視覚モデルも含まれる。<strong>窓を 2010年から 2024-12-23 へ動かすと母集団は 20→7 に減り、9 系統中 8 つで順位が動いた</strong>（視覚ベースと swarmalator は予告どおり根ごと消える）。順位表の上位4本には独立レポートを立てたが、<strong>4位と5位は同じ得点で、上限が実際に噛んでいる</strong>。</p>
+<h2 id="何をやったか">何をやったか</h2>
+<h3 id="題材">題材</h3>
+<p>ユーザ指示は「2010年頃以降、もしくは最近の大きな発展以降の、boid を用いた研究や派生モデルの調査」「特に面白い派生があれば独立したレポートとして解説せよ」である。 S1 はこれを、<strong>調査そのものではなく調査の切り方</strong>を固定する形で登録した—— ①窓（2腕）②「面白い」の4条件（I1〜I4）③引用検証の3層 ④十分性の6項目 ⑤レポート方針。</p>
+<h3 id="窓を2本に固定した-事前登録-w1-が主-w2-が従">窓を2本に固定した（事前登録・W1 が主／W2 が従）</h3>
+<div class="tw"><table><thead><tr><th>腕</th><th>規則</th><th>役割</th></tr></thead><tbody><tr><td><strong>W1</strong></td><td>発表日が <strong>2010-01-01 以降</strong></td><td><strong>主</strong>。main の集計はこちら</td></tr><tr><td><strong>W2</strong></td><td>発表日が <strong>2024-12-23 以降</strong>（arXiv:2412.17799 ASAL の published）</td><td><strong>従</strong>。同じ集計を出し、順位が動くかだけ見る</td></tr></tbody></table></div>
+<p><strong>1つの派生モデル＝1標本</strong>（論文数では数えない）。行の発表日は、その行が束ねる論文のうち<strong>最も早いもの</strong>を採った ——これは登録が「プレプリントと雑誌版が両方ある場合は早いほう」としか書いていない箇所を、束ねた行へ延長した判断である（後述の「登録では決まらなかったこと」を見よ）。</p>
+<h3 id="探し方-raw-queries-jsonl-に全クエリを残した">探し方（<code>raw/queries.jsonl</code> に全クエリを残した）</h3>
+<p>機械クエリ5本（arXiv API）＋人手クエリ6本（WebSearch）。 <code>all:boids</code> は <strong>totalResults=31 で全件取得</strong>（2010年以降 28 件）。 <code>abs:flocking AND (abs:Reynolds OR abs:"alignment")</code> は <strong>totalResults=275 に対し上限 200 までしか取れていない</strong> ——<strong>登録した上限が実際に噛んだ唯一のクエリで、75 件が見えていない</strong>（<code>dropped-by-window.jsonl</code> の <code>CEIL-Q2</code> 行）。 arXiv 側の重複除去後のプールは <strong>306 件</strong>、うち 2010年以降が 305 件。</p>
+<p>人手クエリからは arXiv に載らない3件が母集団へ入った—— Nature Communications の個体差モデル（D29）、npj Robotics の純視覚実機（D03）、PLOS Computational Biology のバッタ由来モデル（D04）。 また <code>criteria.json</code> が「id が取れなければレポートに出さない」としていた <strong>B7（swarmalator の総説）の id が確定した</strong>（arXiv:2510.09819。層Aで一致）。</p>
+<h3 id="妥当性検査にあたるもの-引用の3層-k-29">妥当性検査にあたるもの（引用の3層・K-29）</h3>
+<p>実装のスケッチにおける selftest の位置にあるのが、この3層である。</p>
+<div class="tw"><table><thead><tr><th>層</th><th>何を見るか</th><th>結果</th></tr></thead><tbody><tr><td><strong>A 書誌の引き当て</strong></td><td>登録した全出典の arXiv id / DOI を API へ投げ、表題・著者・日付を照合</td><td><strong>一致 50・不一致 0</strong>・引き当て不能 5</td></tr><tr><td><strong>B 逐語照合</strong></td><td>レポートに置く引用が取得本文に実在するか（S-42 の <code>verify.js</code> を<strong>複製して流用</strong>）</td><td><strong>逐語 20 / 20</strong>・未検証 0</td></tr><tr><td><strong>C 孤児 id</strong></td><td>レポート本文の全 id が登録簿にあるか</td><td><strong>孤児 0</strong></td></tr></tbody></table></div>
+<p>引き当て不能の5件は、<strong>4件が外部書誌ではない</strong>（<code>R1</code>〜<code>R3</code> は本リポジトリ内のパス、<code>Q1</code> は arXiv API のクエリ URL）。 残る1件は <code>criteria.json</code> の <code>B7</code>——id を持たないまま登録された行で、登録どおり<strong>その表記のままでは本文に出さず</strong>、 人手クエリで確定した arXiv:2510.09819 の書誌で置き換えた。</p>
+<p>層Aには<strong>副産物</strong>があった: arXiv:2502.18549 は、API の <code>id_list</code> が返す表題（<code>ARBoids: Adaptive Residual Reinforcement Learning With Boids Model for Cooperative Multi-USV Target Defense</code>）と、 ar5iv が返す本文（v3）の表題（<code>Target Defense with Multiple Defenders and an Agile Attacker via Residual Policy Learning</code>）が食い違う。 <strong>層A（書誌）と層B（本文）で正が割れる実例</strong>であり、両方を登録簿に残した。</p>
+<h2 id="結果-事前登録した解析">結果（事前登録した解析）</h2>
+<h3 id="母集団と系統">母集団と系統</h3>
+<p>29 行の派生モデルを立て、9 系統に分けた。系統は登録どおり「<strong>W0 のどの部分を置き換えたか</strong>」で分けている。</p>
+<div class="tw"><table><thead><tr><th>系統</th><th>中身</th><th>W1 の行数</th><th>適格</th><th>P1（本文到達）</th><th>W2 の P1</th></tr></thead><tbody><tr><td>LG4</td><td>規則の<strong>出し方</strong>を替える（学習・進化・最適化）</td><td>5</td><td>5</td><td>4</td><td>2</td></tr><tr><td>LG1</td><td><strong>入力の作り方</strong>を替える（感覚・視野）</td><td>6</td><td>4</td><td>4</td><td><strong>0</strong></td></tr><tr><td>LG2</td><td><strong>状態空間</strong>を増やす（位相・スピン・身体）</td><td>3</td><td>3</td><td>3</td><td><strong>0</strong></td></tr><tr><td>LG5</td><td><strong>時間方向へ非局所</strong>にする（予測・記憶）</td><td>3</td><td>3</td><td>3</td><td>3</td></tr><tr><td>LG9</td><td>規則を変えず<strong>環境・係数・解析</strong>を替える</td><td>3</td><td>3</td><td>3</td><td>1</td></tr><tr><td>LG3</td><td>相互作用を<strong>非相反</strong>にする</td><td>3</td><td>1</td><td>1</td><td>1</td></tr><tr><td>LG6</td><td><strong>近傍の決め方</strong>を替える（順位・帯・方位）</td><td>2</td><td>1</td><td>1</td><td>0</td></tr><tr><td>LG8</td><td><strong>身体</strong>を持たせる（実機）</td><td>2</td><td>1</td><td>1</td><td>0</td></tr><tr><td>LG7</td><td><strong>整列項を外す</strong></td><td>2</td><td><strong>0</strong></td><td><strong>0</strong></td><td>0</td></tr></tbody></table></div>
+<p><strong>十分性（登録した6項目）</strong>: E1 系統 9（要 5 以上）✅／E2 到達 9/9 の系統で本文へ到達 ✅／ E3 W1 の P1 = <strong>20</strong>（要 15 以上）✅／E4 P1・P2 の全行で I1〜I4 が埋まっている（「不明」も明示）✅／ E5 W1・W2 の同一集計を出し順位の動きを記録 ✅／E6 3層とも通過 ✅。</p>
+<h3 id="窓を動かすと順位はどう動いたか-e5-登録した比較">窓を動かすと順位はどう動いたか（E5・登録した比較）</h3>
+<pre><code>W1（2010-01-01 以降）  rows 29  適格 21  P1 20  P2 21  閾値を満たす 12
+W2（2024-12-23 以降）  rows  8  適格  7  P1  7  P2  7  閾値を満たす  4</code></pre>
+<p>系統の順位（P1 件数の降順）:</p>
+<pre><code>W1: LG4 → LG1 → LG2 → LG5 → LG9 → LG3 → LG6 → LG8 → LG7
+W2: LG5 → LG4 → LG3 → LG9 → LG1 → LG2 → LG6 → LG7 → LG8</code></pre>
+<p><strong>9 系統のうち 8 つで順位が動いた</strong>（動かなかったのは LG6 のみ）。 動きの向きは1方向ではない——<strong>LG5（予測・記憶）が 4位から1位へ上がり、LG1（視覚）が 2位から5位へ、LG2（位相・スピン）が 3位から6位へ落ちた</strong>。 LG1 と LG2 は W2 では P1=0 になる、つまり<strong>根ごと消える</strong>。</p>
+<p>落差そのものは <strong>20 → 7（0.35 倍）</strong>である。</p>
+<h3 id="i1-i4-の充足-登録した秩序変数">I1〜I4 の充足（登録した秩序変数）</h3>
+<div class="tw"><table><thead><tr><th>条件</th><th>W1 の P1（n=20）</th><th>W2 の P1（n=7）</th></tr></thead><tbody><tr><td><strong>I1</strong> 規則を入力の作り方ごと置き換えた</td><td>12 (60%)</td><td>4 (57%)</td></tr><tr><td><strong>I2</strong> 原型では原理的に出ない現象が出る</td><td><strong>4 (20%)</strong></td><td><strong>1 (14%)</strong></td></tr><tr><td><strong>I3</strong> S-09 の観測器が定義を変えずに当たる</td><td>19 (95%)</td><td>7 (100%)</td></tr><tr><td><strong>I4</strong> 原典に到達し規則を本文から取れた</td><td>20 (100%)</td><td>7 (100%)</td></tr></tbody></table></div>
+<p>P2 は P1 に「書誌のみ確定した派生」1件（D15・進化的 MARL）を足したもので、その行の I1〜I4 は<strong>「不明」であって 0 ではない</strong>。</p>
+<h3 id="順位表-raw-candidates-jsonl-s-53-への推薦順位であって決定ではない">順位表（<code>raw/candidates.jsonl</code>。S-53 への<strong>推薦順位</strong>であって決定ではない）</h3>
+<div class="tw"><table><thead><tr><th>順位</th><th>id</th><th>派生</th><th>系統</th><th>発表</th><th>I1 I2 I3 I4</th><th>得点</th></tr></thead><tbody><tr><td>1</td><td>D10</td><td>能動トルクで非相反にした転回する群れ（1次元 boid 列）</td><td>LG3</td><td>2026-04-26</td><td>○ ○ ○ ○</td><td><strong>4</strong></td></tr><tr><td>2</td><td>D09</td><td>向きベースの社会性を空力モデルへ結合する（Flock2）</td><td>LG2</td><td>2024-04-27</td><td>○ ○ ○ ○</td><td><strong>4</strong></td></tr><tr><td>3</td><td>D08</td><td>慣性スピン模型（スピンを保存する離散ラプラシアン熱浴）</td><td>LG2</td><td>2024-03-12</td><td>○ ○ ○ ○</td><td><strong>4</strong></td></tr><tr><td>4</td><td>D07</td><td>swarmalator（位置と内部位相が双方向に結合する）</td><td>LG2</td><td>2017-01-20</td><td>○ ○ × ○</td><td>3</td></tr><tr><td>5</td><td>D18</td><td>近傍の将来速度を見込んで整列する（FDA Flocking）</td><td>LG5</td><td>2026-02-03</td><td>○ × ○ ○</td><td>3</td></tr><tr><td>6</td><td>D20</td><td>初期相対位置の記憶で速度検知を代替する</td><td>LG5</td><td>2025-08-06</td><td>○ × ○ ○</td><td>3</td></tr><tr><td>7</td><td>D19</td><td>予測的整列の能動物質</td><td>LG5</td><td>2025-04-10</td><td>○ × ○ ○</td><td>3</td></tr><tr><td>8</td><td>D02</td><td>網膜位置・見かけの大きさ・オプティックフローだけで動く球形ロボット</td><td>LG1</td><td>2024-09-30</td><td>○ × ○ ○</td><td>3</td></tr><tr><td>9</td><td>D03</td><td>通信も測距もない純視覚の実ロボット群</td><td>LG1</td><td>2024-06-24</td><td>○ × ○ ○</td><td>3</td></tr><tr><td>10</td><td>D04</td><td>バッタ由来の還元的な視覚ベースモデル</td><td>LG1</td><td>2024-01-29</td><td>○ × ○ ○</td><td>3</td></tr><tr><td>11</td><td>D17</td><td>制約駆動の最適制御として規則を立て直す（Beyond Reynolds）</td><td>LG4</td><td>2020-03-16</td><td>○ × ○ ○</td><td>3</td></tr><tr><td>12</td><td>D14</td><td>方策そのものを学習して3規則を置き換える</td><td>LG4</td><td>2019-11-05</td><td>○ × ○ ○</td><td>3</td></tr><tr><td>13〜21</td><td></td><td>閾値未満（得点 2 以下）。<code>candidates.jsonl</code> に全件残る</td><td></td><td></td><td></td><td></td></tr></tbody></table></div>
+<p><strong>閾値（3条以上かつ I1 か I2）を満たしたのは 12 件</strong>、独立レポートの上限は <strong>4</strong>。 上限は<strong>噛んでいる</strong>——4位（D07）と5位（D18）は<strong>同じ得点 3</strong> で、tieBreak ①（I2 を満たすほうを上位）だけで分かれた。 K-26 の言う「上限のすぐ内側に分布が溜まっている」状態そのもので、 <strong>上限を 5 にすれば別の系統（LG5）が1本増える</strong>。切り落とした8件は順位つきで <code>candidates.jsonl</code> に残る。</p>
+<p>独立レポートを立てたのは上位4本: <a href="../nonreciprocal-turning/index.html">非相反な転回する群れ</a>・<a href="../flock2-aerodynamic/index.html">Flock2</a>・<a href="../inertial-spin/index.html">慣性スピン模型</a>・<a href="index.html">swarmalator</a>。</p>
+<h3 id="予測の当たり外れ-数える前に登録した6本">予測の当たり外れ（数える前に登録した6本）</h3>
+<div class="tw"><table><thead><tr><th>予測</th><th>結果</th><th>数字</th></tr></thead><tbody><tr><td><strong>P1</strong> 学習・最適化系統が件数で最多。うち I1 を満たすのは半数に満たない</td><td><strong>前半 当たり・後半 外れ</strong></td><td>LG4 は適格 5 件で最多（P1 では LG1 と 4 件で並ぶ）。LG4 の P1 のうち I1○ は <strong>2/4 = ちょうど半数</strong>で、「半数に満たない」ではない</td></tr><tr><td><strong>P2</strong> W2 で母集団は 1/5 以下、順位が入れ替わる。視覚ベースと swarmalator が根ごと消える</td><td><strong>一部当たり</strong></td><td>落差は 20→7（<strong>0.35 倍</strong>）で 1/5 には届かない。順位は 9 系統中 8 つで動いた。視覚ベース（LG1 4→0）と swarmalator（D07 が窓外）は<strong>予告どおり消えた</strong></td></tr><tr><td><strong>P3</strong> I2 を満たす派生は boid を名乗らない文献に偏る。flocking 側の経路が必須</td><td><strong>外れ（向きがある）</strong></td><td>I2○ の4件は<strong>全て本文で boids / Reynolds を名乗る</strong>。boid を名乗らない側は、flocking 側の経路（Q2・Q5）で<strong>プールには入った</strong>が、<strong>適格性の規則のほうで落ちた</strong></td></tr><tr><td><strong>P4</strong> I3 は P1 の過半で満たされ識別力が弱い</td><td><strong>当たり</strong></td><td>19/20（95%）。順位表で I3 は1件しか差をつけていない</td></tr><tr><td><strong>P5</strong> 原典到達率は arXiv でほぼ全件、学術誌のみでは要旨どまりが出る。P1 は arXiv へ偏る</td><td><strong>外れ（向きが逆）</strong></td><td>学術誌のみの3件（Science Advances・PLOS CB・Nature Communications）は<strong>全件が本文到達</strong>。本文へ到達できなかった唯一の適格行（D15）は<strong>arXiv 掲載</strong>である</td></tr><tr><td><strong>P6</strong> 2010年という切り方は系譜の根を落とす</td><td><strong>当たり</strong></td><td>根 5 件（Vicsek 1995・Toner&amp;Tu 1995・Couzin 2002・Ballerini 2008・Cucker&amp;Smale 2007）が全て両腕の外。LG6 は根が窓外・子が適格性外で P1=1 に留まった</td></tr></tbody></table></div>
+<h2 id="事前登録と食い違ったこと-s4-の一番の仕事">事前登録と食い違ったこと（S4 の一番の仕事）</h2>
+<p><strong>書き換えず、そのまま書く。</strong></p>
+<h3 id="適格性の規則が-登録が名指しした最有力候補を落とした-k-15-型">① 適格性の規則が、登録が名指しした最有力候補を落とした（K-15 型）</h3>
+<p><code>criteria.json</code> の下見は <strong>B1 = Bastien &amp; Romanczuk (2020) を「視覚ベース系統の中心・I1 の最有力」</strong>と書いている。 本調査で Europe PMC から全文を取り、運動方程式まで読んだ（$\partial_t v_i = F_{ind}(v_i) + F_{vis}[V_i(\phi,\theta,t)]$）。 モデルは確かに3規則の入力を視野の射影場へ丸ごと置き換えており、著者自身が</p>
+<blockquote>This function does not have an explicit dependence on the other individual properties.</blockquote>
+<p>と書く（層Bで逐語照合済み）。 <strong>それでもこの論文は適格性を満たさない</strong>——本文にも参照文献表にも Reynolds / boid(s) の語が1度も現れず（全文 XML を走査して 0 件）、 運動方程式は2項で、分離・整列・結合の3項も等価な3項も現れない。登録した (a)(b) の<strong>どちらも満たさない</strong>。</p>
+<p><strong>登録の下見が「最有力」と呼んだものを、登録の規則自身が母集団の外へ出した。</strong> これは規則の欠陥ではなく、<strong>規則が候補の表題しか見ていない段階で書かれたことの帰結</strong>である（登録はそのことを <code>limitsDeclaredInAdvance</code> で自認している）。</p>
+<h3 id="落ちたのは1件ではなく-系統ごとだった-k-63-型-落とした集合そのものを見る">② 落ちたのは1件ではなく、系統ごとだった（K-63 型・落とした集合そのものを見る）</h3>
+<p>適格性で落ちた 8 行を並べると、向きがはっきりしている。</p>
+<div class="tw"><table><thead><tr><th>落ちた行</th><th>中身</th><th>落ちた理由</th></tr></thead><tbody><tr><td>D01</td><td>純視覚の集団行動（Bastien &amp; Romanczuk 2020）</td><td>Reynolds/boid 不在・3項不在</td></tr><tr><td>D06</td><td>最小認知 flocking（記憶なし・視野錐）</td><td>同上</td></tr><tr><td>D11</td><td>turn-away トルク（非相反・整列なし）</td><td>同上</td></tr><tr><td>D12</td><td>非相反な整列を持つ混合系（3論文）</td><td>同上</td></tr><tr><td>D22</td><td>位相的（順位）近傍の群れ</td><td>同上</td></tr><tr><td>D23</td><td>整列項を持たない引力だけの flocking</td><td>同上</td></tr><tr><td>D24</td><td>停止することで群れる</td><td>同上</td></tr><tr><td>D26</td><td>向きの情報を使わない実ロボット群</td><td>同上</td></tr></tbody></table></div>
+<p><strong>8 件すべてが同じ理由で落ち、8 件すべてが物理・能動物質側の文献である。</strong> 結果として <strong>LG7（整列項を外す）は適格 0 件</strong>となり、9 系統のうち唯一「立っているのに母集団を持たない系統」になった。 LG3（非相反）も 3 行中 1 行しか残っていない。</p>
+<p>P3 は「boid を名乗らない側は <code>all:boids</code> のクエリに入らないから、flocking 側の経路が必須」と予告していた。 経路は機能した——D11・D12・D22・D23・D24 はいずれも Q2 / Q5 が<strong>プールへ入れている</strong>。 <strong>落としたのは検索ではなく、適格性の規則のほうである。</strong> 母集団を広げる経路を足しても、<strong>適格性が同じ向きに効いていれば落ちる集合は戻ってこない</strong>。</p>
+<h3 id="登録では決まらなかった自由度が-成果物の半分を決めた-k-60-の名指しの候補">③ 登録では決まらなかった自由度が、成果物の半分を決めた（K-60 の名指しの候補）</h3>
+<p>適格性 (a) は「<strong>著者が本文で Reynolds / boids / boid を先行として名指ししている</strong>」である。 これは2通りに読める——(i) 背景としての列挙も数える（字面どおり）、(ii) 自模型の直接の先行として名指しした場合だけ数える。 <strong>登録はそこまで定めていない。</strong></p>
+<p>該当するのは2行だけだが、効き方が大きい。</p>
+<ul><li><strong>D07 swarmalator</strong>: 本文の背景で <code>agent-based simulations reynolds1987flocks</code> として列挙し、参照文献表に (28) として載せる</li><li><strong>D08 慣性スピン模型</strong>: Vicsek 模型の由来として Reynolds 1987 を名指しし、参照文献表に載せる</li></ul>
+<div class="tw"><table><thead><tr><th>読み</th><th>適格</th><th>P1</th><th>独立レポートの上位4本</th></tr></thead><tbody><tr><td><strong>(i) ゆるい（本レポートが採った）</strong></td><td>21</td><td>20</td><td>D10, D09, <strong>D08, D07</strong></td></tr><tr><td>(ii) 厳しい</td><td>19</td><td>18</td><td>D10, D09, <strong>D18, D20</strong></td></tr></tbody></table></div>
+<p><strong>独立レポート4本のうち2本が、この読み1つで入れ替わる。</strong> 規則の字面に従って (i) を採ったが、<strong>登録で決まっていなかった箇所が成果物の半分を決めている</strong>ことは記録に残す（<code>raw/eligibility-sensitivity.json</code>）。</p>
+<h3 id="行の発表日の決め方も-登録では決まっていなかった">④ 行の発表日の決め方も、登録では決まっていなかった</h3>
+<p><code>unitOfJudgement</code> は「同じ派生を扱う複数の論文は1行にまとめる」、<code>surveyWindow</code> は「プレプリントと雑誌版が両方ある場合は早いほう」と書く。 <strong>束ねた行の発表日をどう決めるか</strong>は書かれていない。本調査は「束ねた論文のうち最も早いもの」を採った。 この選択は W2 の採否に効きうる——実際 <strong>D20（位置ベース flocking）は 2025-08 の論文と 2026-02 の論文を束ねており、早いほうを採っても遅いほうを採っても W2 に入る</strong>ので結論は動かなかったが、動きうる箇所である。</p>
+<h3 id="i1-i4-が掬わなかったもの-規則の決め方-が変わった行">⑤ I1〜I4 が掬わなかったもの: 「規則の決め方」が変わった行</h3>
+<p><strong>D16（EvoFlock, arXiv:2606.25280）は、原典の著者 Craig Reynolds 本人が 2026年に書いた論文である</strong>（<code>cwr@red3d.com</code>）。 著者は</p>
+<blockquote>This work takes an inverse design approach.</blockquote>
+<p>と書く。規則の<strong>形</strong>は原型のまま、多数の数値パラメータを目的関数と遺伝的アルゴリズムで決める。 登録の I1 はこれを明示的に除外する（「重みや半径を変えただけは満たさない」）ので、得点は 2 に留まり順位 13 位になった。 <strong>変わったのは規則ではなく規則の決め方</strong>であり、<strong>I1〜I4 のどの条件もその軸を持たない</strong>。 本調査の順位表は、この種の変化に対して盲目である。</p>
+<h2 id="事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</h2>
+<p>以下は <code>criteria.json</code> に登録していない集計であり、結論の根拠には使わない。</p>
+<h3 id="事後-プールの-306-件に対し-母集団は-29-行しかない">事後 ①: プールの 306 件に対し、母集団は 29 行しかない</h3>
+<p>29 行は「1つの派生モデル＝1標本」で数えた結果で、論文数ではない。 プールの大半は <strong>Cucker-Smale 型の整列方程式の数学的解析</strong>（平均場極限・ハイドロダイナミック極限・存在と一意性）と <strong>能動物質の相図</strong>で占められている。これらは模型としては 1〜2 種類に収束する。 <strong>出版量と模型の種類の多様さは、この題材では 1 桁違う</strong>——登録が「論文数では数えない」とした判断はここで効いている。</p>
+<h3 id="事後-boid-を名乗る-ことの分布">事後 ②: 「boid を名乗る」ことの分布</h3>
+<p>本文の boid 語の出現数を数えると、母集団は二極化している—— D28（Boids in a Loop）177 回・D27（Monte Carlo boid）70 回・D10（非相反な転回する群れ）40 回・D16（EvoFlock）39 回に対し、 D02・D03・D04・D08 などは 2〜5 回の背景引用に留まる。 <strong>boid 語を多く使う行ほど I1 の得点が低い傾向がある</strong>（D28・D27 はいずれも I1 ×）。 規則を大きく変える論文ほど、自分を boid の子として紹介しない、という向きがここにも出ている。 これは事後の観察であり、件数が少ないので統計にはしない。</p>
+<h2 id="本家サブプロジェクトへの含意-候補として挙げるだけ-要件化しない">本家サブプロジェクトへの含意（<strong>候補として挙げるだけ。要件化しない</strong>）</h2>
+<ol><li><strong>S-09 の観測器は、思ったより広く当たる（I3 = 19/20）。</strong> ただし当たる理由は「位置と向きを持ち決定論的に進められる」というだけで、</li></ol>
+<p><strong>識別力を持たない</strong>（順位表では 1 件しか差をつけていない）。観測器が「当たる」ことと「効く」ことは別に測る必要がある。</p>
+<ol><li><strong>当たらなかった 1 件の落ち方が示唆的である。</strong> D07（swarmalator）は著者自身が</li></ol>
+<p>「粒子は向きを持たないので整列させるものが無い」と書くために I3 を満たさない。 <strong>原型の観測器が前提にしているのは「向き」という状態変数であり、それが無い派生には手が届かない</strong>—— 観測器の適用範囲は、模型の状態空間の形で決まる。</p>
+<ol><li><strong>情報伝播を測る観測器には、既に外部の先行がある。</strong> D10（arXiv:2604.23808）は S-09 と同じ量——</li></ol>
+<p>1個体の転回が群れをどう伝わるか、その速度と効率——を、<strong>非相反性という原型に無い構造の下で</strong>測っている。 S-09 の <code>frontSpeed</code> / <code>frontCorrelation</code> が測るものと重なる（詳細は<a href="../nonreciprocal-turning/index.html">独立レポート</a>）。</p>
+<ol><li><strong>「面白さ」を4条件で機械化する形は動いた。</strong> ただし I2（原型では原理的に出ない現象）だけが識別力を持ち（20% しか通らない）、</li></ol>
+<p>I3・I4 は 95%・100% で実質的に通過条件になっている。<strong>4条件のうち効いているのは実質 I1 と I2 の2つ</strong>である。</p>
+<h2 id="限界-この調査が言えないこと">限界（この調査が言えないこと）</h2>
+<ul><li><strong>全称の主張を書かない。</strong> 本調査の結論は「<code>searchProtocol</code> の範囲で到達できた派生の全体像」であって、</li></ul>
+<p>「2010年以降に存在する boid 派生の全体像」ではない。 とくに <strong>Q2 は totalResults=275 に対し 200 件しか取れておらず、75 件が見えていない</strong>。 引用連鎖は登録どおり1段までで、2段目で見えた Hildenbrandt et al. (2010) の空力 flocking（D09 の直接の先行）や Hemelrijk et al. (2015) の agitation wave 模型は辿っていない。</p>
+<ul><li><strong>「〜は存在しない」とは書けない。</strong> LG7（整列項を外す）の適格が 0 件なのは、</li></ul>
+<p>「整列項を外した派生で Reynolds を名乗るものが無い」ことの証拠ではなく、<strong>本調査が到達した範囲でそうだった</strong>というだけである。</p>
+<ul><li><strong>系統の分け方（lineage）は1通りしか登録できなかった。</strong> K-21 は「分け方の自由度は細かさの自由度より効く」と言う。</li></ul>
+<p>本調査は 9 系統に分けたが、<strong>別の分け方なら順位は変わりうる</strong>。とくに LG2（状態空間を増やす）に 位相・スピン・身体の3つを同居させた判断は、分ければ W1 の順位が変わる。これは登録できなかった欄である（<code>unregisterable</code>）。</p>
+<ul><li><strong>符号化者は1体しかいない。</strong> I1〜I4 の判定には裁量が残る。とくに I1 の境界例は2つあった——</li></ul>
+<p>D18（FDA Flocking）は $\theta=0$ で原型へ<strong>連続的に戻る</strong>混合であり、D13（ARBoids）は原型の出力へ残差を<strong>足す</strong>形で、 前者を ○、後者を × と判定した線は「項の形が変わったか」に置いている。第三者が判定を追えるよう、 根拠にした本文の箇所を <code>candidates.jsonl</code> の <code>evidence</code> に全件書いた。 登録は「独立な2体に同じ文献を符号化させる」のが本来の形だと書いた上で、それは工程の変更なので親へ申し送るとしている。</p>
+<ul><li><strong>W2 の起点（2024-12-23 / ASAL）は下見に基づく賭けであり、動かしていない。</strong></li></ul>
+<p>結果として W2 は「2024-12-23 以降に出た論文の集合」を切り出したが、 <strong>その落差が ASAL という出来事に由来するという証拠は本調査には無い</strong>。 同じ落差は、単に「直近 9 か月」を切っても出る。<strong>起点の意味は検証できていない。</strong></p>
+<ul><li><strong>到達できなかった行の「不明」は、系統的に偏る。</strong> P2 で I 条件を「不明」と数えることは登録したが、</li></ul>
+<p>不明が多い系統ほど I の充足率が低く見える偏りは、母集団の切り替えでは打ち消せない（登録がそう自認している）。 本調査では不明が 1 行しか出なかったので実害は小さいが、<strong>打ち消す形は依然として無い</strong>。</p>
+<ul><li><strong>再現実装を持たない。</strong> 本スケッチは原典への到達度で置き換えており、</li></ul>
+<p>ここに書いた運動方程式は<strong>本文から読み取ったもので、走らせて確かめてはいない</strong>。 実際に走らせるのは S-53 の仕事である。</p></article><p class="src">原典: <code>docs/subprojects/alife-sketches/sketches/S-50-boids-derivatives/reports/main.md</code></p></section><section class="pane" data-pane="r-flock2-aerodynamic" hidden><div class="rmeta"><span class="angle">順位2位の派生（I1 I2 I3 I4 すべて充足・身体を持ち込む系統の代表）</span><span class="ver">記載時の版 v1.0.0</span><span class="tag">boids</span><span class="tag">空力</span><span class="tag">向き</span><span class="tag">ムクドリ</span><span class="tag">agitation wave</span></div><details class="rtoc"><summary>目次</summary><a href="#一行で言うと">一行で言うと</a><a href="#原型との差分">原型との差分</a><a href="#原型では出ない何が出るか-i2">原型では出ない何が出るか（I2）</a><a href="#s-09-の観測器は当たるか-i3">S-09 の観測器は当たるか（I3）</a><a href="#s-53-で再実装する場合の登録項目の下書き">S-53 で再実装する場合の登録項目の下書き</a><a href="#限界">限界</a></details><article class="md"><h1 id="d09-向きベースの社会性を空力モデルへ結合する-flock2-arxiv-2404-17804">D09: 向きベースの社会性を空力モデルへ結合する（Flock2 / arXiv:2404.17804）</h1>
+<ul><li><strong>順位</strong>: 2位 / 21（<code>raw/candidates.jsonl</code>）。<strong>I1 ○ I2 ○ I3 ○ I4 ○（得点 4）</strong></li><li><strong>系統</strong>: LG2（状態空間を増やす）</li><li><strong>出典</strong>: Hoetzlein, R. C. (2024) *Flock2: A model for orientation-based social flocking*, arXiv:2404.17804（published 2024-04-27。層Aで arXiv API と一致・層Bで逐語照合済み）</li><li><strong>到達度</strong>: 運動方程式まで（ar5iv の HTML から本文を取得）</li></ul>
+<h2 id="一行で言うと">一行で言うと</h2>
+<p><strong>原型の3項は「鳥に働く力」として足し合わされるが、実際の鳥が自分で変えられるのは翼の形と向きだけである。</strong> Flock2 はその1点だけを直して——社会的な影響を<strong>目標の向き</strong>へ束ね、速度と位置の更新は揚力・抗力・重力だけに任せて—— <strong>捕食者がいなくてもムクドリの群れに走る「動揺波（agitation wave）」が自然に出る</strong>ことを示す。 原型で同じことをやるには、これまで「逃避のメッセージを隣へ渡す伝達機構」を<strong>明示的に書き込む</strong>必要があった。</p>
+<h2 id="原型との差分">原型との差分</h2>
+<p>著者は原型を本文でこう定式化する（式1）:</p>
+<pre><code>Reynolds (1987):   F_social = F_avoidance + F_alignment + F_cohesion
+Hildenbrandt (2010): F_total = F_flight + k·F_social      （社会的な力を空力へ足し込む）</code></pre>
+<p>Flock2 が変えたのはここである:</p>
+<blockquote>only the total aerodynamic forces are permitted to update the bird’s velocity and position, whereas the social orientation-model is only permitted to influence the desired heading</blockquote>
+<p>（層Bで逐語照合済み）。著者はこれを、社会的な影響は「力学的な仕事をする力」ではなく知覚である、という理由で導入している。</p>
+<p>実装は四元数 $Q_i$ で行う。近傍 $j$ の方向を自機の局所座標系へ落とし、<strong>ヨー $\psi$ とピッチ $\theta$ の目標角</strong>を作る:</p>
+<pre><code>回避:  v_avoid = p_j − p_i
+       T^avoid_ψ = k_avoid · arctan( v_avoid · Q_i^{-1} ) / d        … 式(4)
+       T^avoid_θ = k_avoid · arcsin( v_avoid · Q_i^{-1} ) / d        … 式(5)
+
+整列:  v_align = (Σ_j v_j) / n_i    → 同様に T^align_ψ, T^align_θ    … 式(6)〜
+結合:  近傍の重心方向 → 同様に目標角へ
+
+（近傍は前方の限られた視野の中からしか取らない）</code></pre>
+<p>得られた目標角は<strong>1本のアクチュエータ</strong>として低層の空力モデル（Flightsim: 固定翼＋揚力・抗力・重力）を駆動し、 速度と位置を更新するのは空力の総和だけである。</p>
+<blockquote>treats social influences from neighbors more realistically as a desire to turn</blockquote>
+<p><strong>I1 の判定</strong>: ○。3項の入力自体（$p_j - p_i$、$v_j$）は原型と同じだが、 <strong>3項が加速度への寄与ではなく、姿勢制御の目標角へ写像され直している</strong>。 最終的な速度更新は $\{$ 揚力, 抗力, 重力, 推力 $\}$ から出るので、 <strong>位置差と速度差だけの重み付き和としては書けない</strong>。</p>
+<h2 id="原型では出ない何が出るか-i2">原型では出ない何が出るか（I2）</h2>
+<ul><li><strong>身体の状態が要る。</strong> 四元数で表される姿勢、バンク角、対気速度、翼面の揚力係数——</li></ul>
+<p><strong>これらはどれも原型 boid の（位置・速度）からは定義できない状態変数</strong>である。</p>
+<ul><li><strong>動揺波（agitation wave）が捕食者なしに出る。</strong> 著者は「捕食者の不在における orientation wave の可能性」を示す。</li></ul>
+<p>先行の Hemelrijk et al. (2015) は同じ現象を出すのに「逃避メッセージの伝達機構」を明示的に書き込む必要があり、 かつ最初のメッセージは捕食者が起こすと仮定していた。<strong>Flock2 ではその機構を書かずに波が出る。</strong></p>
+<ul><li><strong>旋回のエネルギー消費が測れる。</strong> 著者は Reynolds の模型との比較で「旋回時のエネルギー消費が有意に小さい」と報告する。</li></ul>
+<p>これは原型では<strong>そもそも定義できない量</strong>である（原型に機械的仕事の概念が無い）。</p>
+<ul><li><strong>規模</strong>: 参照種はムクドリ（体重 80 g・機械的出力 10 W・平均速度 10 m/s）。</li></ul>
+<p>群れの形が球形・卵形になることを観察と突き合わせている。</p>
+<h2 id="s-09-の観測器は当たるか-i3">S-09 の観測器は当たるか（I3）</h2>
+<p><strong>当たる。</strong> 状態には位置と向き（四元数）が含まれ、1個体の目標向きを微小に回す摂動が定義できる。</p>
+<div class="tw"><table><thead><tr><th>S-09 の観測器</th><th>当たるか</th><th>何を変える必要があるか</th></tr></thead><tbody><tr><td><code>reachedFraction</code>（eps=0）</td><td>○</td><td><strong>変えなくてよい</strong>。ただし状態が増えた分、差が出る成分は向きだけではなくなる</td></tr><tr><td><code>frontCorrelation</code> / <code>frontSpeed</code></td><td>○</td><td><strong>本派生の主題そのもの</strong>（動揺波の伝播）。S-09 と同じ量を測ることになる</td></tr><tr><td><code>spreadCount</code></td><td>○</td><td>そのまま</td></tr><tr><td><code>lyapunov</code></td><td>○</td><td>そのまま</td></tr><tr><td><code>alignmentOrder</code></td><td>○</td><td>四元数から前方ベクトルを取り出せばそのまま</td></tr></tbody></table></div>
+<p><strong>S-09 の眼目が最も素直に移る候補である。</strong> S-09 は原型 boid で「1個体の向きを 0.2 rad 回した世界と回さない世界の差がどこまで広がるか」を測り、 <strong>情報を運んでいるのは知覚ではなく群れ自身の移動だった</strong>という結論を出した。 Flock2 では速度更新が空力を経由するので、<strong>同じ問いに対して答えが変わりうる</strong>—— 姿勢の変化は空力を通じてしか運動に効かず、その遅れが波面の速度を決める可能性がある。</p>
+<h2 id="s-53-で再実装する場合の登録項目の下書き">S-53 で再実装する場合の登録項目の下書き</h2>
+<div class="tw"><table><thead><tr><th>欄</th><th>下書き</th></tr></thead><tbody><tr><td><strong>秩序変数</strong></td><td>連言: ①<code>frontSpeed</code>（動揺波の伝播速度）②<code>reachedFraction</code>（eps=0）③旋回時の機械的仕事（原型では定義できない量を<strong>あえて入れる</strong>）</td></tr><tr><td><strong>スケール</strong></td><td>空間は翼幅（または体長）、時間は 1 wingbeat、速度は 10 m/s を 1 とする。著者のムクドリ実パラメータを使う</td></tr><tr><td><strong>閾値</strong></td><td>eps=0。近傍の前方視野角と近傍数は著者の値を出発点に、<strong>掃引しないで固定する</strong>（振るのは摂動の大きさだけ）</td></tr><tr><td><strong>参照点</strong></td><td><strong>3段に置く</strong>: ①原型 Reynolds（$F_{total} = F_{social}$）②Hildenbrandt 型（$F_{total} = F_{flight} + kF_{social}$）③Flock2（社会性は目標向きだけ）。<strong>著者自身がこの3つを並べているので、比較の骨格が原典に入っている</strong></td></tr><tr><td><strong>母集団</strong></td><td>群れサイズは著者の値。<strong>動揺波が出た走行だけを数えるか全走行を数えるかで符号が変わりうる</strong>（S-19 の教訓）ので、両方で出す</td></tr><tr><td><strong>上限と、それが落とすもの</strong></td><td>空力の積分刻み。刻みを粗くすると姿勢の遅れが消え、波が出なくなる側へ倒れる。落とした集合を記録する</td></tr></tbody></table></div>
+<p><strong>再実装の忠実性について</strong>: 式(3)〜(6) は本文にあるが、 <strong>低層の空力モデル（Flightsim）の詳細は本文だけでは完全には決まらない</strong>。 揚力係数・抗力係数・推力の与え方は本文に部分的にしか書かれておらず、 <strong>再実装は「原典の式からの自作＋空力部分の自前の設計」になる</strong>。この点は S-53 の <code>sourceFidelity</code> に必ず書くこと。</p>
+<h2 id="限界">限界</h2>
+<ul><li><strong>本文は読めたが走らせていない。</strong> 動揺波が出るかどうかは著者の主張である。</li><li><strong>空力部分が原典から一意に決まらない。</strong> 上記のとおり、再現の忠実性はここで割れる。</li><li><strong>「捕食者なしで波が出る」の規模が本レポートからは読めない。</strong> 何割の走行で出るのか、</li></ul>
+<p>波がどれだけの距離を伝わるのかは、本文の該当箇所まで到達していない（図の説明と本文の記述までで、数表には当たっていない）。</p>
+<ul><li><strong>I1 の判定は「写像され直した」ことに置いている。</strong> 3項の入力は原型と同じなので、</li></ul>
+<p>「3項を極座標で書き直しただけ」と読むこともできる。本レポートは<strong>速度更新の経路が空力に置き換わった</strong>ことを決め手にした。</p></article><p class="src">原典: <code>docs/subprojects/alife-sketches/sketches/S-50-boids-derivatives/reports/flock2-aerodynamic.md</code></p></section><section class="pane" data-pane="r-inertial-spin" hidden><div class="rmeta"><span class="angle">順位3位の派生（I1 I2 I3 I4 すべて充足・保存則が現象を作る例）</span><span class="ver">記載時の版 v1.0.0</span><span class="tag">boids</span><span class="tag">慣性スピン</span><span class="tag">保存則</span><span class="tag">スピン波</span><span class="tag">Vicsek</span></div><details class="rtoc"><summary>目次</summary><a href="#一行で言うと">一行で言うと</a><a href="#原型との差分">原型との差分</a><a href="#原型では出ない何が出るか-i2">原型では出ない何が出るか（I2）</a><a href="#s-09-の観測器は当たるか-i3">S-09 の観測器は当たるか（I3）</a><a href="#s-53-で再実装する場合の登録項目の下書き">S-53 で再実装する場合の登録項目の下書き</a><a href="#限界">限界</a></details><article class="md"><h1 id="d08-慣性スピン模型-スピンを保存する離散ラプラシアン熱浴-arxiv-2403-07644">D08: 慣性スピン模型（スピンを保存する離散ラプラシアン熱浴 / arXiv:2403.07644）</h1>
+<ul><li><strong>順位</strong>: 3位 / 21（<code>raw/candidates.jsonl</code>）。<strong>I1 ○ I2 ○ I3 ○ I4 ○（得点 4）</strong></li><li><strong>系統</strong>: LG2（状態空間を増やす）</li><li><strong>出典</strong>: Cavagna, A., Cristín, J., Giardina, I., Grigera, T. S., Veca, M. (2024) *Discrete Laplacian thermostat for flocks and swarms: the fully conserved Inertial Spin Model*, arXiv:2403.07644（published 2024-03-12。層Aで arXiv API と一致・層Bで逐語照合済み）</li><li><strong>到達度</strong>: 運動方程式まで（ar5iv の HTML から本文を取得）</li><li><strong>適格性の注意</strong>: 本文は Reynolds 1987 を<strong>Vicsek 模型の由来として</strong>名指しする。<strong>自模型の直接の先行としてではない</strong>ので、適格性の読みが変わればこの行は母集団から外れる（main の「登録では決まらなかったこと」を見よ）</li></ul>
+<h2 id="一行で言うと">一行で言うと</h2>
+<p><strong>原型 boid は「向きは速度が決める」を前提に作られているが、実際の鳥は向きを変えること自体に抵抗がある。</strong> 慣性スピン模型は速度と「その回転の生成子（スピン）」を正準対に組み、1階だった向きの力学を2階にする。 その結果 <strong>スピンが保存量になり、その保存則から——雑音を入れる仕方を間違えなければ——スピン波が出る</strong>。 本論文は「緩和させるために入れた摩擦と雑音がスピン保存を壊していた」という先行の弱点を、<strong>保存則を壊さない熱浴</strong>で直したものである。</p>
+<h2 id="原型との差分">原型との差分</h2>
+<p>原型 boid の向きは、3項の和が指す方向へ（<code>maxTurn</code> で刻まれながら）寄っていく。 すなわち向きの力学は<strong>1階</strong>で、角速度という独立な状態を持たない。</p>
+<p>慣性スピン模型は次の形を採る:</p>
+<pre><code>dv_i/dt = (1/χ) s_i × v_i                        … 式(2a)
+ds_i/dt = v_i × J Σ_j n_ij v_j                   … 式(2b)</code></pre>
+<p>$s_i$ が<strong>スピン</strong>——速度の回転の生成子である。$\chi$ は一般化された慣性で、 著者はこれを「向きを変えることへの社会的・生理的な抵抗」と書く。</p>
+<blockquote>the Inertial Spin Model (ISM) reinstates a second-order temporal dynamics</blockquote>
+<p>$n_{ij}$ は相互作用行列（近傍なら 1）で、右辺の $J\sum_j n_{ij} v_j$ は<strong>原型の整列項そのもの</strong>である。 <strong>置き換わったのは整列項の中身ではなく、それが速度に効く経路のほう</strong>である: 整列力は直接に速度を回さず、いったんスピンへ入り、スピンが速度を回す。</p>
+<p><strong>I1 の判定</strong>: ○。$s_i$ は $v_j - v_i$ からは書けない（$v$ と正準対をなす独立変数であり、初期値を別に指定できる）。</p>
+<p>本論文が加えたのは、その上で<strong>散逸と揺らぎをスピン保存を壊さない形にする</strong>ことである（離散ラプラシアン熱浴）。</p>
+<h2 id="原型では出ない何が出るか-i2">原型では出ない何が出るか（I2）</h2>
+<ul><li><strong>保存則がひとつ生まれる。</strong> 著者はこう書く:</li></ul>
+<p>&gt; The reversible structure of the ISM predicts that the total spin is a constant of motion</p>
+<p>整列相互作用が速度の回転の下で不変であるため、Noether の定理から<strong>全スピンが保存する</strong>（散逸が無い場合）。 <strong>原型 boid には対応する保存量が無い。</strong></p>
+<ul><li><strong>スピン波。</strong> 秩序相でスピン波が出る。これは実際の群れ（Attanasi et al. 2014）で観測されたものに対応する。</li><li><strong>本論文が直した点が I2 の核心</strong>: 先行の ISM では、緩和させるために入れた摩擦と雑音が保存則を破っており、</li></ul>
+<p>そのため<strong>有限サイズの範囲でしか実際の生物の現象と合わず、その外では Vicsek 型の過減衰へ落ちる</strong>。 本論文は保存を壊さない熱浴を入れ、秩序相のスピン波の現象論と、秩序化近傍での<strong>動的臨界指数</strong>の理論予測との一致を得ている。</p>
+<ul><li><strong>規模</strong>: 数値実験は固定ネットワーク（平衡の Model G クラスに属する）と、</li></ul>
+<p>自己駆動＋相互作用ネットワークの非平衡な組み替えを含む能動的な場合の両方。</p>
+<h2 id="s-09-の観測器は当たるか-i3">S-09 の観測器は当たるか（I3）</h2>
+<p><strong>当たる。</strong> 状態に位置と向き（$v_i$ の方向）が含まれ、1個体の $v_i$ を微小に回す摂動が定義できる。</p>
+<div class="tw"><table><thead><tr><th>S-09 の観測器</th><th>当たるか</th><th>何を変える必要があるか</th></tr></thead><tbody><tr><td><code>reachedFraction</code>（eps=0）</td><td>○</td><td><strong>変えなくてよい</strong>。ただし雑音が入るので、S-09 と同じく<strong>同一シードで対にする</strong>必要がある</td></tr><tr><td><code>frontCorrelation</code> / <code>frontSpeed</code></td><td>○</td><td>本模型が出すスピン波は、まさに波面の速度が定義できる対象</td></tr><tr><td><code>spreadCount</code></td><td>○</td><td>そのまま</td></tr><tr><td><code>lyapunov</code></td><td>○</td><td>定義できる。ただし熱浴が入るので、雑音由来の発散と擾乱由来の発散を分ける必要がある</td></tr><tr><td><code>alignmentOrder</code></td><td>○</td><td>そのまま</td></tr></tbody></table></div>
+<p><strong>S-09 にとっての意義は、「情報が減衰せずに伝わる」ことの機構を先に提示されている点である。</strong> S-09 は原型 boid で「擾乱がどこまで届くか」を測ったが、原型は過減衰なので情報は拡散する。 慣性スピン模型は<strong>なぜ実際の群れでは拡散ではなく波なのか</strong>に答えを持っており、 その答えが<strong>保存則</strong>という形をしている。</p>
+<h2 id="s-53-で再実装する場合の登録項目の下書き">S-53 で再実装する場合の登録項目の下書き</h2>
+<div class="tw"><table><thead><tr><th>欄</th><th>下書き</th></tr></thead><tbody><tr><td><strong>秩序変数</strong></td><td>連言: ①全スピン $\sum_i s_i$ の保存の破れ（<strong>これが本論文の主題</strong>）②<code>frontSpeed</code>（スピン波の速度）③<code>alignmentOrder</code></td></tr><tr><td><strong>スケール</strong></td><td>時間は $\sqrt{\chi/J}$、速度は $v_0$、空間は相互作用半径。$\chi$ の大小で過減衰↔慣性が切り替わる無次元数を1本立てる</td></tr><tr><td><strong>閾値</strong></td><td>eps=0。相転移点の判定には閾値を持ち込まず、<strong>有限サイズスケーリング</strong>で見る</td></tr><tr><td><strong>参照点</strong></td><td><strong>3段</strong>: ①$\chi \to 0$（過減衰＝Vicsek 型）②保存を壊す旧来の熱浴（先行の ISM）③本論文の離散ラプラシアン熱浴。<strong>②が本論文にとっての負コントロールであり、原典が既にそれを持っている</strong></td></tr><tr><td><strong>母集団</strong></td><td>有限サイズスケーリングが主題なので $N$ を複数（著者と同じ列）。<strong>「保存が成り立っていた走行だけ」を数えるか全走行を数えるかで結論が変わりうる</strong></td></tr><tr><td><strong>上限と、それが落とすもの</strong></td><td>積分刻み。刻みが粗いとシンプレクティック構造が崩れてスピンが保存しなくなる——<strong>上限が現象そのものを作る側に効く危険な例</strong>。刻みを振って、保存の破れが刻みに依存する量かを先に見る</td></tr></tbody></table></div>
+<p><strong>再実装の忠実性について</strong>: 式(2a)(2b) は本文から取れている。 ただし<strong>離散ラプラシアン熱浴の具体形は本文の該当節まで到達していない</strong>（本調査が読んだのは II.2 の導入まで）。 S-53 で再実装するなら、そこへ到達するのが最初の作業になる。</p>
+<h2 id="限界">限界</h2>
+<ul><li><strong>本文の一部までしか到達していない。</strong> 運動方程式（式2a・2b）と保存則の主張は本文から取ったが、</li></ul>
+<p><strong>本論文の新規性である熱浴の具体形と、数値実験の結果（臨界指数の値）には到達していない</strong>。 したがって「動的臨界指数が理論予測とよく合う」という本レポートの記述は、著者の要旨と序論に基づく。</p>
+<ul><li><strong>適格性が読みに依存する。</strong> 上に書いたとおり、Reynolds への言及は背景の列挙である。</li></ul>
+<p>厳しい読みを採ればこの行は母集団に入らず、順位表も独立レポートの顔ぶれも変わる（<code>raw/eligibility-sensitivity.json</code>）。</p>
+<ul><li><strong>これを「boid の派生」と呼ぶことには無理がある。</strong> 系譜としては Vicsek → 慣性スピン模型であって、</li></ul>
+<p>Reynolds → 本模型ではない。<strong>本調査が採った適格性の規則がこの行を拾ったこと自体が、規則の性格を示している。</strong></p>
+<ul><li><strong>走らせていない。</strong> ここに書いた挙動は著者の主張である。</li></ul></article><p class="src">原典: <code>docs/subprojects/alife-sketches/sketches/S-50-boids-derivatives/reports/inertial-spin.md</code></p></section><section class="pane" data-pane="r-nonreciprocal-turning" hidden><div class="rmeta"><span class="angle">順位1位の派生（I1 I2 I3 I4 すべて充足・S-09 と主題が正面から重なる）</span><span class="ver">記載時の版 v1.0.0</span><span class="tag">boids</span><span class="tag">非相反</span><span class="tag">情報伝播</span><span class="tag">慣性スピン</span><span class="tag">S-09</span></div><details class="rtoc"><summary>目次</summary><a href="#一行で言うと">一行で言うと</a><a href="#原型との差分">原型との差分</a><a href="#原型では出ない何が出るか-i2">原型では出ない何が出るか（I2）</a><a href="#s-09-の観測器は当たるか-i3">S-09 の観測器は当たるか（I3）</a><a href="#s-53-で再実装する場合の登録項目の下書き">S-53 で再実装する場合の登録項目の下書き</a><a href="#限界">限界</a></details><article class="md"><h1 id="d10-非相反にした転回する群れ-arxiv-2604-23808">D10: 非相反にした転回する群れ（arXiv:2604.23808）</h1>
+<ul><li><strong>順位</strong>: 1位 / 21（<code>raw/candidates.jsonl</code>）。<strong>I1 ○ I2 ○ I3 ○ I4 ○（得点 4）</strong></li><li><strong>系統</strong>: LG3（相互作用を非相反にする）</li><li><strong>出典</strong>: Sandoval, M. (2026) *Information transfer enhanced by non-reciprocity in a model of turning flocks*, arXiv:2604.23808（published 2026-04-26。層Aで arXiv API と一致・層Bで逐語照合済み）</li><li><strong>到達度</strong>: 運動方程式まで（ar5iv の HTML から本文を取得）</li></ul>
+<h2 id="一行で言うと">一行で言うと</h2>
+<p><strong>原型の整列を「左右で係数の違う torque」に変えるだけで——つまり Newton の第3法則をわざと破るだけで——群れの中を転回の情報が速く・減衰せずに伝わるようになる。</strong> しかもこの模型が測っているのは S-09 が測ったものとほぼ同じ量（波面の速度と、届いた先での一致度）であり、 <strong>S-09 の観測器を定義を変えずに当てられる唯一の上位候補</strong>である。</p>
+<h2 id="原型との差分">原型との差分</h2>
+<p>Reynolds の原型は、各個体の向きを3項の重み付き和で決める（S-09 の実装では <code>target = arg(w_sep·ŝep + w_ali·âli + w_coh·ĉoh)</code>）。 本派生は、1次元に並べた $N$ 個の boid の<strong>回転の自由度だけ</strong>を取り出し、次の形に置き換える。</p>
+<pre><code>並進:  dx_i/dt = v_0 · e_i(t),        e_i = (cos θ_i, sin θ_i)          … 式(1)
+
+回転:  χ d²θ_i/dt² = −γ dθ_i/dt
+                     − k(1+δ_A)(θ_i − θ_{i−1})  +  k(1−δ_A)(θ_{i+1} − θ_i)
+                     − α(θ_i − θ_{i−1})³        +  α(θ_{i+1} − θ_i)³      … 式(3)</code></pre>
+<p>原型から変わったのは3点である。</p>
+<ol><li><strong>1階から2階へ</strong>。$\chi$ は「スピン（自己回転）の慣性モーメント」で、向きを変えることへの抵抗を表す。</li></ol>
+<p>原型では向きは瞬時に目標へ寄るが、ここでは角速度が独立な状態変数になる。</p>
+<ol><li><strong>非線形項 $\alpha(\cdot)^3$</strong>。線形＋3次の torque で、Fermi-Pasta-Ulam 型の格子になる。</li><li><strong>左右で係数が違う</strong>。$k(1+\delta_A)$ と $k(1-\delta_A)$。著者はこれを明示的にこう書く:</li></ol>
+<p>&gt; Clearly Newton’s third law is violated.</p>
+<p>$\delta_A = 0$ で原型（相反な Cavagna の慣性スピン模型）へ戻り、$\delta_A &gt; 0$ で非相反になる。 <strong>登録した I1 の例示「非相反な相互作用行列」そのものである。</strong></p>
+<p>著者は対象を一貫して boid と呼ぶ:</p>
+<blockquote>the turning information propagation within a flock of boids (bird-like objects)</blockquote>
+<p>（Reynolds 1987 を引いた上で。層Bで逐語照合済み）</p>
+<h2 id="原型では出ない何が出るか-i2">原型では出ない何が出るか（I2）</h2>
+<ul><li><strong>角速度が独立な状態変数になる。</strong> 原型 boid の状態は（位置・速度）だけで、向きは速度から決まる。</li></ul>
+<p>ここでは $\theta_i$ と $d\theta_i/dt$ が独立で、$\chi$ という慣性を持つ。 <strong>「転回の情報の伝播速度が、転回を始めた個体の角速度 $\omega_0$ の関数になる」という主張は、$\omega_0$ を状態として持たない原型では定義すらできない。</strong></p>
+<ul><li><strong>連続体極限が散逸つきの非相反な modified KdV 方程式になる。</strong> 波（ソリトン）として伝わる構造がここから出る。</li></ul>
+<p>原型の過減衰な整列では情報は拡散し、波面は立たない。</p>
+<ul><li><strong>規模</strong>: 著者は $N = 100$（50・200 でも同じ結果）、$\delta_A \in [0,1]$ で掃引し、</li></ul>
+<p>非相反性を上げると転回信号への整列が速くなることをヒストグラムで示す。 実パラメータは $\chi = 1$、$k = 20$、$\alpha = 10^5$、$\gamma = 0.7$、$\omega_0 = \{0.26, 5, 200, 1000\}\,\mathrm{s^{-1}}$、$dt = 0.001$。 無次元化した $\tilde{t}_F = 31.3$ は「脅威が無いときの実際の群れが U ターンに要する時間」に合わせてある。</p>
+<h2 id="s-09-の観測器は当たるか-i3">S-09 の観測器は当たるか（I3）</h2>
+<p><strong>当たる。しかも主題が重なる。</strong></p>
+<div class="tw"><table><thead><tr><th>S-09 の観測器</th><th>当たるか</th><th>備考</th></tr></thead><tbody><tr><td><code>reachedFraction</code>（eps=0 の到達率）</td><td>○</td><td>系は決定論的な ODE。1個体の $\theta$ を微小に回した対照走行とビット単位で比べられる</td></tr><tr><td><code>frontCorrelation</code>（波面の相関）</td><td>○</td><td>著者が測る「分散角」がほぼ同じ量</td></tr><tr><td><code>frontSpeed</code>（波面の速度）</td><td>○</td><td><strong>著者の主結果そのもの</strong>。$\tilde{c}_0 = c\sqrt{\chi/k}/h$ として無次元化されている</td></tr><tr><td><code>spreadCount</code></td><td>○</td><td>1次元鎖なので届いた個体数の数え上げが自明</td></tr><tr><td><code>lyapunov</code></td><td>○</td><td>決定論的なので定義できる</td></tr><tr><td><code>alignmentOrder</code></td><td>○</td><td>$\theta_i$ の分散から直に出る</td></tr></tbody></table></div>
+<p><strong>定義を一字も変えずに当たる。</strong> 変わるのは前処理だけで、S-09 は 2次元の群れ、本派生は 1次元の鎖である （著者は $N=\{50,100,200\}$ で結果が変わらないと書いており、サイズ依存性は無い）。</p>
+<p><strong>S-09 との対応で一番効くのは、負コントロールがそのまま使えることである。</strong> S-09 は「整列度 1.00 でありながら擾乱を1個体も伝えない系」を作った。 本派生は $\delta_A$ という1つのつまみで<strong>相反↔非相反</strong>を連続的に動かせるので、 <strong>$\delta_A = 0$ が正コントロール（既存の慣性スピン模型）、$\delta_A &gt; 0$ が処理</strong>という構造が模型の側に最初から入っている。</p>
+<h2 id="s-53-で再実装する場合の登録項目の下書き">S-53 で再実装する場合の登録項目の下書き</h2>
+<div class="tw"><table><thead><tr><th>欄</th><th>下書き</th></tr></thead><tbody><tr><td><strong>秩序変数</strong></td><td>連言を採る（K-14）: ①<code>frontSpeed</code>（無次元 $\tilde{c}_0$）②<code>reachedFraction</code>（eps=0）③効率 $\eta_i = 1 - \varepsilon_i$。単一スカラーにしない</td></tr><tr><td><strong>スケール</strong></td><td>空間は個体間隔 $h$、時間は $\tilde{t} = t\sqrt{k/\chi}$、角速度は $\tilde{\omega}_0 = \omega_0\sqrt{\chi/k}$。<strong>著者の無次元化をそのまま使う</strong>（自分で作らない）</td></tr><tr><td><strong>閾値</strong></td><td>eps=0（到達判定に閾値を持ち込まない・K-10）。$\delta_A$ の掃引は $[0, 1]$ を 11 点、$\tilde{\omega}_0$ は著者の4値</td></tr><tr><td><strong>参照点</strong></td><td><strong>$\delta_A = 0$（相反・Cavagna 2025 の非線形慣性スピン模型）を正コントロールに置く。</strong> 加えて $\alpha = 0$（線形）と $\chi \to 0$（過減衰＝Vicsek 型）の2つを負コントロールに置き、「非相反性が効いたのか、慣性が効いたのか、非線形が効いたのか」を分離する</td></tr><tr><td><strong>母集団</strong></td><td>$N = \{50, 100, 200\}$ の3通り。著者がサイズ非依存と書いているので、<strong>それが再現されるかを検査項目に立てる</strong>（K-17 型: 壊したつもりの操作が現象を壊していないかを見る）</td></tr><tr><td><strong>上限と、それが落とすもの</strong></td><td>掃引点数・積分時間 $\tilde{t}_F$。$\tilde{t}_F = 31.3$ の外で何が起きるかは落ちる。落とした集合を記録する</td></tr></tbody></table></div>
+<p><strong>再実装の忠実性について</strong>: 運動方程式（式1・式3）は本文から取れており、パラメータも全て本文にある。 原典のコードは公開されていないので、<strong>再実装は「原典の式からの自作」になる</strong>。 式(2) と式(3) の等価性（$\tau^A = k\delta_A$ の代入）も本文にあるので、両方を実装して一致を検査できる。</p>
+<h2 id="限界">限界</h2>
+<ul><li><strong>本文は読めたが走らせていない。</strong> ここに書いた挙動は著者の主張であり、本調査は検証していない。</li><li><strong>著者の「効率」の定義には引っかかりがある。</strong> 本文の $\varepsilon_i = (\theta^*_{FT} - \theta^*_{iF})/\theta^*_{FT}$ で、</li></ul>
+<p>$\theta^*_{FT} = \theta_{FT} - \theta_I$ と $\theta^*_{iF} = \theta_{FT} - \theta_I$ が<strong>同じ式で書かれている</strong>（ar5iv の本文でそう出る）。 添字から見て後者は $\theta_{iF} - \theta_I$ の誤植と思われるが、<strong>本調査は原典の誤植を断定できない</strong>。 S-53 で再実装するなら、ここは著者へ問うか、両方の読みで実装して分岐を記録する箇所である。</p>
+<ul><li><strong>非相反性が「情報伝播を速くする」という主張の一般性は測れていない。</strong> 1次元の最近接鎖に限った結果であり、</li></ul>
+<p>2次元・多近傍で同じことが起きるかは本文にない。</p>
+<ul><li><strong>I2 の判定には裁量が残る。</strong> 「スピン慣性を持つ角速度が独立な状態変数である」ことを I2 の根拠にしたが、</li></ul>
+<p>これを「$\chi$ という係数を1つ足しただけ」と読むことも原理的にはできる。 本レポートは「原型 boid の状態（位置・速度）では $d\theta/dt$ を独立に指定できない」ことを決め手にした。</p></article><p class="src">原典: <code>docs/subprojects/alife-sketches/sketches/S-50-boids-derivatives/reports/nonreciprocal-turning.md</code></p></section><section class="pane" data-pane="r-swarmalator" hidden><div class="rmeta"><span class="angle">順位4位の派生（I2 を満たすが I3 を満たさない・観測器の適用範囲を切る例）</span><span class="ver">記載時の版 v1.0.0</span><span class="tag">swarmalator</span><span class="tag">同期</span><span class="tag">位相</span><span class="tag">Kuramoto</span><span class="tag">観測器の適用範囲</span></div><details class="rtoc"><summary>目次</summary><a href="#一行で言うと">一行で言うと</a><a href="#原型との差分">原型との差分</a><a href="#原型では出ない何が出るか-i2">原型では出ない何が出るか（I2）</a><a href="#s-09-の観測器は当たるか-i3-当たらない">S-09 の観測器は当たるか（I3）— <strong>当たらない</strong></a><a href="#s-53-で再実装する場合の登録項目の下書き">S-53 で再実装する場合の登録項目の下書き</a><a href="#限界">限界</a></details><article class="md"><h1 id="d07-swarmalator-位置と内部位相が双方向に結合する-arxiv-1701-05670-ほか">D07: swarmalator（位置と内部位相が双方向に結合する / arXiv:1701.05670 ほか）</h1>
+<ul><li><strong>順位</strong>: 4位 / 21（<code>raw/candidates.jsonl</code>）。<strong>I1 ○ I2 ○ I3 ×  I4 ○（得点 3）</strong></li><li><strong>系統</strong>: LG2（状態空間を増やす）</li><li><strong>出典（1行が束ねる3件。unitOfJudgement: 1つの派生モデル＝1標本）</strong>:</li><li>O'Keeffe, K. P., Hong, H., Strogatz, S. H. (2017) *Oscillators that sync and swarm*, arXiv:1701.05670 / Nature Communications 8:1504（published 2017-01-20）</li><li>*Interplay of sync and swarm: Theory and application of swarmalators*（総説）, arXiv:2510.09819（published 2025-10-10）</li></ul>
+<p>— <strong><code>criteria.json</code> が「id が取れなければレポートに出さない」として登録した B7 は、この文献である</strong></p>
+<ul><li>*Robots that Sync and Swarm: A Proof of Concept in ROS 2*, arXiv:1903.06440（published 2019-03-15）</li><li><strong>到達度</strong>: 運動方程式まで（ar5iv の HTML から本文を取得。層Aで arXiv API と一致・層Bで逐語照合済み）</li><li><strong>適格性の注意</strong>: 本文は Reynolds 1987 を<strong>群れ研究の背景の列挙として</strong>名指しする。厳しい読みではこの行は母集団から外れる（main の「登録では決まらなかったこと」を見よ）</li><li><strong>窓</strong>: 発表日 2017-01-20 は <strong>W2（2024-12-23 以降）の外</strong>。W2 ではこの行は根ごと消える</li></ul>
+<h2 id="一行で言うと">一行で言うと</h2>
+<p><strong>swarmalator は原型 boid から「向き」を取り去り、代わりに「位相」を入れた模型である。</strong> 著者は本文でこう書く——</p>
+<blockquote>the particles of our system do not have an orientation so there is nothing to align!</blockquote>
+<p>そのため<strong>整列という概念自体が無く、原型では定義すらできない5つの状態</strong>（静的同期・静的非同期・静的位相波・active phase wave・splintered phase wave）が出る。 そして<strong>同じ理由で、S-09 の観測器はこの派生に手が届かない</strong>—— 観測器が前提にしているのは「1個体の向きを微小に回す」という操作であり、回すべき向きが無い。 <strong>I2 を満たしながら I3 を満たさない唯一の上位行</strong>であり、<strong>観測器の適用範囲が模型の状態空間の形で決まる</strong>ことの実例になっている。</p>
+<h2 id="原型との差分">原型との差分</h2>
+<p>原型 boid の状態は（位置・速度）である。swarmalator の状態は<strong>（位置・位相）</strong>で、両者が双方向に結合する:</p>
+<pre><code>ẋ_i = v_i + (1/N) Σ_j [ I_att(x_j − x_i) · F(θ_j − θ_i)  −  I_rep(x_j − x_i) ]     … 式(1)
+θ̇_i = ω_i + (K/N) Σ_j H_att(θ_j − θ_i) · G(x_j − x_i)                              … 式(2)
+
+具体例（べき乗則を入れたもの）:
+ẋ_i = v_i + (1/N) Σ_{j≠i} [ (x_j−x_i)/|x_j−x_i| · (A + J cos(θ_j−θ_i))
+                             − B (x_j−x_i)/|x_j−x_i|² ]                             … 式(3)
+θ̇_i = ω_i + (K/N) Σ_{j≠i} sin(θ_j−θ_i) / |x_j−x_i|                                 … 式(4)</code></pre>
+<p>著者自身の整理:</p>
+<blockquote>the spatial dynamics ( 1 ) model phase-dependent aggregation, while the phase dynamics ( 2 ) model position-dependent synchronization</blockquote>
+<p>原型の3規則との対応を取ると:</p>
+<div class="tw"><table><thead><tr><th>原型</th><th>swarmalator</th></tr></thead><tbody><tr><td>分離</td><td>$-B(x_j-x_i)/</td><td>x_j-x_i</td><td>^2$（斥力）として<strong>残っている</strong></td></tr><tr><td>結合</td><td>$A(x_j-x_i)/</td><td>x_j-x_i</td><td>$（引力）として<strong>残っている</strong>——ただし $J\cos(\theta_j-\theta_i)$ で<strong>位相差に応じて強度が変わる</strong></td></tr><tr><td>整列</td><td><strong>無い</strong>（向きが無いので整列させるものが無い）</td></tr></tbody></table></div>
+<p><strong>I1 の判定</strong>: ○。引力項が $F(\theta_j - \theta_i)$ で変調されており、位相 $\theta$ は $p_j-p_i$・$v_j-v_i$ からは書けない。 <strong>「like attracts like」</strong>——同じ位相の swarmalator どうしが近づく（$J&gt;0$ のとき）。</p>
+<h2 id="原型では出ない何が出るか-i2">原型では出ない何が出るか（I2）</h2>
+<p><strong>位相 $\theta$ という状態変数が無ければ、5つの状態のうち少なくとも3つは定義できない。</strong></p>
+<p>著者は $N=1000$ を python の <code>odeint</code> で積分し、$(J, K)$ 平面の相図を描く（$A=B=1$、$v_i=\omega_i=0$）。 初期条件は一辺 2 の箱に一様、位相は $[-\pi,\pi]$ から一様。5状態のうち3つは空間と位相の両方で静止し、残る2つは動く。 ただし<strong>全状態で密度 $\rho(\mathbf{x},\theta,t)$ は時間に依らない</strong>。</p>
+<ul><li>静的同期 / 静的非同期 / 静的位相波 — 空間配置は原型でも作れるが、<strong>色（位相）の配置が状態の定義に入っている</strong></li><li><strong>active phase wave</strong> / <strong>splintered phase wave</strong> — 位相が空間を回る／位相の塊に割れる。</li></ul>
+<p>いずれも<strong>位相を持たない原型では記述する語彙が無い</strong></p>
+<p>相境界は秩序変数 $S$ と $\gamma$ の分岐点として定義されており、 <strong>位相を含む秩序変数がなければ相図そのものが描けない。</strong></p>
+<h2 id="s-09-の観測器は当たるか-i3-当たらない">S-09 の観測器は当たるか（I3）— <strong>当たらない</strong></h2>
+<p>登録した I3 の判定手続きは3つの条件からなる:</p>
+<div class="tw"><table><thead><tr><th>条件</th><th>swarmalator</th><th></th></tr></thead><tbody><tr><td>(a) 状態に位置と向きが含まれる</td><td><strong>×</strong></td><td>著者が本文で「向きを持たない」と明言している</td></tr><tr><td>(b) 1個体の向きを微小に回して対照走行と比較できる</td><td><strong>×</strong></td><td>回すべき向きが無い</td></tr><tr><td>(c) 到達判定 eps=0 が意味を持つ</td><td>○</td><td>決定論的な ODE なので、これだけは成立する</td></tr></tbody></table></div>
+<p><strong>(a)(b) を満たさないので I3 は ×。</strong> S-09 の6つの観測器のうち、<code>reachedFraction</code>・<code>spreadCount</code>・<code>lyapunov</code> は 「向き」の代わりに「位相」を摂動すれば<strong>定義を変えれば</strong>当たる。 しかし <code>frontCorrelation</code>・<code>frontSpeed</code>・<code>alignmentOrder</code> は向きを前提にしており、<strong>定義を変えなければ当たらない</strong>。 登録した I3 は「<strong>定義を一字も変えずに</strong>適用できること」なので、この行は ×。</p>
+<p><strong>この ×こそが本レポートの収穫である。</strong> S-09 の観測器は「位置と向きを持つ決定論的な群れ」という状態空間の形に依存しており、 <strong>状態空間を変えた派生では、当たるかどうかが模型の側で決まる</strong>。 順位表で I3 は 20 件中 19 件で ○（識別力が弱い・P4 のとおり）だが、 <strong>その唯一の × が、観測器の適用範囲の境界を正確に指している。</strong></p>
+<p>なお著者は「向きを入れた swarmalator（状態変数が3つから4つへ増える）でも結果は頑健」と本文で述べており、 <strong>向き付き版へ拡張すれば I3 は ○になりうる</strong>。ただしそれは原典の模型ではない。</p>
+<h2 id="s-53-で再実装する場合の登録項目の下書き">S-53 で再実装する場合の登録項目の下書き</h2>
+<div class="tw"><table><thead><tr><th>欄</th><th>下書き</th></tr></thead><tbody><tr><td><strong>秩序変数</strong></td><td>著者の $S$（位相と空間角の結合）と $\gamma$ を<strong>そのまま使う</strong>（自分で作らない）。加えて連言として ①相の同定 ②<code>reachedFraction</code>（<strong>位相を摂動する版</strong>——定義を変えたことを明記する）</td></tr><tr><td><strong>スケール</strong></td><td>空間は箱の一辺 2、位相は $[-\pi,\pi]$、時間は $1/K$。$A=B=1$ に固定し、振るのは $(J,K)$ だけ</td></tr><tr><td><strong>閾値</strong></td><td>相境界は「秩序変数が 0 から分岐する点＝2階微分が最大の点」という著者の定義を使う。<strong>自前の閾値を持ち込まない</strong></td></tr><tr><td><strong>参照点</strong></td><td>①$J=0$（位相が空間に効かない＝ただの Kuramoto ＋ 引力斥力）②$K=0$（空間が位相に効かない）。<strong>この2つが原型に最も近い負コントロールになる</strong></td></tr><tr><td><strong>母集団</strong></td><td>$N=1000$（著者と同じ）。相の同定は目視でなく秩序変数で行う</td></tr><tr><td><strong>上限と、それが落とすもの</strong></td><td>積分時間。5状態のうち2つは「動く」状態なので、<strong>短い積分では静的状態と区別できない</strong>。積分時間を振り、判定が変わる範囲を落とした集合として記録する</td></tr></tbody></table></div>
+<p><strong>再実装の忠実性について</strong>: 式(1)〜(4) とパラメータ・初期条件・積分器（python <code>odeint</code>）まで本文にある。 <strong>本調査が到達した中で最も再実装しやすい候補である。</strong></p>
+<h2 id="限界">限界</h2>
+<ul><li><strong>走らせていない。</strong> 5状態が出るかどうかは著者の主張である。</li><li><strong>適格性が読みに依存する。</strong> Reynolds への言及は背景の列挙であり、厳しい読みではこの行は母集団に入らない。</li></ul>
+<p><strong>そもそも swarmalator を「boid の派生」と呼ぶかどうかは、系譜の問題として争える</strong>—— 系譜としては Kuramoto（同期）と Vicsek / 非局所凝集（群れ）の合流であって、Reynolds の子ではない。</p>
+<ul><li><strong>W2 では消える。</strong> 2017年の模型なので、「最近の大きな発展以降」という切り方ではこの行は現れない。</li></ul>
+<p>総説（2025-10）と実機（2019-03）を束ねた行の発表日を<strong>最も早いもの</strong>で採ったための帰結であり、 <strong>束ねた行の日付の決め方は登録されていなかった</strong>（main の④を見よ）。</p>
+<ul><li><strong>総説（arXiv:2510.09819）と実機（arXiv:1903.06440）の本文には、書誌の確認以上には到達していない。</strong></li></ul>
+<p>本レポートの記述は原論文（arXiv:1701.05670）の本文に基づく。</p></article><p class="src">原典: <code>docs/subprojects/alife-sketches/sketches/S-50-boids-derivatives/reports/swarmalator.md</code></p></section><section class="pane" data-pane="comments" hidden><div class="comments" data-slug="S-50-boids-derivatives" data-run="" data-readonly><div id="clist" class="clist">読み込み中…</div><script type="application/json" id="cdata">{"version":1,"sketch":"S-50-boids-derivatives","comments":[]}</script></div></section></div></div></div><button class="fab" id="fab" title="メニュー" aria-label="メニュー">☰</button><div class="menu" id="menu" hidden><div class="menuhead">人工生命スケッチ</div><a href="../../../../index.html">🏠 ホーム（スケッチ一覧）</a><a href="../../../../reports/index.html">📄 レポート一覧</a></div><script src="../../../../assets/menu.js"></script><script src="../../../../assets/overlay.js"></script><script src="../../../../assets/comments-ui.js"></script></body></html>

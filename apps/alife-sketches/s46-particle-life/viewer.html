@@ -1,0 +1,368 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-46 Particle Life ― 型ペアの引力/斥力行列だけから何が創発するか</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--hot:#fbbf24}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  select{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  label b{color:var(--fg);font-variant-numeric:tabular-nums;min-width:2.6em}
+  input[type=range]{width:110px}
+  input[type=checkbox]{accent-color:var(--acc);width:15px;height:15px}
+  label.sw2{color:var(--fg);cursor:pointer}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px}
+  table{border-collapse:collapse;font-size:12px;width:100%}
+  th,td{padding:4px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  td{font-variant-numeric:tabular-nums}
+  .hot{color:var(--hot)}
+  .ok{color:#4ade80}.no{color:#f87171}
+  .legend{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.9}
+  .sw{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:5px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:940px}
+  footer b{color:var(--fg)}
+  .col{display:flex;flex-direction:column;gap:14px;flex:1;min-width:280px}
+  #t{display:inline-block;min-width:6ch;text-align:right;font-variant-numeric:tabular-nums}
+  .panel table{table-layout:fixed}
+  .panel td:first-child{width:56%}
+  @media(max-width:760px){.wrap{flex-direction:column}}
+  @media(max-width:820px){.col,.panel{min-width:0}.bar label{flex-wrap:wrap;max-width:100%}select{max-width:100%}}
+</style>
+
+<header>
+  <h1>S-46 — Particle Life：型ペアの係数行列だけから何が創発するか</h1>
+  <p class="sub">K種（既定6・最大12）の粒子、位置と速度だけ。規則は型ペア(a,b)ごとの係数 <b>G[a][b]</b> と、全ペア共通の距離カーブだけ——
+    近接では型によらず反発、中間域で G[a][b] に比例する引力/斥力、遠方でゼロ。
+    これに<b>体積排除</b>（中心距離が直径を下回ると生じる反発）を足すか外すかを選べる——外すと粒子は同じ場所へ重なれる。
+    <b style="color:var(--hot)">膜・自走塊・分裂・追跡</b>は行列のどの成分にも直接書かれていない。それでも生じるか。</p>
+</header>
+
+<div class="bar">
+  <button id="run">停止</button>
+  <button id="reset">行列を引き直す</button>
+  <label>行列シード <b id="seedV">20260915</b></label>
+  <label>型の数K
+    <select id="k">
+      <option value="1">1（負コントロール②）</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="6" selected>6（登録どおり）</option>
+      <option value="12">12</option>
+    </select>
+  </label>
+  <label>プリセット
+    <select id="preset">
+      <option value="random">登録どおり（乱数行列）</option>
+      <option value="full">正①: 全ペア最大引力</option>
+      <option value="ionic">正②: 自己反発・他者引力</option>
+      <option value="zero">負①: 相互作用なし</option>
+      <option value="sym">参照点2: 対称化</option>
+      <option value="symrand">ほぼ対称化＋数マスだけ乱数</option>
+      <option value="sparse">乱数だが 0 付近が多い（疎）</option>
+      <option value="inert">乱数＋相互作用しない型が一定数</option>
+    </select>
+  </label>
+  <label>外枠の反発
+    <select id="wall">
+      <option value="0">無し（登録どおり）</option>
+      <option value="0.5">弱</option>
+      <option value="2" selected>標準</option>
+      <option value="6">強</option>
+    </select>
+  </label>
+  <label class="sw2" title="中心距離が直径（=2×半径）を下回った対に反発力が生まれる。系の規則そのものが変わるので、保存・共有される">
+    <input type="checkbox" id="excl" checked> 体積排除（粒子は重なれない）
+  </label>
+  <span style="flex:1"></span>
+  <span style="color:var(--dim)">step <b id="t" style="color:var(--fg)">0</b></span>
+</div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>粒子（色 = 型）</h2>
+    <canvas id="c" width="600" height="600"></canvas>
+    <div class="legend" id="typeLegend"></div>
+  </div>
+
+  <div class="col">
+    <div class="panel">
+      <h2>事前登録した秩序変数（バーンイン無しの現在値。参考表示）</h2>
+      <table>
+        <tr><td>clusterCohesion（閾値0.5）</td><td id="mCoh">—</td></tr>
+        <tr><td>membraneShellIndex 密度比（閾値2.0）</td><td id="mMemD">—</td></tr>
+        <tr><td>　同 型純度（閾値0.7）</td><td id="mMemP">—</td></tr>
+        <tr><td>最大クラスタの大きさ</td><td id="mSize">—</td></tr>
+        <tr><td>行列 G[a][b] の型ペア対象数（追跡候補）</td><td id="mPairs">—</td></tr>
+        <tr><td>最も近い2粒子の中心距離 ÷ 直径</td><td id="mMinD">—</td></tr>
+      </table>
+      <div class="legend">selfPropulsionIndex・splitReformRate・pursuitAsymmetryIndex は時系列が要るため、
+        本番（<code>run.js</code>）の生ログでのみ計算する。ここではその場の構造だけを表示する。</div>
+    </div>
+    <div class="panel">
+      <h2>行列 G[a][b]（行=a：反応する側、列=b：相手の型）</h2>
+      <div id="matrixTable"></div>
+      <div class="legend"><span style="color:#60a5fa">青</span>＝引力（正）　<span style="color:#f87171">赤</span>＝斥力（負）</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p><b>見どころ</b>: プリセット「正①: 全ペア最大引力」にすると、全粒子が<b>単一の密な塊</b>へ収束する
+  （clusterCohesion→1.0。検出器が壊れていないことの確認そのもの）。「登録どおり（乱数行列）」に戻すと、
+  型ペアごとの引力/斥力の組み合わせから、規則のどこにも直接書かれていない<b>塊・鎖・薄い膜状の構造</b>が
+  シードによって出たり出なかったりする。「行列を引き直す」で新しい乱数行列（≒新しい matrixSeed）を試せる。<br>
+  <b>2026-09-15 に足したもの</b>: プリセット3種（<b>ほぼ対称化＋数マスだけ乱数</b>／<b>0 付近が多い疎な行列</b>／
+  <b>相互作用しない型を含む行列</b>）、<b>型の数 K=12</b>、<b>外枠の反発</b>（壁から 10px 以内で内向きの加速度。
+  壁に近いほど 2 次で強くなる）。外枠の反発はこの画面では既定で「標準」だが、
+  <b>事前登録した本番（<code>run.js</code>）と生ログは「無し」で測っている</b>——比べるときは「無し」に戻すこと。<br>
+  <b>2026-09-16 に足したもの</b>: <b>体積排除</b>——中心距離が直径（=2×半径、既定 0.5）を下回った対に、
+  型によらない反発 <code>16·(直径/距離 − 1)</code> と接触の減衰が生まれる。粒子は画面でもこの半径で描いてあるので、
+  <b>円が重なって見えるかどうか</b>がそのまま判定になる。効き目が一番わかるのは「正①: 全ペア最大引力」で、
+  <b>外すと1点へ潰れ、入れると同じ大きさの塊が広がる</b>（右の「最も近い2粒子の中心距離 ÷ 直径」を見る。
+  実測で 0.42 → 0.6〜0.9。強い引力の下では完全な排除にはならず「重なりにくい」に留まる）。
+  <b>有効/無効は系の規則そのものを変える</b>ので、保存・共有される設定に含まれる（版 1.3.0）。
+  この画面では既定で有効だが、<b>事前登録した本番（<code>run.js</code>）と生ログは無効で測っている</b>。<br>
+  出典: hunar4321/particle-life・Jeffrey Ventrella「Clusters」（アイデアのみ。力の式は独自設計。詳細は criteria.json）。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var L = 100, K = 6, seed = 20260915, preset = 'random';
+  // 外枠の反発（2026-09-15 ユーザ指定）。核の既定は 0（＝事前登録した本番と同じ系）だが、
+  // 可視化では既定で効かせる——壁際に貼り付く粒子が減り、中の構造が見やすくなるため
+  var wallStrength = 2, wallMargin = 10;
+  // 体積排除（2026-09-16 ユーザ指定）。核の既定は false（＝事前登録した本番と同じ系）だが、
+  // 外枠の反発と同じく**可視化では既定で効かせる**——「粒子が同じ場所を占められない」という
+  // 規則の効き目は、既定で入っていないと見比べる相手が無い。外すチェックで登録どおりの系に戻る
+  var excludeOverlap = true, particleRadius = S46.DEFAULTS.particleRadius;
+  var cv = document.getElementById('c'), cx = cv.getContext('2d');
+  var world = null, running = true;
+
+  // K=12 まで見分けが付く色（ユーザ指定で型の数に 12 を足した）
+  var TYPE_COLORS = ['#60a5fa', '#f87171', '#4ade80', '#fbbf24', '#c084fc', '#22d3ee',
+                     '#fb923c', '#f472b6', '#a3e635', '#38bdf8', '#e879f9', '#facc15'];
+
+  function $(id) { return document.getElementById(id); }
+
+  function buildMatrix() {
+    if (preset === 'full') return S46.buildConstantMatrix(K, 1, 1);
+    if (preset === 'ionic') return S46.buildConstantMatrix(K, -1, 1);
+    if (preset === 'zero') return S46.buildConstantMatrix(K, 0, 0);
+    if (preset === 'sym') return S46.symmetrizeMatrix(S46.buildUniformMatrix(seed, K, -1, 1));
+    // 2026-09-15 ユーザ指定で足したプリセット3種
+    if (preset === 'symrand') return S46.buildSymmetrizedWithRandom(seed, K, -1, 1, K);
+    if (preset === 'sparse') return S46.buildSparseMatrix(seed, K, -1, 1, 3);
+    if (preset === 'inert') return S46.buildInertTypesMatrix(seed, K, -1, 1, Math.max(1, Math.floor(K / 3)));
+    return S46.buildUniformMatrix(seed, K, -1, 1);
+  }
+
+  function worldOpts(N) {
+    return {
+      N: N, L: L, wallMargin: wallMargin, wallStrength: wallStrength,
+      excludeOverlap: excludeOverlap, particleRadius: particleRadius,
+    };
+  }
+
+  function reset() {
+    var N = 240;
+    if (N % K !== 0) N = K * Math.round(N / K); // K と割り切れる粒子数に丸める（表示専用。登録は N=240,K=6）
+    var G = buildMatrix();
+    world = S46.createWorldFromMatrix(worldOpts(N), G, (Date.now() & 0x7fffffff));
+    $('t').textContent = world.step;
+    drawMatrix();
+    drawTypeLegend();
+  }
+
+  function drawTypeLegend() {
+    var html = '';
+    for (var i = 0; i < K; i++) html += '<span class="sw" style="background:' + TYPE_COLORS[i % TYPE_COLORS.length] + '"></span>型' + i + ' ';
+    $('typeLegend').innerHTML = html;
+  }
+
+  function drawMatrix() {
+    var html = '<table><tr><td></td>';
+    for (var b = 0; b < K; b++) html += '<th>' + b + '</th>';
+    html += '</tr>';
+    for (var a = 0; a < K; a++) {
+      html += '<tr><th>' + a + '</th>';
+      for (b = 0; b < K; b++) {
+        var g = world.G[a][b];
+        var col = g >= 0 ? 'rgba(96,165,250,' + Math.min(1, Math.abs(g)).toFixed(2) + ')' : 'rgba(248,113,113,' + Math.min(1, Math.abs(g)).toFixed(2) + ')';
+        html += '<td style="background:' + col + ';color:#e8ebf2">' + g.toFixed(2) + '</td>';
+      }
+      html += '</tr>';
+    }
+    html += '</table>';
+    $('matrixTable').innerHTML = html;
+  }
+
+  function draw() {
+    var s = cv.width / L;
+    // 粒子は**体積排除が使う半径そのもの**で描く（既定 0.5×6px = 3px。従来の固定 3.2px とほぼ同じ）。
+    // 円が重なって見えるかどうかが、そのまま「同一空間を占めたか」の判定になるようにするため
+    var rPix = Math.max(2, particleRadius * s);
+    cx.fillStyle = '#0b0d13';
+    cx.fillRect(0, 0, cv.width, cv.height);
+    for (var i = 0; i < world.N; i++) {
+      cx.fillStyle = TYPE_COLORS[world.types[i] % TYPE_COLORS.length];
+      cx.beginPath();
+      cx.arc(world.x[i] * s, world.y[i] * s, rPix, 0, Math.PI * 2);
+      cx.fill();
+    }
+  }
+
+  function refreshMetrics() {
+    var cc = S46.connectedComponents(world, 6);
+    var coh = S46.clusterCohesionFromCC(world, cc, 10);
+    var mem = S46.membraneShellFromCC(world, cc, 10, 3, 15);
+    $('mCoh').textContent = coh.toFixed(3);
+    $('mCoh').className = coh >= 0.5 ? 'ok' : '';
+    $('mMemD').textContent = isFinite(mem.densityRatio) ? mem.densityRatio.toFixed(3) : '∞';
+    $('mMemP').textContent = mem.typePurity.toFixed(3);
+    var memOk = mem.densityRatio >= 2.0 && mem.typePurity >= 0.7;
+    $('mMemD').className = memOk ? 'hot' : '';
+    $('mSize').textContent = mem.clusterSize + ' / ' + world.N;
+    var pairs = S46.qualifyingPursuitPairs(world.G, world.K, 0.2, -0.2);
+    $('mPairs').textContent = pairs.length;
+    // 体積排除が効いているかを1つの数で見る。1.0 以上なら「どの2粒子も重なっていない」
+    var sigma = 2 * particleRadius, minD2 = Infinity;
+    for (var i = 0; i < world.N; i++) {
+      for (var j = i + 1; j < world.N; j++) {
+        var dx = world.x[i] - world.x[j], dy = world.y[i] - world.y[j];
+        var d2 = dx * dx + dy * dy;
+        if (d2 < minD2) minD2 = d2;
+      }
+    }
+    var ratio = Math.sqrt(minD2) / sigma;
+    $('mMinD').textContent = ratio.toFixed(2);
+    $('mMinD').className = ratio >= 1 ? 'ok' : (ratio >= 0.5 ? '' : 'no');
+  }
+
+  var frame = 0;
+  function loop() {
+    if (running) {
+      var budget = performance.now() + 13;
+      do { S46.stepWorld(world); } while (performance.now() < budget);
+      draw();
+      $('t').textContent = world.step;
+      if (++frame % 6 === 0) refreshMetrics();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function setRunning(on) {
+    running = on;
+    $('run').textContent = running ? '停止' : '再開';
+  }
+
+  $('run').onclick = function () { setRunning(!running); };
+  // 強さを変えるだけで世界を作り直さない（初期条件が変わると比べられなくなるため）
+  $('wall').onchange = function () {
+    wallStrength = +this.value;
+    if (world) world.params.wallStrength = wallStrength;
+    Harness.say('外枠の反発を「' + this.options[this.selectedIndex].text + '」にした');
+  };
+  // 有効/無効の切り替えだけで世界を作り直さない（外枠の反発と同じ扱い。初期条件を保って見比べる）
+  $('excl').onchange = function () {
+    excludeOverlap = this.checked;
+    if (world) world.params.excludeOverlap = excludeOverlap;
+    Harness.say(excludeOverlap ? '体積排除を有効にした（中心距離が直径を下回ると反発）' : '体積排除を無効にした（登録どおりの規則）');
+  };
+  $('reset').onclick = function () { seed = (Math.random() * 1e9) | 0; $('seedV').textContent = seed; reset(); };
+  $('k').onchange = function () { K = +this.value; reset(); };
+  $('preset').onchange = function () { preset = this.value; reset(); };
+
+  reset();
+  requestAnimationFrame(loop);
+
+  /**
+   * パターンを決めるのは行列 G[a][b] そのもの（＋型数K・個体数N・空間L）であって、
+   * それを生成した matrixSeed ではない——シード→行列の変換は内部実装依存で、
+   * 実装を変えると同じシードでも別の行列になりうる（2026-09-15 ユーザ指定）。
+   * よって export/import では**生成後の行列を直接**やり取りする。
+   */
+  function getParams() {
+    return {
+      K: K, N: world.N, L: L, G: world.G, wallStrength: wallStrength, wallMargin: wallMargin,
+      // 体積排除の有効/無効は**系の規則そのものを変える**ので必ず持ち回る（2026-09-16 ユーザ指定）。
+      // 直径 = 2×particleRadius が規則の中身なので半径も一緒に運ぶ
+      excludeOverlap: excludeOverlap, particleRadius: particleRadius,
+    };
+  }
+  function setParams(v) {
+    if (!v.G) { Harness.say('行列が無い保存データ', true); return; }
+    K = v.K != null ? v.K : K;
+    L = v.L != null ? v.L : L;
+    if (v.wallStrength != null) wallStrength = +v.wallStrength;
+    if (v.wallMargin != null) wallMargin = +v.wallMargin;
+    // 鍵が無い保存データは「体積排除が存在しなかった頃の系」なので**無効**として復元する。
+    // 今の画面の設定を引き継ぐと、同じ JSON が読む時によって別の規則になる（K-47 と同じ穴）
+    excludeOverlap = v.excludeOverlap == null ? false : !!v.excludeOverlap;
+    particleRadius = v.particleRadius == null ? S46.DEFAULTS.particleRadius : +v.particleRadius;
+    $('excl').checked = excludeOverlap;
+    $('k').value = String(K);
+    // 選択肢に無い強さ（保存側が別の値を持っていた）なら、一覧は「無し」へ落とさず素の値を見せる
+    $('wall').value = String(wallStrength);
+    if ($('wall').value !== String(wallStrength)) {
+      var opt = document.createElement('option');
+      opt.value = String(wallStrength);
+      opt.textContent = wallStrength + '（復元した値）';
+      $('wall').appendChild(opt);
+      $('wall').value = String(wallStrength);
+    }
+    var N = v.N != null ? v.N : 240;
+    world = S46.createWorldFromMatrix(worldOpts(N), v.G, (Date.now() & 0x7fffffff));
+    $('seedV').textContent = '(復元した行列)';
+    $('t').textContent = world.step;
+    drawMatrix();
+    drawTypeLegend();
+  }
+
+  Harness.mount({
+    id: 'S-46',
+    // 1.1.0 → 1.2.0: 外枠の反発（wallStrength・wallMargin）がパラメータに加わった。
+    // 1.2.0 → 1.3.0: 体積排除（excludeOverlap・particleRadius）が加わった。
+    // マイナーが上がるので、1.2.0 で保存した JSON・共有 URL はこの版では復元できない（ユーザ指定の規則）
+    version: '1.3.0',
+    getParams: getParams,
+    setParams: setParams,
+    // URLパラメータの短縮名/フル名（K-80・2026-09-15 ユーザ指定）。Gと外枠の反発が物理法則
+    // （系の力学を決める）、K/N/Lは計算の土台を決めるソフトウェアパラメータ
+    paramNames: {
+      G: { category: 'p', code: 'g', full: 'interaction_matrix' },
+      wallStrength: { category: 'p', code: 'wr', full: 'wall_repulsion' },
+      wallMargin: { category: 'p', code: 'wm', full: 'wall_margin' },
+      excludeOverlap: { category: 'p', code: 'ex', full: 'exclude_overlap' },
+      particleRadius: { category: 'p', code: 'pr', full: 'particle_radius' },
+      K: { category: 's', code: 'k', full: 'type_count' },
+      N: { category: 's', code: 'n', full: 'particle_count' },
+      L: { category: 's', code: 'l', full: 'world_size' },
+    },
+    canvases: ['c'],
+    // コメントへ添付した設定を読み込んだときに自動で止まるための口（2026-09-15 ユーザ指定）
+    pause: function () { setRunning(false); },
+    // 「広さ」は領域の一辺。密度を保つため個体数は倍率の2乗で変える（S-09と同じ考え方）。
+    resize: function (scale) {
+      var side = Math.max(20, Math.round(100 * scale));
+      L = side;
+      reset();
+      Harness.say('領域を ' + L + '×' + L + ' にした（表示専用。登録された解析はL=100固定）');
+    },
+  });
+})();
+</script>

@@ -1,0 +1,448 @@
+/* hidden 属性は必ず効かせる。
+   .overlay{display:flex} のような指定は UA の [hidden]{display:none} に打ち勝ってしまい、
+   「閉じるボタンを押しても何も起きない」になる（2026-09-11 ユーザ報告・Safari で発覚）。 */
+[hidden] { display: none !important; }
+
+:root{color-scheme:dark;--bg:#101219;--panel:#181b24;--panel2:#1e222d;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--acc2:#4ade80}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.75 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;-webkit-text-size-adjust:100%}
+header{padding:28px 20px 20px;border-bottom:1px solid var(--line)}
+h1{margin:0 0 6px;font-size:22px;letter-spacing:.01em}
+.sub{margin:0;color:var(--dim);font-size:13px}
+.sub b{color:var(--fg)}
+main{padding:20px;max-width:1100px;margin:0 auto}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:36px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column}
+.cid{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.1em;color:var(--acc);margin-bottom:8px}
+.kind{display:inline-block;background:var(--panel2);color:var(--dim);border-radius:3px;padding:1px 6px;font-size:10px;letter-spacing:0;margin-left:6px}
+.card h3{margin:0 0 8px;font-size:16px;line-height:1.5}
+.one{margin:0 0 12px;font-size:13px;color:var(--dim);line-height:1.7}
+.one strong{color:var(--fg);font-weight:600}
+.stats{margin:0 0 14px;display:grid;gap:4px}
+.stats div{display:flex;justify-content:space-between;gap:12px;font-size:12px;border-bottom:1px dashed var(--line);padding-bottom:3px}
+.stats dt{color:var(--dim);margin:0}
+.stats dd{margin:0;font-variant-numeric:tabular-nums}
+.acts{margin-top:auto;display:flex;gap:8px;flex-wrap:wrap}
+
+.btn{display:inline-block;padding:7px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);text-decoration:none;font-size:13px;white-space:nowrap}
+.btn:hover{border-color:var(--acc)}
+/* 長い表題のボタン（レポートを開く板）が電話幅で横にはみ出さないようにする。
+   2026-09-12（暫定・Q-42 で監査中）: ユーザ指定「実行ページ、レポートが iPhone で横が見切れないようにする」に対し、
+   .btn の white-space:nowrap が長いレポート表題で効いて 390px の窓から最大 175px はみ出していた（S-21・S-22・S-24・S-26）。 */
+.btn.ovopen{max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#0b1020;font-weight:600}
+.btn.ghost{background:transparent;color:var(--dim)}
+
+.report{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:20px;scroll-margin-top:12px}
+.rtop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.rtop .cid{margin:0;flex:1}
+.raws{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:12px;padding:10px 12px;background:var(--panel2);border-radius:8px;margin-bottom:16px}
+.raws a{color:var(--acc);text-decoration:none}
+.raws a:hover{text-decoration:underline}
+.dim{color:var(--dim)}
+
+.md h1{font-size:19px;margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.md h2{font-size:15px;margin:28px 0 10px;color:var(--acc)}
+.md h3{font-size:14px;margin:20px 0 8px;color:var(--fg)}
+.md p{margin:0 0 12px}
+.md ul,.md ol{margin:0 0 12px;padding-left:22px}
+.md li{margin-bottom:5px}
+.md code{background:var(--panel2);padding:1px 5px;border-radius:4px;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+.md pre{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:0 0 14px}
+.md pre code{background:none;padding:0;font-size:12px;line-height:1.6}
+.md blockquote{margin:0 0 14px;padding:8px 14px;border-left:3px solid var(--acc);background:var(--panel2);border-radius:0 6px 6px 0;color:var(--dim)}
+.md a{color:var(--acc)}
+.md hr{border:0;border-top:1px solid var(--line);margin:20px 0}
+.md strong{font-weight:600}
+
+.tw{overflow-x:auto;margin:0 0 14px;-webkit-overflow-scrolling:touch}
+.md table{border-collapse:collapse;font-size:13px;min-width:100%}
+.md th,.md td{border:1px solid var(--line);padding:6px 11px;text-align:left;white-space:nowrap}
+.md th{background:var(--panel2);color:var(--dim);font-weight:600}
+.md td{font-variant-numeric:tabular-nums}
+
+footer{padding:20px;border-top:1px solid var(--line);color:var(--dim);font-size:13px;max-width:1100px;margin:0 auto}
+footer code{background:var(--panel2);padding:2px 6px;border-radius:4px;font-size:12px}
+footer b{color:var(--fg)}
+
+@media (max-width:640px){
+  main{padding:14px}
+  .grid{grid-template-columns:1fr;gap:12px}
+  .report{padding:16px 14px}
+  body{font-size:14px}
+  .md th,.md td{white-space:normal}
+}
+
+/* ---- 2026-09-11: サーバ描画への移行で足したもの ---- */
+
+/* パン屑（ホームへ戻る導線。ユーザ指定） */
+.crumbs{padding:12px 20px;border-bottom:1px solid var(--line);font-size:13px;color:var(--dim);
+        position:sticky;top:0;background:var(--bg);z-index:10}
+.crumbs a{color:var(--acc);text-decoration:none}
+.crumbs a:hover{text-decoration:underline}
+.crumbs .sep{margin:0 8px;color:var(--line)}
+.crumbs [aria-current]{color:var(--fg)}
+
+/* ホームのタブ */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.tab{display:inline-block;padding:7px 14px;border:1px solid var(--line);border-radius:8px;
+     background:var(--panel);color:var(--fg);text-decoration:none;font-size:13px}
+.tab:hover{border-color:var(--acc)}
+.card h3 a{color:var(--fg);text-decoration:none}
+.card h3 a:hover{color:var(--acc)}
+.badge{background:var(--panel2);color:var(--dim);border-radius:10px;padding:1px 7px;font-size:10px;letter-spacing:0}
+
+/* 文書ページ（レポート・知見・アイデア） */
+.doc{max-width:1100px;margin:0 auto;padding:20px}
+.docwrap{display:flex;gap:24px;align-items:flex-start}
+.docwrap .md{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px 24px}
+.toc{position:sticky;top:56px;width:210px;flex:none;font-size:12px;line-height:1.6;
+     background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;max-height:75vh;overflow:auto}
+.toclabel{color:var(--dim);font-weight:600;margin-bottom:8px;font-size:11px;letter-spacing:.06em}
+.toc a{display:block;color:var(--dim);text-decoration:none;padding:3px 0;border-left:2px solid transparent;padding-left:8px}
+.toc a:hover{color:var(--acc);border-left-color:var(--acc)}
+.toc .tocc{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);color:var(--fg)}
+.src{color:var(--dim);font-size:12px;margin:14px 2px 0}
+.src code{background:var(--panel2);padding:2px 6px;border-radius:4px}
+.md del{color:var(--dim)}
+
+/* コメント欄 */
+.comments{max-width:1100px;margin:28px auto 60px}
+.comments h2{font-size:15px;color:var(--acc);margin:0 0 12px}
+.clist{display:flex;flex-direction:column;gap:12px}
+.comment{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.comment.aithread{border-color:#7c5cff}
+.chead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;font-size:12px}
+.au{color:var(--fg);font-weight:600}
+.au.ai{color:#a78bfa}
+.cwhen{color:var(--dim)}
+.aitag{background:rgba(124,92,255,.15);color:#a78bfa;border-radius:4px;padding:1px 7px;font-size:11px}
+.ca{margin-left:auto;display:flex;gap:6px}
+.ca button{background:none;border:none;color:var(--dim);font-size:11px;cursor:pointer;padding:2px 4px}
+.ca button:hover{color:var(--acc);text-decoration:underline}
+.cbody{font-size:14px;line-height:1.8}
+.cbody p{margin:0 0 8px}
+.cbody .ch{display:block;margin:10px 0 4px;color:var(--acc)}
+.cbody pre{background:var(--panel2);border-radius:6px;padding:10px;overflow-x:auto;font-size:12px}
+.cbody code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:13px}
+.cbody.gone{color:var(--dim);font-style:italic;font-size:13px}
+.replies{margin:10px 0 0;padding-left:14px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.reply{padding-top:2px}
+.cform{margin-top:12px}
+.cform textarea{width:100%;background:var(--panel2);color:var(--fg);border:1px solid var(--line);
+                border-radius:8px;padding:10px 12px;font:inherit;font-size:13px;resize:vertical}
+.cform textarea:focus{outline:none;border-color:var(--acc)}
+.crow{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.crow .btn{cursor:pointer;font:inherit}
+.err{color:#f87171}
+
+@media(max-width:820px){
+  .docwrap{flex-direction:column}
+  .toc{position:static;width:auto;max-height:none}
+  .doc{padding:14px}
+  .docwrap .md{padding:16px 14px}
+}
+
+/* 静止画（build.js の書き出し）であることの断り。本体と取り違えられると
+   「更新したのに反映されない」という誤解になるので、目立たせる */
+.frozen {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid #d08770;
+  background: #2b2620;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* ================= 2026-09-11「変更 9/11-1」で足した画面 ================= */
+
+/* --- タグ --- */
+.tags { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
+.tag {
+  font-size: 11px; padding: 2px 8px; border-radius: 999px; text-decoration: none;
+  background: #2a2621; color: #b8ad99; border: 1px solid #3c352c;
+}
+.tag:hover { background: #35302a; color: #e8e2d6; }
+.tag.on { background: #4a5b48; color: #e8f0e4; border-color: #5c7059; }
+.tagbar { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.nrep { font-size: 11px; color: #8a8172; margin: 4px 0 0; }
+
+/* --- 検索 --- */
+.searchbox { display: flex; gap: 6px; margin: 12px 0 0; max-width: 520px; }
+.searchbox.big { max-width: 680px; margin-bottom: 16px; }
+.searchbox input {
+  flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 8px 12px;
+  border-radius: 8px; border: 1px solid #3c352c; background: #221f1a; color: #e8e2d6;
+}
+.searchbox button {
+  font: inherit; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+  border: 1px solid #4a4238; background: #2c2823; color: #e8e2d6;
+}
+.hits { list-style: none; padding: 0; margin: 8px 0 20px; }
+.hits li { padding: 7px 0; border-bottom: 1px solid #2c2823; }
+.hits a { color: #cdb7a0; }
+
+/* --- スケッチ画面（実行が主・重ね表示が副） --- */
+.sketchpage { margin: 0; }
+.shead { padding: 10px 16px 8px; border-bottom: 1px solid #2c2823; }
+.sline { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.sline h1 { font-size: 17px; margin: 0; }
+.sline .ver { font-size: 11px; color: #6f685c; }
+.sacts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
+.sacts .btn { font-size: 12px; }
+
+/* 実行ページの切り替え（2026-09-18）。**2本以上あるときだけ出る**ので、
+   実行ページが1本のスケッチの画面は今までと1px も変わらない。 */
+.runbar { display: flex; gap: 6px; flex-wrap: wrap; padding: 6px 12px;
+          background: #221f1a; border-bottom: 1px solid var(--line); }
+.runtab { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+          border: 1px solid var(--line); border-radius: 7px; background: var(--panel);
+          color: var(--dim); text-decoration: none; font-size: 13px; }
+.runtab:hover { border-color: var(--acc); color: var(--fg); }
+.runtab.on { color: var(--fg); border-color: var(--acc); background: var(--panel2); }
+.runkind { font-size: 10px; letter-spacing: 0; padding: 1px 6px; border-radius: 9px;
+           background: var(--panel2); color: var(--dim); }
+
+.stagewrap { position: relative; min-height: 60vh; }
+.stage { display: block; width: 100%; height: calc(100vh - 150px); border: 0; background: #1c1a16; }
+.nostage { padding: 40px 16px; color: #8a8172; text-align: center; }
+
+/* 重ねているだけ。iframe は隠さない＝実行は続く。
+
+   2026-09-23「レポート表示領域拡張」。**開いている間は viewport を占める**（fixed）。
+   それ以前は `.stagewrap` の中の absolute だったので、板の天井が
+   パン屑（sticky で消せない）＋ `.shead` の下に押し下げられていた。
+   S-55（レポート6本）を 390×664 で実測すると **本文 `.ovbody` は高さ 72px・top 1018px、
+   つまり画面外にあって一片も見えていなかった**。
+   実行窓は今までどおり触らないので、「重なっているだけ＝実行は続く」は保たれる。
+   `.fab`（全体メニュー）は z-index 60 なので板の上に残る。 */
+.overlay {
+  position: fixed; inset: 0; display: flex; flex-direction: column;
+  /* 以前は半透明（0.97）で裏の実行窓が薄く透けていた。板が viewport 全体を覆うように
+     なった結果、透けるのが実行窓ではなく**パン屑と見出しの文字**になり、レポート本文と
+     重なって読みにくくなったので不透明にした。実行窓は触っていないので実行は続く。 */
+  background: #181612; z-index: 50;
+}
+/* 板が開いている間、裏のページは動かさない（スクロールの連鎖を切る） */
+body.ovopen { overflow: hidden; }
+
+/* 板の帯は**1行で固定**する。折り返させると件数に比例して伸び、
+   S-55 では帯だけで 410px——板そのもの（398px）より高かった。
+   溢れる分は横スクロールへ逃がす。 */
+/* **横スクロールは帯そのものに持たせる**（2026-09-23 ユーザ報告の2件目）。
+   最初は内側の `.ovtabs` に持たせたが、その枠は `serve.js` が出すものなので
+   **サーバを再起動するまで現れない**。CSS はファイルから毎回配られるため、
+   「折り返さない CSS だけが効いて、受け皿の枠がまだ無い」状態が実際に起きた——
+   タブは溢れたまま流せず、最後の子である ✕ が画面の外へ押し出されて押せなくなった。
+   帯そのものを流せるようにしておけば、**新旧どちらの markup でも同じように動く**。 */
+.ovbar {
+  /* `flex: 0 0 auto` が要る。**スクロール容器になった flex 子は `min-height:auto` が 0 に
+     解決される**ので、これが無いと帯が本文に押されて潰れる（実測で 50px → 19px まで縮み、
+     しかも縮み方がレポートの本数で違った——件数独立性の検査が捕まえた）。 */
+  flex: 0 0 auto;
+  display: flex; gap: 6px; align-items: center; flex-wrap: nowrap;
+  padding: 8px 64px 8px 12px; /* 右は ✕ の居場所として空けておく */
+  border-bottom: 1px solid #35302a; background: #201d19;
+  overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+}
+.ovbar::-webkit-scrollbar { display: none; }
+.ovwho { flex: 0 0 auto; font-size: 11px; color: #8a8172; letter-spacing: .04em; }
+.ovtabs { flex: 0 0 auto; display: flex; gap: 6px; flex-wrap: nowrap; }
+.ovgap { display: none; } /* 旧 markup の詰め物。流れる帯では邪魔にしかならない */
+/* タブ1枚の幅を抑える。抑えないとレポートの表題がそのまま伸びて、
+   1枚目だけで帯が埋まり「**他にもレポートがある**」ことが見えなくなる。
+   2枚目が途中まで覗いていれば、横へ流せることが分かる。 */
+.ovtab {
+  flex: 0 0 auto; white-space: nowrap; max-width: 16em;
+  overflow: hidden; text-overflow: ellipsis;
+  font: inherit; font-size: 12px; padding: 5px 10px; border-radius: 6px; cursor: pointer;
+  border: 1px solid #3c352c; background: #2a2621; color: #b8ad99;
+}
+.ovtab.on { background: #3d4a3b; color: #e8f0e4; border-color: #51624e; }
+/* ✕ は**流れる帯の上に載せない**。`.overlay` が `position: fixed` なので、
+   その中で `absolute` に置けば viewport の右端に貼り付き、タブを何枚流しても動かない
+   （2026-09-23 ユーザ指定「閉じるボタンは常に画面内に収まるよう、スクロール領域に載せず、
+   画面右端に固定する」）。`box-shadow` の輪は、下を通り抜けるタブを隠すための地色。
+   `margin` の 8px/12px は `.ovbar` の上・右の padding に合わせてある。 */
+.ovclose {
+  position: absolute; top: 0; right: 0; z-index: 2; margin: 8px 12px;
+  font: inherit; font-size: 15px; line-height: 1; padding: 5px 10px; border-radius: 6px;
+  cursor: pointer; border: 1px solid #4a4238; background: #2c2823; color: #e8e2d6;
+  box-shadow: 0 0 0 7px #201d19;
+}
+/* min-height:0 が無いと flex の子は中身より縮まず、`overflow:auto` が効かない */
+.ovbody { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain;
+          padding: 16px 20px 60px; }
+/* 読む列は**板ごと中央に寄せる**（2026-09-23 ユーザ指示）。
+   それまでは `.md` だけが 760px で左端に貼り付き、兄弟の `.rmeta`（切り口・タグ）や
+   `.src` は全幅まで伸びていた——1920px の窓では本文 760px / メタ 1880px という不揃いで、
+   本文だけが細く左に寄って見えた。**列の幅は `.pane` が決め、中の要素はそれに従う**。
+   上限は 760 → 1140px（ユーザ指定「現在の 1.5 倍程度。画面全体までは広がらなくて良い」）。 */
+.ovbody > .pane { max-width: 1140px; margin: 0 auto; }
+.ovbody .md { max-width: 100%; }
+.rmeta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.rmeta .angle { font-size: 12px; color: #a89f8e; }
+.rmeta .ver { font-size: 11px; color: #6f685c; }
+.rtoc { margin: 0 0 14px; font-size: 12px; }
+.rtoc summary { cursor: pointer; color: #a89f8e; }
+.rtoc a { display: block; padding: 2px 0 2px 12px; color: #9a8f7d; }
+
+/* --- 全体メニュー --- */
+.fab {
+  position: fixed; right: 16px; bottom: 16px; z-index: 60;
+  width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 18px;
+  border: 1px solid #4a4238; background: #2c2823; color: #e8e2d6;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.45);
+}
+.fab.on { background: #3d4a3b; }
+.menu {
+  position: fixed; right: 16px; bottom: 70px; z-index: 60; width: 260px;
+  background: #221f1a; border: 1px solid #3c352c; border-radius: 10px; padding: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+.menuhead { font-size: 11px; color: #6f685c; padding: 4px 8px 8px; }
+.menu a {
+  display: block; padding: 7px 10px; border-radius: 6px;
+  color: #cfc6b5; text-decoration: none; font-size: 13px;
+}
+.menu a:hover { background: #2c2823; color: #fff; }
+.addterm { border-top: 1px solid #2c2823; margin-top: 8px; padding: 10px 8px 4px; }
+.addterm label { display: block; font-size: 11px; color: #8a8172; margin-bottom: 6px; }
+.addterm .row { display: flex; gap: 6px; }
+.addterm input {
+  flex: 1; min-width: 0; font: inherit; font-size: 13px; padding: 6px 8px;
+  border-radius: 6px; border: 1px solid #3c352c; background: #1c1a16; color: #e8e2d6;
+}
+.addterm button {
+  font: inherit; font-size: 12px; padding: 6px 10px; border-radius: 6px; cursor: pointer;
+  border: 1px solid #4a4238; background: #2c2823; color: #e8e2d6;
+}
+.addterm .msg { display: block; font-size: 11px; color: #a3be8c; min-height: 14px; margin-top: 6px; }
+
+.dochead { font-size: 20px; margin: 18px 0 6px; }
+
+/* --- iPhone で横に見切れない（ユーザ指定） --- */
+@media (max-width: 820px) {
+  .stage { height: calc(100vh - 210px); }
+  .ovbody { padding: 12px 14px 60px; }
+  .menu { right: 10px; left: 10px; width: auto; }
+  .shead { padding: 8px 12px; }
+  .sline h1 { font-size: 15px; }
+
+  /* 2026-09-23「レポート表示領域拡張」。実行ページ側の頭も件数で伸びないようにする。
+     S-55 では `.sacts`（ボタン9個）だけで 309px、`.shead` 全体で 538px あり、
+     664px の画面から実行窓もレポートも押し出していた。帯と同じく1行 + 横スクロールへ。 */
+  .sketchpage .sacts,
+  .sketchpage .shead .tags {
+    flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain;
+    scrollbar-width: none; padding-bottom: 2px;
+  }
+  .sketchpage .sacts::-webkit-scrollbar,
+  .sketchpage .shead .tags::-webkit-scrollbar { display: none; }
+  .sketchpage .sacts > *,
+  .sketchpage .shead .tag { flex: 0 0 auto; white-space: nowrap; }
+  .sketchpage .sacts .btn { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
+  .ovtab { max-width: 42vw; }
+  .sketchpage .sacts .raws { padding: 5px 10px; margin-bottom: 0; flex-wrap: nowrap; }
+}
+
+/* 検索画面のタグ一覧（普段は多いものだけ・展開で全部） */
+.tagpanel { margin: 10px 0 16px; }
+.tag .n {
+  margin-left: 5px; font-size: 10px; color: #7d7365;
+  border-left: 1px solid #443c33; padding-left: 5px;
+}
+.tagmore { margin-top: 8px; }
+.tagmore summary { cursor: pointer; font-size: 12px; color: #8a8172; }
+.tagmore summary:hover { color: #cfc6b5; }
+.tagmore .tagbar { margin-top: 8px; }
+
+/* flex/grid の子は既定の min-width:auto のせいで中身より縮まない。
+   表やコード塊を持つ文書ページが電話幅で 111px はみ出していた（2026-09-11、shot.js の実測で発覚）。
+   .tw の overflow-x:auto は、親が縮めるようになって初めて効く。 */
+.docwrap > * { min-width: 0; }
+.md, .md table, .md pre { max-width: 100%; }
+.md pre code { white-space: pre; }
+.ovbody, .ovbody > .pane { min-width: 0; }
+
+/* ================= 2026-09-15「変更 9/15-1」で足したもの ================= */
+
+/* --- ホームの目次（高速スクロール。ユーザ指定） ---
+   カードの並びの横に置き、**それ自体はページと一緒にスクロールしない**（sticky）。
+   `<main>` はヘッダーの後に来るので、ヘッダーが見えている間は自然にヘッダーより下に留まる。
+   項目は番号だけ。狭い画面では出さない（ユーザ「表示できない場合は非表示にして良い」）。 */
+.homewrap { display: flex; gap: 18px; align-items: flex-start; }
+.homewrap .grid { flex: 1; min-width: 0; }
+.idx {
+  position: sticky; top: 12px; flex: none; width: 72px;
+  max-height: calc(100vh - 24px); overflow: auto; scrollbar-width: thin;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 7px;
+}
+.idxlabel { font-size: 10px; color: var(--dim); letter-spacing: .08em; text-align: center; margin-bottom: 8px; }
+/* 2026-09-16: 並べるのを5つおきにしたので、項目数が 47 → 9 に減った。
+   そのぶん1つを大きくして押しやすくする（電話では出さないが、机上でも小さすぎた）。 */
+.idxlist { display: flex; flex-direction: column; gap: 3px; }
+.idxlist a {
+  display: block; padding: 5px 4px; border-radius: 6px; text-align: center; text-decoration: none;
+  font: 600 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--dim);
+}
+.idxlist a:hover { background: var(--panel2); color: var(--fg); }
+.idxlist a.on { background: var(--acc); color: #0b1020; }
+/* 目次から飛んだとき、カードが窓の上端に貼り付かないように余白を取る */
+.card { scroll-margin-top: 16px; }
+html { scroll-behavior: smooth; }
+@media (max-width: 900px) { .idx { display: none; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* --- コメントへ添付したパラメータ（ユーザ指定） ---
+   普段は details で格納され、展開するとその場で中身を読める。JSON は色分けする。 */
+.att { margin: 8px 0 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2); }
+.att > summary {
+  cursor: pointer; padding: 6px 10px; font-size: 12px; color: var(--dim); list-style: none;
+}
+.att > summary::-webkit-details-marker { display: none; }
+.att > summary::before { content: '▸ '; }
+.att[open] > summary::before { content: '▾ '; }
+.att > summary:hover { color: var(--fg); }
+.attbody { padding: 0 10px 10px; }
+.attacts { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.attacts button {
+  font: inherit; font-size: 11px; padding: 4px 9px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--fg);
+}
+.attacts button:hover { border-color: var(--acc); }
+.attjson {
+  margin: 0; padding: 10px; border-radius: 6px; background: #0d0f15; overflow: auto;
+  max-height: 44vh; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.attjson .jk { color: #7dd3fc; }   /* 鍵 */
+.attjson .js { color: #a5d6a4; }   /* 文字列 */
+.attjson .jn { color: #fbbf24; }   /* 数値 */
+.attjson .jb { color: #c084fc; }   /* 真偽 */
+.attjson .ju { color: #8b93a7; }   /* null */
+.attnote { font-size: 11px; color: var(--dim); margin: 6px 0 0; }
+
+/* 投稿フォームに付いた添付の札 */
+.attchip {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--dim);
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 4px 2px 10px;
+}
+.attchip button {
+  font: inherit; font-size: 11px; line-height: 1; border: 0; background: none; color: var(--dim);
+  cursor: pointer; padding: 3px 6px; border-radius: 999px;
+}
+.attchip button:hover { color: #f87171; background: rgba(248, 113, 113, .12); }
+
+/* 投稿できなかったときの断り（内容はブラウザ側に残っている、と伝える） */
+.draftnote {
+  margin: 8px 0 0; padding: 8px 11px; border-left: 3px solid #d08770; border-radius: 0 6px 6px 0;
+  background: #2b2620; font-size: 12px; line-height: 1.7; color: #e8dfd3;
+}
+.draftnote b { color: #fbbf24; }
+.draftnote button {
+  font: inherit; font-size: 11px; padding: 3px 8px; margin-left: 4px; border-radius: 6px; cursor: pointer;
+  border: 1px solid #5a4a3c; background: #201d19; color: #cfc6b5;
+}
+.draftnote button:hover { color: #f87171; border-color: #f87171; }

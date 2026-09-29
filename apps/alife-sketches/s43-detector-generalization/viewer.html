@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-43 検出器の相互汎化監査</title>
+<style>
+  body{margin:0;background:#1c1a16;color:#e8e2d6;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;padding-bottom:40px}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  h1{font-size:18px;margin:8px 0}
+  p.lead{color:#a89f8e;font-size:13px}
+  .panel{background:#221f1a;border:1px solid #3a342b;border-radius:8px;padding:12px;margin:14px 0}
+  .row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+  label{font-size:12px;color:#a89f8e;display:flex;gap:6px;align-items:center}
+  select,input[type=file]{font:inherit;background:#2c2823;color:#e8e2d6;border:1px solid #4a4238;border-radius:6px;padding:4px 8px}
+  canvas{background:#151310;border-radius:6px;max-width:100%}
+  .legend{display:flex;gap:14px;font-size:12px;margin-top:6px;flex-wrap:wrap}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+  table{border-collapse:collapse;font-size:12px;width:100%}
+  td,th{border:1px solid #3a342b;padding:4px 6px;text-align:right}
+  th{color:#a89f8e;font-weight:normal}
+  td.name,th.name{text-align:left}
+  .hint{color:#8a8272;font-size:12px}
+  .warn{color:#d08770}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>S-43 検出器の相互汎化監査</h1>
+  <p class="lead">42本の検出器を、他系の生ログ・時間シャッフル対照・ノイズ対照に総当たりした結果を見る。
+    このスケッチは「新しい人工生命系」を持たず、本サブプロジェクト自身の（検出器,生ログ）が題材である。
+    可視化はライブ実行ではなく、<code>run.js</code> が書いた生ログ（<code>summary.json</code> と
+    <code>cells.jsonl</code>、任意で <code>family-cells.jsonl</code>）を読み込んで描く（下の「広さ」は
+    空間ではなく1マスの大きさに対応させてある）。</p>
+
+  <div class="panel">
+    <div class="row">
+      <label>生ログを読み込む（summary.json・cells.jsonl・family-cells.jsonl を複数選択）
+        <input type="file" id="fileInput" multiple accept=".json,.jsonl">
+      </label>
+      <label>並べ替え
+        <select id="sortBy">
+          <option value="id">検出器ID</option>
+          <option value="generalizationRate">汎化率</option>
+          <option value="falsePositiveRate">偽陽性率</option>
+          <option value="family">族</option>
+        </select>
+      </label>
+      <button id="playBtn" type="button">▶ 行ごとに描き直す</button>
+    </div>
+    <p class="hint" id="status">まだ読み込んでいない。<code>node run.js out/</code> の出力を選ぶか、
+      <code>docs/subprojects/alife-sketches/sketches/S-43-detector-generalization/raw/</code> から読む。</p>
+  </div>
+
+  <div class="panel">
+    <canvas id="heatmap" width="900" height="500"></canvas>
+    <div class="legend">
+      <span><span class="sw" style="background:#d08770"></span>陽性</span>
+      <span><span class="sw" style="background:#5e81ac"></span>陰性</span>
+      <span><span class="sw" style="background:#4a4238"></span>適用不能</span>
+      <span><span class="sw" style="background:#2c2823;border:1px solid #4a4238"></span>族の外（副次行列に無い対）</span>
+    </div>
+    <p class="hint">行＝検出器（自分の族が持つ色つきの帯を左に表示）、列＝対象（他41系＋シャッフル41＋ノイズ3）。
+      対角に近い太い列区切りより左が「他系」、中央がシャッフル、右端3列がノイズ。</p>
+  </div>
+
+  <div class="panel">
+    <h2 style="font-size:14px;margin:0 0 8px">検出器ごとの率</h2>
+    <div id="rateTable"></div>
+  </div>
+
+  <div class="panel">
+    <h2 style="font-size:14px;margin:0 0 8px">副次（族）行列</h2>
+    <canvas id="familyHeatmap" width="900" height="260"></canvas>
+    <p class="hint" id="familyStatus">family-cells.jsonl を読み込むと表示される。</p>
+  </div>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var VERDICT_COLOR = { positive: '#d08770', negative: '#5e81ac', inapplicable: '#4a4238' };
+  var FAMILY_COLOR = {
+    pointCloud: '#a3be8c', continuousField: '#88c0d0', discreteSymbolicGrid: '#ebcb8b',
+    booleanOrSequenceState: '#b48ead', shapeOutline: '#d08770', scalarOrCurveOnly: '#8fbcbb',
+  };
+
+  var state = { summary: null, cells: [], familyCells: [], cellSize: 14 };
+
+  function say(id, msg) { var e = document.getElementById(id); if (e) e.textContent = msg; }
+
+  function parseJsonl(text) {
+    return text.split('\n').filter(Boolean).map(function (l) { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean);
+  }
+
+  function handleFiles(files) {
+    var readers = [];
+    Array.prototype.forEach.call(files, function (f) {
+      readers.push(new Promise(function (resolve) {
+        var fr = new FileReader();
+        fr.onload = function () { resolve({ name: f.name, text: fr.result }); };
+        fr.readAsText(f);
+      }));
+    });
+    Promise.all(readers).then(function (loaded) {
+      loaded.forEach(function (f) {
+        if (/summary\.json$/.test(f.name)) state.summary = JSON.parse(f.text);
+        else if (/family-cells\.jsonl$/.test(f.name)) state.familyCells = parseJsonl(f.text);
+        else if (/cells\.jsonl$/.test(f.name)) state.cells = parseJsonl(f.text);
+      });
+      say('status', `読み込み: summary=${state.summary ? 'あり' : '無し'} / cells行=${state.cells.length} / family行=${state.familyCells.length}`);
+      render();
+    });
+  }
+
+  function detectorList() {
+    if (!state.summary) return [];
+    var ids = state.summary.population.detectorIds.slice();
+    var sortBy = document.getElementById('sortBy').value;
+    if (sortBy === 'id') return ids.sort();
+    var runs = {};
+    (state.detectorRuns || []).forEach(function (r) { runs[r.detector] = r; });
+    if (sortBy === 'family') {
+      return ids.sort(function (a, b) {
+        var fa = (state.summary.families && familyOf(a)) || '', fb = familyOf(b) || '';
+        return fa.localeCompare(fb) || a.localeCompare(b);
+      });
+    }
+    return ids; // generalizationRate/falsePositiveRate はテーブル側で並べ替える（cellsだけでは検出器単位の率が無い）
+  }
+
+  function familyOf(id) {
+    if (!state.summary || !state.summary.families) return null;
+    var members = state.summary.families.members || {};
+    for (var fam in members) if (members[fam].indexOf(id) >= 0) return fam;
+    return null;
+  }
+
+  function drawHeatmap(animate) {
+    var canvas = document.getElementById('heatmap');
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#151310'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (!state.summary || !state.cells.length) return;
+
+    var detectors = detectorList();
+    var targetOrder = []; // 列の並び: 他系(名前順) → シャッフル(名前順) → ノイズ3種
+    var others = state.summary.population.targetIds.slice().sort();
+    others.forEach(function (t) { targetOrder.push({ key: 'other:' + t, label: t }); });
+    others.forEach(function (t) { targetOrder.push({ key: 'shuffle:' + t, label: t }); });
+    ['uniform', 'gaussian', 'gaussianMatched'].forEach(function (k) { targetOrder.push({ key: 'noise:' + k, label: k }); });
+
+    var cs = state.cellSize;
+    var labelW = 70;
+    canvas.width = Math.max(900, labelW + targetOrder.length * cs);
+    canvas.height = Math.max(200, 40 + detectors.length * cs);
+    ctx.fillStyle = '#151310'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // インデックス化: detector -> key -> verdict
+    var byDet = {};
+    state.cells.forEach(function (c) {
+      var key = c.arm === 'other' ? 'other:' + c.target : c.arm === 'shuffle' ? 'shuffle:' + c.of : 'noise:' + c.kind;
+      byDet[c.detector] = byDet[c.detector] || {};
+      byDet[c.detector][key] = c.verdict;
+    });
+
+    ctx.font = '9px monospace';
+    var draw = function (row) {
+      var det = detectors[row];
+      var y = 40 + row * cs;
+      ctx.fillStyle = FAMILY_COLOR[familyOf(det)] || '#4a4238';
+      ctx.fillRect(0, y, 6, cs - 1);
+      ctx.fillStyle = '#e8e2d6';
+      ctx.fillText(det, 10, y + cs - 4);
+      targetOrder.forEach(function (t, col) {
+        var verdict = (byDet[det] || {})[t.key];
+        ctx.fillStyle = verdict ? VERDICT_COLOR[verdict] : '#221f1a';
+        ctx.fillRect(labelW + col * cs, y, cs - 1, cs - 1);
+      });
+    };
+
+    if (!animate) { detectors.forEach(function (_, i) { draw(i); }); return; }
+    var i = 0;
+    (function step() {
+      if (i >= detectors.length) return;
+      draw(i); i++;
+      requestAnimationFrame(step);
+    })();
+  }
+
+  function drawFamilyHeatmap() {
+    var canvas = document.getElementById('familyHeatmap');
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#151310'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (!state.familyCells.length) return;
+    say('familyStatus', `${state.familyCells.length} セル / 族: ${Array.from(new Set(state.familyCells.map(function (c) { return c.family; }))).join(', ')}`);
+    var members = Array.from(new Set(state.familyCells.map(function (c) { return c.detector; }).concat(state.familyCells.map(function (c) { return c.target; })))).sort();
+    var cs = Math.max(10, Math.min(28, Math.floor(860 / Math.max(1, members.length))));
+    var labelW = 70;
+    canvas.width = Math.max(400, labelW + members.length * cs);
+    canvas.height = Math.max(160, 30 + members.length * cs);
+    ctx.fillStyle = '#151310'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    var idx = {}; members.forEach(function (m, i) { idx[m] = i; });
+    ctx.font = '9px monospace'; ctx.fillStyle = '#e8e2d6';
+    members.forEach(function (m, i) { ctx.fillText(m, 2, 30 + i * cs + cs - 4); });
+    state.familyCells.forEach(function (c) {
+      if (!(c.detector in idx) || !(c.target in idx)) return;
+      ctx.fillStyle = VERDICT_COLOR[c.verdict] || '#221f1a';
+      ctx.fillRect(labelW + idx[c.target] * cs, 30 + idx[c.detector] * cs, cs - 1, cs - 1);
+    });
+  }
+
+  function renderRateTable() {
+    var el = document.getElementById('rateTable');
+    if (!state.summary) { el.innerHTML = ''; return; }
+    var rows = state.summary.result && state.summary.result.highFalsePositiveDetectors;
+    var html = '<table><tr><th class="name">検出器</th><th>偽陽性率 &gt; 0.05</th></tr>';
+    (rows || []).forEach(function (r) { html += `<tr><td class="name">${r.detector}</td><td class="warn">${r.falsePositiveRate.toFixed(3)}</td></tr>`; });
+    html += '</table>';
+    html += `<p class="hint">母集団: 全${state.summary.population.total}本 / 検出器${state.summary.population.detectors}本 / `
+      + `対象${state.summary.population.targets}本 / 除外${state.summary.population.excluded}本。`
+      + `平均汎化率 ${state.summary.result.meanGeneralizationRate.toFixed(3)} / 平均偽陽性率 ${state.summary.result.meanFalsePositiveRate.toFixed(3)}</p>`;
+    el.innerHTML = html;
+  }
+
+  function render() {
+    drawHeatmap(false);
+    drawFamilyHeatmap();
+    renderRateTable();
+  }
+
+  document.getElementById('fileInput').addEventListener('change', function (e) { handleFiles(e.target.files); });
+  document.getElementById('sortBy').addEventListener('change', function () { drawHeatmap(false); });
+  document.getElementById('playBtn').addEventListener('click', function () { drawHeatmap(true); });
+
+  Harness.mount({
+    id: 'S-43', version: '1.0.0',
+    // sortBy は表示順であって系の振る舞いを決めるパラメータではなく、対象は外部アップロードの
+    // 生ログなので export できるものが無い（2026-09-15 ユーザ指示）
+    noParams: true,
+    canvases: ['heatmap', 'familyHeatmap'],
+    resize: function (scale) {
+      state.cellSize = Math.round(14 * scale);
+      render();
+    },
+  });
+})();
+</script>
+</body>
+</html>

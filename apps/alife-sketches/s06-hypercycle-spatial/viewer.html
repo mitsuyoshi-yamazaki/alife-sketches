@@ -1,0 +1,330 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-06 ハイパーサイクルと寄生体</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--warn:#f87171;--ok:#4ade80}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0}
+  code{background:#0b0d13;padding:1px 5px;border-radius:4px}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  button.go{border-color:var(--warn);color:#fecaca}
+  button.go:hover{background:#3b1f22}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  label b{color:var(--fg);font-variant-numeric:tabular-nums;min-width:3.2em}
+  input[type=range]{width:120px}
+  select{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font:inherit}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;flex:1 1 380px;min-width:320px}
+  .panel h2{margin:0 0 2px;font-size:13px;font-weight:600}
+  .panel .note{margin:0 0 8px;font-size:11px;color:var(--dim)}
+  canvas{display:block;width:100%;height:auto;border-radius:6px;image-rendering:pixelated;background:#07080c}
+  canvas.ts{height:90px;margin-top:8px}
+  table{border-collapse:collapse;font-size:12px;width:100%;margin-top:8px}
+  th,td{padding:3px 8px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  td{font-variant-numeric:tabular-nums}
+  .dead{color:var(--warn)}
+  .live{color:var(--ok)}
+  .legend{margin-top:10px;font-size:11px;color:var(--dim);line-height:1.9}
+  .sw{display:inline-block;width:20px;height:9px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  footer{padding:0 18px 24px;color:var(--dim);font-size:12px;max-width:900px}
+  footer b{color:var(--fg)}
+  /* 桁が変わってもレイアウトが動かないようにする（ユーザ指定） */
+  #t{display:inline-block;min-width:7ch;text-align:right;font-variant-numeric:tabular-nums}
+  #maxcy{display:inline-block;min-width:3ch;text-align:right;font-variant-numeric:tabular-nums}
+  .panel table{table-layout:fixed}
+  .panel td:first-child,.panel th:first-child{width:62%}
+  @media(max-width:820px){.wrap{flex-direction:column}.panel{min-width:0}.bar label{flex-wrap:wrap}}
+</style>
+
+<header>
+  <h1>S-06 — ハイパーサイクルと寄生体</h1>
+  <p class="sub">
+    複製子が輪をなす（状態 <b>i</b> が生じるには近傍に <b>i</b> と <b>i−1</b> の両方が要る）。
+    <b>寄生体</b>は状態 1 から助けを受けるが、誰にも助けを返さない。<br>
+    <code>a_s = f_s × (結合 × 強さ_s × f_相手(s))</code> ／ 出典: Eigen &amp; Schuster (1977–78)・Boerlijst &amp; Hogeweg (1991)
+  </p>
+</header>
+
+<div class="bar">
+  <button id="run">停止</button>
+  <button id="reset">撒き直す</button>
+  <button class="go" id="inject">寄生体を投入</button>
+  <label>寄生の強さ <input type="range" id="str" min="0" max="400" step="25" value="200"> <b id="strV">2.00</b></label>
+  <label>拡散 <input type="range" id="dif" min="0" max="100" value="0"> <b id="difV">0.00</b></label>
+  <label>輪の大きさ
+    <select id="ring"><option value="4" selected>4</option><option value="5">5</option></select>
+  </label>
+  <span style="flex:1"></span>
+  <span style="color:var(--dim)">t = <b id="t" style="color:var(--fg)">0</b></span>
+</div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>② 空間のある系 — 近傍は<em>自分の周りの 8 点</em></h2>
+    <p class="note">同じ規則・同じパラメータ・同じ投入。違いは近傍を引く場所だけ。</p>
+    <canvas id="cS" width="150" height="150"></canvas>
+    <canvas class="ts" id="tS" width="450" height="90"></canvas>
+    <table><tbody id="mS"></tbody></table>
+  </div>
+
+  <div class="panel">
+    <h2>① よく混ぜた系 — 近傍は<em>格子全体から引いた 8 点</em></h2>
+    <p class="note">絵は場所に意味を持たない（並びは飾り）。数だけが意味を持つ。</p>
+    <canvas id="cM" width="150" height="150"></canvas>
+    <canvas class="ts" id="tM" width="450" height="90"></canvas>
+    <table><tbody id="mM"></tbody></table>
+  </div>
+</div>
+
+<div class="wrap" style="padding-top:0">
+  <div class="panel" style="flex:1 1 100%">
+    <div class="legend" id="legend"></div>
+    <div class="legend" style="margin-top:8px">
+      <b style="color:var(--fg)">巡回比</b>（点が空いたあと誰に引き継がれたか。輪の向きへの偏り／<b>帰無値 1.0</b>・最大 <span id="maxcy">3.0</span>）
+      が <b>波が回っているか</b>の判定。<br>
+      <b style="color:var(--fg)">巻き数比</b>（2×2 の枠で位相が一周している割合／帰無値 1.0）は
+      <b style="color:var(--warn)">波に特異的でない</b>——輪の無い系が塊に分かれただけでも下がる。
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p><b>見どころ</b>: 「寄生体を投入」を押すと、白い塊が 1 箇所に置かれる。
+  <b>よく混ぜた系</b>では強さ 1.25 以上で寄生体が輪を食い破り、輪が切れて<b>系全体が空になる</b>。
+  <b>空間のある系</b>では寄生体は広がりきらず、輪は回り続ける。
+  同じ寄生体・同じ強さ・同じ投入量で結果が分かれるのは、近傍をどこから引くかの違いだけによる。</p>
+  <p>拡散を上げていくと、空間のある系は次第によく混ぜた系に近づく（巡回比が 1.0 へ落ちる）。
+  <b>2 つの腕は別の系ではなく、1 本の連続体の両端</b>にあたる。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var SIZE_BASE = 150, SIZE = SIZE_BASE;
+  var PALETTE = ['#07080c', '#ff6b6b', '#ffd166', '#06d6a0', '#4cc9f0', '#b78cff'];
+  var PARASITE = '#ffffff';
+  var NAMES = ['空', '状態1', '状態2', '状態3', '状態4', '状態5'];
+
+  function hexToRgb(h) {
+    return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  }
+
+  function makeArm(canvasId, tsId, tableId, mixed) {
+    var cv = document.getElementById(canvasId);
+    return {
+      mixed: mixed,
+      cv: cv, cx: cv.getContext('2d'),
+      ts: document.getElementById(tsId), tsx: document.getElementById(tsId).getContext('2d'),
+      tbody: document.getElementById(tableId),
+      img: null, world: null, snap: null, history: [],
+    };
+  }
+
+  var arms = [
+    makeArm('cS', 'tS', 'mS', false),
+    makeArm('cM', 'tM', 'mM', true),
+  ];
+
+  var ring = 4, strength = 2.0, diffusion = 0, running = true, injected = false;
+
+  function colorsFor(r) {
+    var out = [];
+    for (var s = 0; s <= r; s++) out.push(hexToRgb(PALETTE[s]));
+    out.push(hexToRgb(PARASITE));       // 輪の外側の状態
+    return out;
+  }
+  var rgb = colorsFor(ring);
+
+  function reset() {
+    ring = parseInt(document.getElementById('ring').value, 10);
+    rgb = colorsFor(ring);
+    injected = false;
+    document.getElementById('maxcy').textContent = (ring - 1).toFixed(1);
+    var table = S06.makeTable(ring, [{ partner: 1, strength: strength }], {});
+    var seed = (Date.now() & 0x7fffffff);
+    var list = [];
+    for (var i = 1; i <= ring; i++) list.push(i);
+    arms.forEach(function (a) {
+      a.world = S06.createWorld({
+        size: SIZE, mixed: a.mixed, table: table,
+        coupling: 1.0, base: 0.0, vacateProb: 0.02, radius: 1, diffusion: diffusion,
+      }, seed);
+      S06.scatter(a.world, list, 0.5);
+      a.snap = null;
+      a.history = [];
+      a.cv.width = SIZE; a.cv.height = SIZE;
+      a.img = a.cx.createImageData(SIZE, SIZE);
+      for (var p = 3; p < a.img.data.length; p += 4) a.img.data[p] = 255;
+    });
+    buildLegend();
+    draw();
+  }
+
+  function buildLegend() {
+    var html = '';
+    for (var s = 1; s <= ring; s++) {
+      html += '<span class="sw" style="background:' + PALETTE[s] + '"></span>' + NAMES[s] + '　';
+    }
+    html += '<span class="sw" style="background:' + PARASITE + '"></span><b style="color:var(--fg)">寄生体</b>' +
+      '（状態 1 から助けを受け、誰にも返さない）　' +
+      '<span class="sw" style="background:#07080c;border:1px solid #2a2f3d"></span>空';
+    document.getElementById('legend').innerHTML = html;
+  }
+
+  function drawLattice(a) {
+    var g = a.world.grid, d = a.img.data;
+    for (var i = 0, j = 0; i < g.length; i++, j += 4) {
+      var c = rgb[g[i]] || rgb[rgb.length - 1];
+      d[j] = c[0]; d[j + 1] = c[1]; d[j + 2] = c[2];
+    }
+    a.cx.putImageData(a.img, 0, 0);
+  }
+
+  function drawSeries(a) {
+    var w = a.ts.width, h = a.ts.height, x = a.tsx;
+    x.fillStyle = '#07080c';
+    x.fillRect(0, 0, w, h);
+    if (a.history.length < 2) return;
+    var n = a.history.length;
+    var step = Math.max(1, Math.floor(n / w));
+    var K = ring + 1;
+    for (var s = 1; s <= K; s++) {
+      x.beginPath();
+      x.strokeStyle = s <= ring ? PALETTE[s] : PARASITE;
+      x.lineWidth = s <= ring ? 1.2 : 2;
+      for (var i = 0, px = 0; i < n; i += step, px++) {
+        var v = a.history[i][s] / a.world.n;
+        var yy = h - 2 - v * (h - 6) * 2.6;
+        if (px === 0) x.moveTo(px, yy); else x.lineTo(px, yy);
+      }
+      x.stroke();
+    }
+    // 投入した時刻
+    if (a.injectAt != null) {
+      var ix = Math.floor(a.injectAt / step);
+      x.strokeStyle = 'rgba(248,113,113,0.6)';
+      x.lineWidth = 1;
+      x.beginPath(); x.moveTo(ix, 0); x.lineTo(ix, h); x.stroke();
+    }
+  }
+
+  function row(label, value, cls) {
+    return '<tr><td>' + label + '</td><td' + (cls ? ' class="' + cls + '"' : '') + '>' + value + '</td></tr>';
+  }
+
+  function refresh(a) {
+    var m = S06.measure(a.world, a.snap);
+    var dead = ring - m.ringStatesPresent;
+    a.tbody.innerHTML =
+      row('輪の状態が残っている数', m.ringStatesPresent + ' / ' + ring, dead ? 'dead' : 'live') +
+      row('占有率', (m.occupancy * 100).toFixed(1) + ' %') +
+      row('寄生体の割合', (m.parasiteShare * 100).toFixed(1) + ' %') +
+      row('<b style="color:var(--fg)">巡回比</b>（帰無 1.0）', m.cyclicRatio.toFixed(2),
+        m.cyclicRatio >= 1.5 ? 'live' : '') +
+      row('巻き数比（帰無 1.0）', m.defectRatio.toFixed(2)) +
+      row('巻いている枠（渦の芯）', m.defects);
+    return m;
+  }
+
+  function draw() {
+    arms.forEach(function (a) {
+      drawLattice(a);
+      drawSeries(a);
+    });
+  }
+
+  var frame = 0;
+  function loop() {
+    if (running && arms[0].world) {
+      var budget = performance.now() + 24;
+      do {
+        arms.forEach(function (a) { S06.stepWorld(a.world); });
+      } while (performance.now() < budget);
+
+      arms.forEach(function (a) {
+        a.history.push(Array.prototype.slice.call(a.world.count));
+        if (a.history.length > 4000) a.history.shift();
+      });
+      document.getElementById('t').textContent = arms[0].world.step;
+      draw();
+      if (++frame % 10 === 0) arms.forEach(refresh);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  document.getElementById('run').onclick = function () {
+    running = !running;
+    this.textContent = running ? '停止' : '再開';
+  };
+  document.getElementById('reset').onclick = reset;
+  document.getElementById('ring').onchange = reset;
+
+  document.getElementById('inject').onclick = function () {
+    if (!arms[0].world) return;
+    arms.forEach(function (a) {
+      S06.injectState(a.world, ring + 1, 0.01, 'patch');
+      a.snap = S06.snapshotTransitions(a.world);
+      a.injectAt = a.history.length;
+    });
+    injected = true;
+    draw();
+    arms.forEach(refresh);
+  };
+
+  document.getElementById('str').oninput = function () {
+    strength = this.value / 100;
+    document.getElementById('strV').textContent = strength.toFixed(2);
+    // 走っている系の結合表を差し替える（撒き直さずに強さだけ変える）
+    arms.forEach(function (a) {
+      if (a.world) a.world.strength[ring + 1] = strength;
+    });
+  };
+
+  document.getElementById('dif').oninput = function () {
+    diffusion = this.value / 100;
+    document.getElementById('difV').textContent = diffusion.toFixed(2);
+    arms.forEach(function (a) { if (a.world) a.world.params.diffusion = diffusion; });
+  };
+
+  reset();
+  arms.forEach(refresh);
+  requestAnimationFrame(loop);
+
+  // --- 共通の実行UI（撮る / 広さ / 設定の保存と復元）を載せる ---
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('run').click(); },
+    id: 'S-06',
+    version: '1.0.0',
+    inputs: ['str', 'dif', 'ring'],
+    // URLパラメータの短縮名/フル名（K-80・2026-09-15 ユーザ指定）。寄生の強さ/拡散は物理法則。
+    // ring（輪の大きさ）はS-46のK（type_count）と同じ考え方で、規模を決める土台としてソフトウェア扱い
+    paramNames: {
+      str: { category: 'p', code: 'str', full: 'str' },
+      dif: { category: 'p', code: 'dif', full: 'dif' },
+      ring: { category: 's', code: 'ring', full: 'ring' },
+    },
+    canvases: ['cS', 'tS', 'cM', 'tM'],
+    // 「広さ」は格子の一辺。よく混ぜた腕も格子の点数がそのまま系の大きさなので、
+    // 両腕を同じ一辺で作り直す（撒き直しと同じ経路を通る）。
+    resize: function (scale) {
+      var next = Math.max(30, Math.round(SIZE_BASE * scale));
+      if (next === SIZE) return;
+      SIZE = next;
+      reset();
+      arms.forEach(refresh);
+      Harness.say('格子を ' + SIZE + '×' + SIZE + '（' + (SIZE * SIZE) + ' 点）にした');
+    },
+  });
+})();
+</script>

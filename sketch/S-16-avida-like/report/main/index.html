@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>環境からの報酬を足すと何が変わるか（Avida 風） — 人工生命スケッチ</title><link rel="stylesheet" href="../../../../assets/style.css"></head><body class="sketchpage"><nav class="crumbs"><a href="../../../../index.html">人工生命スケッチ</a><span class="sep">›</span><span aria-current="page">S-16 環境からの報酬を足すと何が変わるか（Avida 風）</span></nav><header class="shead"><div class="sline"><span class="cid">S-16</span><h1>環境からの報酬を足すと何が変わるか（Avida 風）</h1><span class="ver">v1.0.0</span></div><div class="tags"><span class="tag">仮想機械</span><span class="tag">報酬</span><span class="tag">進化</span><span class="tag">原典到達</span><span class="tag">同一性</span></div><div class="sacts"><button class="btn ovopen" data-go="r-main">📄 環境からの報酬を足すと何が変わるか（Avida 風）</button><button class="btn ovopen" data-go="comments">💬 コメント（0）</button></div></header><div class="stagewrap"><iframe class="stage" title="実行窓" data-run="main" src="../../../../apps/alife-sketches/s16-avida-like/viewer.html"></iframe><div class="overlay" id="overlay" data-open="r-main"><div class="ovbar"><span class="ovwho" title="環境からの報酬を足すと何が変わるか（Avida 風）">S-16</span><div class="ovtabs"><button class="ovtab" data-go="r-main">環境からの報酬を足すと何が変わるか（Avida 風）</button><button class="ovtab" data-go="comments">💬 コメント（0）</button></div><button class="ovclose" id="ovclose" title="閉じて実行に戻る">✕</button></div><div class="ovbody"><section class="pane" data-pane="r-main" hidden><div class="rmeta"><span class="angle">主レポート（最初の切り口）</span></div><details class="rtoc"><summary>目次</summary><a href="#一行で言うと">一行で言うと</a><a href="#何をやったか">何をやったか</a><a href="#結果-事前登録した解析">結果（<strong>事前登録した解析</strong>）</a><a href="#事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</a><a href="#本家サブプロジェクトへの含意-候補として挙げるだけ-要件化しない">本家サブプロジェクトへの含意（<strong>候補として挙げるだけ。要件化しない</strong>）</a><a href="#限界-この実験が言えないこと">限界（この実験が言えないこと）</a></details><article class="md"><h1 id="s-16-環境からの報酬を足すと何が変わるか-avida-風">S-16: 環境からの報酬を足すと何が変わるか（Avida 風）</h1>
+<ul><li><strong>実施日</strong>: 2026-09-11</li><li><strong>アプリ</strong>: <span class="deadlink">apps/alife-sketches/s16-avida-like/</span></li><li><strong>可視化</strong>: <code>viewer.html</code>（共有メモリの帯・獲得された演算の点灯・報酬の走行中切り替え・時系列）</li><li><strong>生ログ</strong>: <span class="deadlink">raw/sweep.jsonl</span>（38 点）・<span class="deadlink">raw/replicates.jsonl</span>（<strong>228 レプリケート</strong>）・<span class="deadlink">raw/trace.jsonl</span>（時系列）・<span class="deadlink">raw/summary.json</span>・<span class="deadlink">raw/posthoc-single-mutants.jsonl</span>（2542 行）・<span class="deadlink">raw/posthoc-arrivals.jsonl</span>・<span class="deadlink">raw/posthoc-summary.json</span></li><li><strong>所要</strong>: 掃引 <strong>3245 秒（54 分）</strong>——通しで走らせた1回目の実測。観測器の欠陥を直して走らせ直した2回目は</li></ul>
+<p>時間を区切って分割実行したため、<code>summary.json</code> の <code>elapsedMs</code>（322 秒）は最終チャンクぶんしか表していない。 <strong>2回の掃引は事前登録した解析の結果が全項目で完全に一致した</strong>（下の「限界」7 を見よ）。 加えて妥当性検査 56 項目と事後解析。判定基準 sha256:<code>ca008d72de463406</code>（事前登録 rev2）</p>
+<p><strong>出典</strong>（アイデアのみ。<strong>コードは参照せず、命令集合も祖先プログラムも自分で設計した</strong>）:</p>
+<ul><li>R. E. Lenski, C. Ofria, R. T. Pennock &amp; C. Adami (2003) "The evolutionary origin of complex features", *Nature* <strong>423</strong>:139-144.</li><li>C. Ofria &amp; C. O. Wilke (2004) "Avida: A Software Platform for Research in Computational Evolutionary Biology", *Artificial Life* <strong>10</strong>(2):191-229.</li></ul>
+<p><strong>原典には到達できた。</strong> Nature 論文は著者サイトの PDF（Wayback 経由）から本文・Table 1・Methods・ Supplementary Information I を、Ofria &amp; Wilke は Caltech の機関リポジトリから全文を読み、 加えて Avida 配布の <code>environment.cfg</code>（devosoft/avida）で報酬値を突き合わせた。 <strong>一致していない点は「限界」の節に全て列挙した。</strong></p>
+<h2 id="一行で言うと">一行で言うと</h2>
+<p><strong>EQU だけに報酬を置いた系は、報酬を1つも置かない系と「似ていた」のではなく、 共有メモリの全 30000 セルから個体群の構成まで、ビット単位で同一の走行になった</strong>—— 届かない報酬は「弱い報酬」ではなく「無い報酬」である。誤り率 0.002 / 0.005 / 0.01 の どこでも状態ハッシュが一致する。一方、<strong>単純な6種（rank 1〜3）だけに報酬を置いた腕は、 報酬の付いていない NOR（rank 4）まで登り</strong>、獲得した演算の種類は報酬なしの 3 種に対し 6.2 種、 <strong>6 シードの分布が1つも重ならなかった</strong>（なしの最大 3 &lt; ありの最小 5）。 <strong>EQU は 5 倍の走行長（300M 命令）を含めどの腕にも1度も出ず、そこは判定できていない。</strong></p>
+<h2 id="何をやったか">何をやったか</h2>
+<h3 id="題材と-s-05-との差分">題材と、S-05 との差分</h3>
+<p><span class="deadlink">S-05</span> は Tierra 風の自己複製プログラムを実装し、 誰も設計していない「借用体」が出ることを示した。<strong>そこには環境からの報酬が無い</strong>——複製できれば増えるだけである。 Avida は Tierra に<strong>論理演算への報酬</strong>を足した。特定の論理演算を実行できた個体に CPU 時間のボーナスを与える。</p>
+<p>本スケッチは <strong>S-05 の <code>core.js</code> の設計をそのまま借りた</strong>（環状メモリ・テンプレート照合による番地指定・ 確保記録・待ち行列・<code>alloc</code>/<code>split</code> の約束事・<code>reapOne</code>・<code>runRound</code> の巡回）。 <strong>S-05 のファイルは1文字も変更していない。</strong> 変えたのは次の4点だけである:</p>
+<div class="tw"><table><thead><tr><th></th><th>内容</th></tr></thead><tbody><tr><td><strong>命令集合</strong></td><td>32 語のまま。<code>zero</code>/<code>shl</code>/<code>mov_cd</code>/<code>push_d</code>/<code>pop_d</code> を外し、<code>nand</code>/<code>io</code>/<code>mov_ad</code>/<code>mov_da</code>/<code>swap_ab</code> を入れた</td></tr><tr><td><strong>入出力</strong></td><td><code>io</code> が <code>ax</code> の値を出力し、次の入力値を <code>ax</code> へ入れる。入力は各プロセスが誕生時に受け取る 3 個の 32 ビット値を巡回して読む</td></tr><tr><td><strong>報酬</strong></td><td>出された値が入力に対する論理関数と一致すれば、そのプロセスの <strong>merit</strong>（CPU 時間の取り分の倍率）が上がる</td></tr><tr><td><strong>祖先</strong></td><td>複製の手続きの頭に<strong>計算区画 19 枠</strong>が付いている</td></tr></tbody></table></div>
+<p><strong>論理演算の命令は <code>nand</code> 1つだけ</strong>で、他の関数は <code>nand</code> の組み合わせでしか作れない。</p>
+<p><strong>報酬を「なし」にすると取り分が <code>len × sliceFactor</code> に戻り、S-05 と厳密に同じ配分になる。</strong> だから「報酬を足すと何が変わるか」を1点だけの違いで比べられる。 妥当性検査では、論理演算が1つも起きない条件（誤り率 0）で<strong>報酬なしと報酬ありの走行が完全に一致する</strong>ことを確かめてある。</p>
+<h3 id="祖先-82-命令">祖先（82 命令）</h3>
+<pre><code>io          ; 出力して I1 を読む
+mov_ab      ; bx = I1
+[枠 W0]     ; ← ここが nand になれば ax = ~(I1&amp;I1) = NOT(I1)
+io          ; 出力して I2 を読む
+[枠 W1..W17]; 17 枠の作業場。W1 が nand なら ax = ~(I2&amp;I1) = NAND
+io          ; 作業場の結果を出力して I3 を読む
+[枠 W18]
+（以下 S-05 と同じ複製の手続き）</code></pre>
+<p>枠は <code>mov_ad</code>（<code>dx</code> へ書くだけで複製に影響しない）で埋めてある。 <strong>祖先は <code>nand</code> を1つも持たず、入力を素通しして出すだけ</strong>（ECHO。報酬対象外）。 手で書いた EQU の計算列は <code>nand</code> 5 回を含む 16 命令で、作業場 17 枠にちょうど収まる。 1 分裂に要する命令数は約 <strong>680</strong>（<code>criteria.json</code> の註に「約 500」と書いたのは事前登録時の見積もりで、 実測はこちら。<strong>判定基準は sha256 で凍結してあるので註も含め書き換えていない</strong>）。</p>
+<h3 id="観測器-帰無値を-実測-ではなく-構成-から作った">観測器 — 帰無値を「実測」ではなく「構成」から作った</h3>
+<p>出力が<strong>候補値</strong>と一致すればその演算を記録する。候補値は 3 入力そのもの（ECHO）と、 9 種の演算を適用可能な全ての引数組へ当てた値の計 <strong>36 個</strong>。 <strong>入力は、この 36 個が (a) 互いに相異なり (b) どれも 1 のビット数が [6,26] に入るまで引き直す</strong> （平均 6.58 回の引き直し。実測）。</p>
+<p>この2条件は飾りではない。<strong>外すと負コントロールが通ってしまう</strong>:</p>
+<div class="tw"><table><thead><tr><th>外した条件</th><th>起きること</th><th>実測した頻度</th></tr></thead><tbody><tr><td>(a) 相異なること</td><td><code>OR(A,B) == A</code> が起き、<strong>入力を素通しするだけのプログラムが OR を実行したと判定される</strong></td><td>1 入力組あたり <strong>5.85e-4 件</strong></td></tr><tr><td>(b) ビット数の下限</td><td><code>AND(A,B) == 0</code> が起き、<strong><code>ax</code> を初期値 0 のまま出すプログラムが AND を実行したと判定される</strong></td><td>1 入力組あたり <strong>2.65e-4 件</strong></td></tr></tbody></table></div>
+<p>2条件のもとでは「出力が候補値のどれかと一致したら、それがどの演算かは一意に決まる」が構成から保証され、 一様乱数の出力が偶然一致する確率は<strong>厳密に 36 × 2⁻³² = 8.38e-9</strong> になる。これが理論的な帰無値であり、実測ではない。</p>
+<p><strong>秩序変数</strong>は <code>taskTypesCredited</code> ＝「相異なる <strong>minCredit</strong> 体以上のプロセスが記録した演算の種類数（0..9）」。 minCredit は<strong>唯一の観測者の選択</strong>であり、1/2/3/5/10 の 5 通りを事前登録して<strong>全ての腕へ当て直した</strong>（K-15）。</p>
+<p>実験全体（228 レプリケート・出力 1.71e8 回）で偶然の単発一致の期待件数は <strong>1.43 件</strong>。 minCredit=3（相異なる 3 プロセスが同じ演算を記録）を要求すると、 一様乱数の出力に対しては実験全体で <strong>≈5e-8 件</strong>、定数を吐くプログラムという最悪の場合でも <strong>≈1e-3 件</strong>に落ちる。</p>
+<h3 id="妥当性検査-node-selftest-js-56-項目すべて通過">妥当性検査（<code>node selftest.js</code>・<strong>56 項目すべて通過</strong>）</h3>
+<ul><li><strong>恒等式による正コントロール（K-18）</strong>: <code>nand</code> だけで組んだ 9 種の計算列が、JavaScript の</li></ul>
+<p><code>&amp;</code>/<code>|</code>/<code>^</code>/<code>~</code> と <strong>1000 組すべてでビット一致</strong>。手で組んだ配置と違い、<strong>恒等式は実装の外から来る</strong>ので、 実装ごと間違っている場合も捕まる。EQU の 16 命令は次のとおり（<code>nand</code> は <code>ax = ~(ax &amp; bx)</code>、入口は <code>ax=A, bx=B</code>）:</p>
+<p>``<code> push_b push_a nand mov_ad mov_ab pop_a nand mov_ad mov_ba pop_b nand mov_ab mov_da nand mov_ab nand </code>``</p>
+<p><code>t=NAND(A,B)</code> → <code>u=NAND(A,t)</code> → <code>v=NAND(t,B)</code> → <code>XOR=NAND(u,v)</code> → <code>EQU=NAND(XOR,XOR)</code>。 <code>nand</code> を 5 回使う——原典 Supplementary Information の「EQU に必要な最小の nand 回数は 5」と一致する</p>
+<ul><li><strong>正コントロール（K-15）</strong>: 手で書いた 9 種の計算体を注入し、<strong>本番で使う判定規則そのもの</strong>が</li></ul>
+<p>登録した minCredit 5 通りすべてで<strong>その演算だけ</strong>を拾い、倍率も ×2/×4/×8/×16/×32 と一致することを確認。 <strong>注入していない演算は1つも拾わなかった</strong></p>
+<ul><li><strong>負コントロール 4 種＋定数攻撃（K-14）</strong>——いずれも minCredit 1〜10 の全てで <strong>0 種</strong>:</li></ul>
+<div class="tw"><table><thead><tr><th></th><th>種別</th><th>中身</th><th>結果</th></tr></thead><tbody><tr><td>NC1</td><td>駆動を切った系</td><td>出力を毎回一様乱数に差し替え</td><td>出力 149,587 回で 0 種</td></tr><tr><td>NC2</td><td><strong>構造はあるが目当てのものではない系</strong></td><td>入力を素通しする自己複製体だけの系（素通し 47,569 件・個体数 210）</td><td>0 種</td></tr><tr><td>NC3</td><td><strong>構造はあるが目当てのものではない系</strong></td><td>出力を「直前の入力の 1 ビット左回転」に差し替え</td><td>出力 102,543 回で 0 種</td></tr><tr><td>NC4</td><td>手段を取り上げた系</td><td><code>nand</code> を no-op に。報酬は全 9 種のまま</td><td>0 種</td></tr><tr><td>—</td><td>定数攻撃</td><td>0 を出し続ける系</td><td>0 種</td></tr></tbody></table></div>
+<ul><li><strong>近道の検算（K-12）</strong>: 所有権表が生存プロセス一覧から作り直したものと 30000 セルすべて一致</li><li><strong>生存の検算（K-12）</strong>: 観測器が数える個体数＝系が持つ生存プロセス数。取り除かれた pid の残留 0 件</li><li><strong>再現性</strong>: 同じシードで完全一致、違うシードで不一致</li><li><strong>可視化（K-5）</strong>: <code>viewer.html</code> が呼ぶ核の API 11 個が全て実在、参照する DOM id 24 個が全て実在、埋め込みスクリプトが構文として通る</li></ul>
+<h2 id="結果-事前登録した解析">結果（<strong>事前登録した解析</strong>）</h2>
+<h3 id="主点での分布-誤り率-0-005-報酬の大きさ-1-mincredit-3-6-シード">① 主点での分布（誤り率 0.005・報酬の大きさ 1・minCredit 3・6 シード）</h3>
+<p><strong>レプリケート単位の全値</strong>を出す（K-3）:</p>
+<div class="tw"><table><thead><tr><th>腕</th><th>獲得した演算の種類数</th><th>到達した rank</th><th><code>nand</code> を持つ個体の割合</th><th>merit の最大</th></tr></thead><tbody><tr><td><strong>none</strong>（報酬なし）</td><td><code>[3, 3, 3, 3, 3, 3]</code></td><td><code>[2,2,2,2,2,2]</code></td><td>0.73</td><td>1</td></tr><tr><td><strong>all</strong>（全 9 種）</td><td><code>[5, 7, 5, 7, 7, 6]</code></td><td><code>[3,4,3,4,4,3]</code></td><td>0.99</td><td>1024</td></tr><tr><td><strong>equOnly</strong>（EQU だけ）</td><td><code>[3, 3, 3, 3, 3, 3]</code></td><td><code>[2,2,2,2,2,2]</code></td><td>0.73</td><td><strong>1</strong></td></tr><tr><td><strong>simpleOnly</strong>（単純な 6 種だけ）</td><td><code>[5, 7, 5, 7, 6, 6]</code></td><td><code>[3,4,3,4,3,3]</code></td><td>0.99</td><td>1024</td></tr></tbody></table></div>
+<h3 id="none-と-all-の分離-強い分離">② none と all の分離 — <strong>強い分離</strong></h3>
+<p>事前登録した基準（「all の最小値 &gt; none の最大値」なら強い分離）を満たす: <strong>none の最大 3 &lt; all の最小 5</strong>、重なり 0。</p>
+<p>誤り率を振っても向きは変わらない:</p>
+<div class="tw"><table><thead><tr><th>誤り率</th><th>none</th><th>all</th><th>simpleOnly</th></tr></thead><tbody><tr><td>0</td><td><code>[0,0,0,0,0,0]</code></td><td><code>[0,0,0,0,0,0]</code></td><td><code>[0,0,0,0,0,0]</code></td></tr><tr><td>0.002</td><td><code>[3,4,3,4,2,2]</code></td><td><code>[5,5,5,5,5,6]</code></td><td><code>[5,5,5,5,5,7]</code></td></tr><tr><td>0.005</td><td><code>[3,3,3,3,3,3]</code></td><td><code>[5,7,5,7,7,6]</code></td><td><code>[5,7,5,7,6,6]</code></td></tr><tr><td>0.01</td><td><code>[3,3,3,2,3,4]</code></td><td><code>[7,6,7,7,7,6]</code></td><td><code>[7,6,7,7,7,6]</code></td></tr></tbody></table></div>
+<p><strong>誤り率 0 ではどの腕も 0 種</strong>である。報酬は変異が供給されて初めて効く——これは定義から従う。</p>
+<p><strong>規模も併記する（K-6）。</strong> 報酬なしで出る 3 種は <strong>NOT・NAND・ORN</strong> で、 それを記録したプロセス数は 1129 / 576 / 17 体。報酬ありでは同じ 3 種が 62,895 / 37,931 / 67,901 体に達し、さらに AND 6,308・OR 9,880・ANDN 7,345 が加わる。 <strong>種類数は 2 倍だが、規模は 3 桁違う。</strong></p>
+<h3 id="lenski-らの主張-equ-そのものは判定できず-代わりにもっと強い形が出た">③ Lenski らの主張 — EQU そのものは判定できず、代わりに<strong>もっと強い形</strong>が出た</h3>
+<p><strong>EQU は 60M の主の掃引でも 300M の長時間の腕でも、どの腕にも1度も出なかった</strong>（0/6 × 全腕）。 事前登録した decisionRule ③ の「どちらも 0 なら『本走行長では判定できない』と書く」に従い、 <strong>EQU の獲得そのものについては本スケッチは何も言えない</strong>。</p>
+<p>代わりに、rank の到達点で見ると主張の向きと整合する:</p>
+<div class="tw"><table><thead><tr><th>腕</th><th>到達 rank（60M）</th><th>到達 rank（300M）</th><th>EQU</th></tr></thead><tbody><tr><td>none</td><td>2.00</td><td>2.00</td><td>0/6</td></tr><tr><td><strong>equOnly</strong></td><td><strong>2.00</strong></td><td><strong>2.00</strong></td><td>0/6</td></tr><tr><td>all</td><td>3.50</td><td>3.83</td><td>0/6</td></tr><tr><td>simpleOnly</td><td>3.33</td><td>3.83</td><td>0/6</td></tr></tbody></table></div>
+<p><strong>そして equOnly は none と「同程度」だったのではない。</strong> 事前登録した解析を読んでいて 値が1つ残らず一致していることに気付き、追加で状態ハッシュを取ったところ——</p>
+<div class="tw"><table><thead><tr><th>誤り率</th><th>none の状態</th><th>equOnly の状態</th><th>一致</th></tr></thead><tbody><tr><td>0.002</td><td><code>69700a6b</code> pop179 b27054 io165951</td><td><code>69700a6b</code> pop179 b27054 io165951</td><td><strong>完全一致</strong></td></tr><tr><td>0.005</td><td><code>14bcde0d</code> pop187 b25938 io207827</td><td><code>14bcde0d</code> pop187 b25938 io207827</td><td><strong>完全一致</strong></td></tr><tr><td>0.01</td><td><code>32963fff</code> pop277 b24595 io102543</td><td><code>32963fff</code> pop277 b24595 io102543</td><td><strong>完全一致</strong></td></tr></tbody></table></div>
+<p>（状態ハッシュは共有メモリ 30000 セル全部と、生存プロセスの pid・番地・長さ・命令ポインタ・ 記録した演算・merit から作る。）</p>
+<p>理由は機械的である: equOnly では EQU が1度も起きないので倍率が1度も掛からず、 merit が全個体で 1 のまま、CPU 時間の配分が <code>none</code> と同一になり、<strong>乱数列の消費まで含めて同じ軌道を辿る</strong>。 <strong>届かない報酬は「弱い報酬」ではなく「無い報酬」であり、これは統計ではなく同一性である。</strong></p>
+<p><strong>逆向きの腕がもっと強い。</strong> <code>simpleOnly</code> は rank 1〜3 の 6 種だけに報酬を置き、 <strong>NOR・XOR・EQU には1も払わない</strong>。それでも:</p>
+<ul><li><strong>NOR（rank 4・報酬なし）が credited になった</strong>（60M で 6 シード中複数、300M で平均 477 体）</li><li><strong>XOR（rank 4・報酬なし）も 300M の 1 シードで credited になり、そのレプリケートは 8 種に達した</strong>——本実験で観測された最大値</li></ul>
+<p><strong>踏み石にだけ報酬を置くと、報酬の無い上の段に手が届く。</strong> 逆に頂上にだけ報酬を置くと、<strong>系は報酬が存在しないのと同じ振る舞いをする。</strong></p>
+<h3 id="感度比-k-9-0-158">④ 感度比（K-9 ③） — <strong>0.158</strong></h3>
+<p>観測器のノブ（minCredit を 5 通り）を振ったときの振れ幅 R_knob = 0.50（腕ごとの平均。最大でも 0.83）に対し、 制御変数（報酬集合 4 通り）を振ったときの振れ幅 R_control = 3.17。<strong>比 0.158 &lt; 1</strong>。</p>
+<div class="tw"><table><thead><tr><th>腕</th><th>minCredit=1</th><th>2</th><th>3</th><th>5</th><th>10</th></tr></thead><tbody><tr><td>none</td><td>3.00</td><td>3.00</td><td>3.00</td><td>3.00</td><td>2.83</td></tr><tr><td>all</td><td>6.33</td><td>6.17</td><td>6.17</td><td>5.83</td><td>5.50</td></tr><tr><td>equOnly</td><td>3.00</td><td>3.00</td><td>3.00</td><td>3.00</td><td>2.83</td></tr><tr><td>simpleOnly</td><td>6.33</td><td>6.00</td><td>6.00</td><td>5.67</td><td>5.50</td></tr></tbody></table></div>
+<p><strong>minCredit をどこに置いても結論は動かない。</strong> 報告しているのは観測器の性質ではなく系の性質である。</p>
+<p><strong>報酬の大きさ</strong>（倍率を <code>bonus^s</code>、s = 0.5 / 1 / 2）も同様に噛まない—— merit の最大は 128 → 1024 → 6.7e7 と 5 桁動くのに、種類数は <code>[7,7,6,7,7,6]</code> / <code>[5,7,5,7,7,6]</code> / <code>[5,4,7,6,6,7]</code>。 <strong>効いているのは報酬の大きさではなく、報酬がどの演算に付いているかである。</strong></p>
+<h3 id="帰無過程に同じノブを振る-k-19">⑤ 帰無過程に同じノブを振る（K-19）</h3>
+<p>出力だけを一様乱数に差し替えた帰無過程（複製・選択・報酬機構はそのまま動く）へ、 同じノブ（報酬集合 4 通り × 報酬の大きさ 3 通り）を振った:</p>
+<p><strong>12 点 × 6 シード = 72 レプリケートすべてで taskTypesCredited = 0。</strong> 帰無過程における制御変数の振れ幅は <strong>0</strong>（実系は 3.17）、報酬の大きさノブの振れ幅も <strong>0</strong>（実系は 0.83）。</p>
+<p><strong>ノブは実系だけを動かし、帰無過程を動かさない。</strong> したがってこれは観測器の恣意性ではなく系の構造である。</p>
+<h3 id="k-26-登録した上限に事例が張り付いていないか">K-26: 登録した上限に事例が張り付いていないか</h3>
+<div class="tw"><table><thead><tr><th>上限</th><th>登録値</th><th>到達した最大</th><th>判定</th></tr></thead><tbody><tr><td>演算の種類数</td><td>9</td><td><strong>8</strong></td><td>天井に触れたのは 228 レプリケート中 0 件</td></tr><tr><td>merit</td><td>（比に改めたため実質なし）</td><td>6.7e7</td><td>上限到達 0 回</td></tr><tr><td>走行長</td><td>60M（主）/ 300M（長時間）</td><td>—</td><td><strong>5 倍にして種類数は +0.17〜+0.33 しか増えない</strong></td></tr></tbody></table></div>
+<p>走行長を 5 倍にしても all は 6.67 → 6.83 種、simpleOnly は 6.67 → 7.00 種にしかならない。 <strong>EQU が出ないのは「走行長が足りないから」という形では説明されていない</strong>—— 5 倍与えても種類数はほぼ飽和しており、系統の深さは 530 → 2,100〜2,400 まで伸びている。 ただし<strong>これは「もっと走らせても絶対に出ない」ことを意味しない</strong>（限界の節を見よ）。</p>
+<h2 id="事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</h2>
+<blockquote>以下は結果を見てから足した解析であり、<code>criteria.json</code> の <code>decisionRule</code> には含まれていない。</blockquote>
+<h3 id="祖先の1点変異を全通り当てる-2542-通り">祖先の1点変異を全通り当てる（2542 通り）</h3>
+<p>祖先 82 命令 × 31 通りの置換をすべて作り、1体だけ短く走らせて何を計算するかを見た （生ログ: <span class="deadlink">raw/posthoc-single-mutants.jsonl</span>）:</p>
+<ul><li><strong>その場で論理演算を計算するもの: 19 通り（0.7%）</strong> — 内訳は <strong>NOT 2 通り・NAND 17 通り</strong></li><li>なお複製できるもの: 1566 通り（61.6%）</li><li>演算が出る変異位置は<strong>すべて <code>→ nand</code></strong>。位置 10（枠 W0）と 11（<code>io</code>）が NOT、位置 12〜28（枠 W1〜W17）が NAND</li></ul>
+<p><strong>梯子の一段目だけが 1 点変異で届き、二段目以降は届かない。</strong> AND を作るには <code>nand mov_ab nand</code> の 3 命令、EQU には 16 命令が要る。 報酬が効くのは、<strong>1 点で届く一段目を掴んで離さないから</strong>である—— 報酬なしの腕でも NOT / NAND は常に出る（変異が供給する）が、 記録するプロセスは 1129 / 576 体にとどまり、上へは伸びない。 報酬ありの腕では同じ 2 種が 62,895 / 37,931 体になり、<code>nand</code> を持つ個体の割合が 0.73 → 0.99 になる。</p>
+<h3 id="rank-は順番に現れる">rank は順番に現れる</h3>
+<p>本番の生ログから、各演算が minCredit=3 に達した時点の命令実行数を取り出し、rank ごとに中央値を取った （生ログ: <span class="deadlink">raw/posthoc-arrivals.jsonl</span>）:</p>
+<div class="tw"><table><thead><tr><th>腕</th><th>rank 1</th><th>rank 2</th><th>rank 3</th><th>rank 4</th></tr></thead><tbody><tr><td><strong>none</strong></td><td>1.0M（36 件）</td><td>14.7M（18 件）</td><td>—</td><td>—</td></tr><tr><td><strong>equOnly</strong></td><td>1.0M（36 件）</td><td>14.7M（18 件）</td><td>—</td><td>—</td></tr><tr><td><strong>all</strong></td><td>0.8M（36 件）</td><td>2.6M（36 件）</td><td>20.7M（28 件）</td><td><strong>44.2M（8 件）</strong></td></tr><tr><td><strong>simpleOnly</strong></td><td>0.8M（36 件）</td><td>2.6M（36 件）</td><td>23.2M（29 件）</td><td><strong>37.7M（7 件）</strong></td></tr></tbody></table></div>
+<p><strong>報酬のある腕では、rank が小さいものから順に、単調に遅れて現れる。</strong> 件数も 36 → 36 → 28 → 8 と削れていく。 報酬の無い腕（none / equOnly）は rank 2 で止まり、しかも rank 2 に届くのは 36 件中 18 件（半分）で、 届く時刻も 14.7M と報酬ありの 2.6M に比べて 5.6 倍遅い。</p>
+<p><strong>これは「梯子」という比喩が観測量として成り立っていることの確認にあたる</strong>—— ただし<strong>事前登録していない</strong>ので、順序が出ることを狙って測ったわけではない。</p>
+<h3 id="nand-を持つ個体の割合という-もっと素直な秩序変数"><code>nand</code> を持つ個体の割合という、もっと素直な秩序変数</h3>
+<p>事前登録していないが、報酬の有無をいちばん素直に分けるのは種類数ではなく <strong>「<code>nand</code> の命令語を自分のブロックに持つ個体の割合」</strong>だった:</p>
+<div class="tw"><table><thead><tr><th>誤り率</th><th>none / equOnly</th><th>all / simpleOnly</th></tr></thead><tbody><tr><td>0</td><td>0.00</td><td>0.00</td></tr><tr><td>0.002</td><td>0.31</td><td><strong>0.99</strong></td></tr><tr><td>0.005</td><td>0.73</td><td><strong>0.99</strong></td></tr><tr><td>0.01</td><td>0.38</td><td><strong>0.98</strong></td></tr></tbody></table></div>
+<p>これは<strong>メモリの内容だけで決まる静的な量</strong>で、時間窓も閾値も選ばない。 報酬なしの側が誤り率とともに上下する（0.31 → 0.73 → 0.38）のに対し、 報酬ありの側は誤り率に関係なく 0.98〜0.99 に張り付く。</p>
+<h2 id="本家サブプロジェクトへの含意-候補として挙げるだけ-要件化しない">本家サブプロジェクトへの含意（<strong>候補として挙げるだけ。要件化しない</strong>）</h2>
+<ul><li><strong>「届かない報酬は無い報酬と同一である」</strong>は、アシスタントの評価設計にそのまま置き換えられる形をしている。</li></ul>
+<p>遠い目標だけに報酬を置いた系は、報酬を置かない系と<strong>同じ振る舞いをする</strong>（本スケッチでは文字通り同じ軌道だった）。 踏み石の側に報酬を置くと、報酬を置いていない上の段に手が届いた</p>
+<ul><li><strong>効いたのは報酬の大きさではなく、報酬がどこに付いているか</strong>だった（大きさを 5 桁振っても結論が動かない）</li><li>ただし<strong>これは要件ではなく観察である</strong>。本家へ持ち込むかはユーザが判断する</li></ul>
+<h2 id="限界-この実験が言えないこと">限界（この実験が言えないこと）</h2>
+<ol><li><strong>EQU について何も言えていない。</strong> どの腕でも 1 度も出なかった。原典（全報酬の環境で 50 個体群中 23 が獲得）</li></ol>
+<p>と比べられる状態にない。<strong>本スケッチが示したのは rank 4 までの階段であり、Lenski らの看板である 「EQU が単純な演算への報酬を経由してしか進化しない」の EQU の部分は再現していない。</strong></p>
+<ol><li><strong>原典との差分が大きい。</strong> 到達できた原典と突き合わせた結果、次が一致していない:</li></ol>
+<ul><li><strong>祖先が <code>io</code> を持つ</strong>。原典の祖先は 50 命令（複製に要る 15 ＋ <code>nop-C</code> 35）で <code>io</code> を1つも持たず、</li></ul>
+<p>入出力も論理演算も一切しない。本スケッチは NOT / NAND が 1 点変異で届く位置まで祖先を寄せてある。 <strong>したがって「入出力そのものの獲得」を見ていない</strong></p>
+<ul><li><strong>変異が置換のみで、挿入・欠失が無い。</strong> 原典は複写誤り 0.0025/命令 に加え挿入 0.05/ゲノム・欠失 0.05/ゲノム を持ち、</li></ul>
+<p>ゲノム長が伸びうる。本スケッチの計算区画は <strong>17 枠に固定</strong>されており、16 命令の EQU はぎりぎり収まるが、 <strong>そこへ至る中間状態が枠からはみ出せない</strong>。EQU が出なかったことの有力な説明の1つがこれであり、 <strong>「走行長が足りない」よりこちらのほうが疑わしい</strong></p>
+<ul><li><strong>個体数と走行長が 2 桁小さい。</strong> 原典は 3,600 個体・祖先の 15,873 世代。本スケッチは約 200 個体・</li></ul>
+<p>系統の深さ最大 2,424</p>
+<ul><li><strong>入力が固定 3 定数ではなくプロセスごとの乱数。</strong> 原典は 3 定数を全個体に与え、真理値表の 8 通りが</li></ul>
+<p>全ビット位置に現れることで「出力が入力ビットの一貫した関数か」を検査する。本スケッチは乱数を引き直して 候補値を一意にする。<strong>塞いでいる穴は同じだが、塞ぎ方が違う</strong></p>
+<ul><li><strong>メモリが 2 次元格子ではなく 1 次元の環状共有メモリ</strong>（S-05 ＝ Tierra の形）。命令集合は 32 語（原典は 26 語）</li></ul>
+<ol><li><strong>「報酬があると複雑な演算が出る」を示していない。</strong> 示したのは</li></ol>
+<p>「報酬があると <strong>rank 4 まで</strong>届き、報酬が無いと <strong>rank 2 で止まる</strong>」であり、 rank 4 は 9 種のうち 7 番目にすぎない。<strong>K-6 に従い規模を併記したとおり、 出たものの大半は NOT / NAND / ORN という 1〜2 点変異で届く演算である。</strong></p>
+<ol><li><strong>負コントロールは 4 種試しただけである。</strong> <span class="deadlink">K-20</span> が引く Campbell &amp; Fiske の言うとおり、</li></ol>
+<p><strong>特異性は原理的に証明できない</strong>——試した 4 つ（＋定数攻撃）に対して偽陽性を出さないことしか示していない。 ただし本スケッチの帰無値は実測ではなく入力規則の構成から出ているので、 「偶然一致」の側については 8.38e-9 という数字を根拠に主張できる。</p>
+<ol><li><strong><code>equOnly</code> と <code>none</code> の同一性は、この実装の性質でもある。</strong> merit を個体群の平均で割った比にしているため、</li></ol>
+<p>全個体の merit が 1 なら配分が完全に一致する。<strong>原典の Avida も同じ構造（total demand で標準化）を持つので 同じことが起きるはずだが、本スケッチはそれを原典の実装で確かめてはいない。</strong></p>
+<ol><li><strong>可視化が意味を成しているかは確かめられていない。</strong> 核との API の食い違い・DOM の欠落・構文は</li></ol>
+<p>機械で潰したが（56 項目のうち 3 項目）、<strong>配色とレイアウトが読めるかはユーザが最初に開いたときに初めて分かる</strong>。 これは本サブプロジェクトの手順の既知の弱点である。</p>
+<ol><li><strong>観測器の実装に1つ欠陥があり、掃引を走らせ直した。</strong> 「相異なる n 体が記録した時点の命令数」を</li></ol>
+<p><strong>全ての n について</strong>残していたため、1 レプリケートの生ログが 29MB に達した（合計 386MB）。 事前登録した minCredit の値でだけ残すよう直し、走らせ直して 419KB になった。 <strong>この欄は実行中に1度も読まれない書き込み専用の記録なので、系の軌道は変わらない。</strong> 実際、<strong>2回の掃引は 38 点すべての <code>taskTypesValues</code> と、事前登録した解析 8 項目 （分布・分離・Lenski テスト・感度比・帰無過程・上限）が完全に一致した</strong>。 本報告の数値はどちらの走行から取っても同じである。</p></article><p class="src">原典: <code>docs/subprojects/alife-sketches/sketches/S-16-avida-like/reports/main.md</code></p></section><section class="pane" data-pane="comments" hidden><div class="comments" data-slug="S-16-avida-like" data-run="main" data-readonly><div id="clist" class="clist">読み込み中…</div><script type="application/json" id="cdata">{"version":1,"sketch":"S-16-avida-like","comments":[]}</script></div></section></div></div></div><button class="fab" id="fab" title="メニュー" aria-label="メニュー">☰</button><div class="menu" id="menu" hidden><div class="menuhead">人工生命スケッチ</div><a href="../../../../index.html">🏠 ホーム（スケッチ一覧）</a><a href="../../../../reports/index.html">📄 レポート一覧</a></div><script src="../../../../assets/menu.js"></script><script src="../../../../assets/overlay.js"></script><script src="../../../../assets/comments-ui.js"></script></body></html>

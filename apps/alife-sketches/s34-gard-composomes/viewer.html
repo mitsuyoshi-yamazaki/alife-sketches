@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-34 脂質世界 GARD — 組成は遺伝を担うか</title>
+<style>
+  :root{ --bg:#0e1013; --panel:#171a1f; --line:#2a2f38; --fg:#dde3ec; --dim:#828c9c;
+         --hot:#ff8a5c; --cool:#5aa9ff; --good:#5fd68a; --warn:#f7c948; --bad:#e2607a; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1100px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070a;border:1px solid var(--line);border-radius:4px;max-width:100%;height:auto}
+  aside{width:340px;min-width:300px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 13px;margin-bottom:12px}
+  .box h2{margin:0 0 9px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.06em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;flex-wrap:wrap}
+  label span.k{width:112px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  input[type=number],select{background:#0b0d11;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0;max-width:100%}
+  .val{min-width:7ch;text-align:right;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:none;
+       font-variant-numeric:tabular-nums}
+  button{background:#20252e;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#2a313d}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #1f242c}
+  table.stat td.k{color:var(--dim);width:56%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;
+                  overflow:hidden;text-overflow:ellipsis;min-width:9ch}
+  .banner{margin-top:9px;padding:8px 10px;border-radius:4px;font-size:12px;
+          border:1px solid var(--line);background:#11151b;color:var(--dim);overflow-wrap:anywhere}
+  .banner.yes{border-color:var(--good);background:#0e2318;color:#bff3d3}
+  .banner.no{border-color:var(--warn);background:#241d0c;color:#ffe9b0}
+  .banner.split{border-color:var(--cool);background:#0e1c2b;color:#c8e2ff}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--dim);font-size:11px;margin-top:7px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .note{color:var(--dim);font-size:11px;margin-top:8px;overflow-wrap:anywhere}
+  .cap{color:var(--dim);font-size:11px;margin:0 0 2px}
+  code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#a8b8f8}
+  @media(max-width:820px){aside{width:auto;min-width:0}.col{min-width:0}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-34 — 脂質世界 GARD。組成だけを状態に持つ容器は、組成を「遺伝」させているか</h1>
+  <p>N 種の分子の<b>個数ベクトル</b>だけが状態（空間も配列も無い）。取り込みと離脱の速さが、いま入っている組成に依存する。
+     総数が閾値を超えると<b>組成を保ったまま2つに割れる</b>。
+     問いは「進化するか」ではなく、<b>「遺伝を担っている」と言うために観測器が何を決めているか</b>。
+     <b>在庫</b>（親子で組成が似ているか）と<b>到達</b>（選択が蓄積するか）を別々に測る。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <p class="cap">容器の組成（横＝分子種・縦＝容器。明るいほど多い）。同じ模様の行が揃えば「同じ組成の容器」</p>
+    <canvas id="pool" width="760" height="270"></canvas>
+    <p class="cap">系統樹（左＝古い世代・右＝今）。線は親子。色は組成の塊</p>
+    <canvas id="tree" width="760" height="170"></canvas>
+    <p class="cap">時系列: <span style="color:#ff8a5c">在庫 kinship</span> ／ <span style="color:#5aa9ff">安定 homeostasis</span> ／ <span style="color:#828c9c">その参照点</span> ／ <span style="color:#5fd68a">塊の数 ÷ 容器数</span></p>
+    <canvas id="series" width="760" height="160"></canvas>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>系のつまみ</h2>
+      <label><span class="k">上乗せの不揃いさ σ</span><input type="range" id="sigma" min="0" max="5" step="0.5" value="4"><span class="val" id="sigma_v">4.0</span></label>
+      <label><span class="k">上乗せの掛かる先</span>
+        <select id="mode">
+          <option value="both">入りと出の両方（二次資料 A）</option>
+          <option value="inOnly">入りだけ（二次資料 B）</option>
+        </select></label>
+      <label><span class="k">取り込み元</span>
+        <select id="source">
+          <option value="ambient">周囲の組成（GARD）</option>
+          <option value="self">自分の組成（＝手で組んだ本物の遺伝）</option>
+        </select></label>
+      <label><span class="k">分裂の閾値</span><input type="number" id="splitAt" value="200" min="40" max="1200" step="20"></label>
+      <label><span class="k">容器の数</span><input type="number" id="pool_n" value="24" min="4" max="64" step="2"></label>
+      <label><span class="k">種</span><input type="number" id="seed" value="0" min="0" max="9999" step="1"></label>
+    </div>
+
+    <div class="box">
+      <h2>選択（到達を測るため）</h2>
+      <label><span class="k">強さ s</span><input type="range" id="sel_s" min="0" max="8" step="0.5" value="0"><span class="val" id="sel_s_v">0.0</span></label>
+      <label><span class="k">的</span>
+        <select id="sel_t">
+          <option value="self">系が作った組成（第5世代の容器0）</option>
+          <option value="rand">乱択の向き</option>
+          <option value="ambient">周囲の組成</option>
+        </select></label>
+      <label><span class="k">双子（参照点）</span>
+        <select id="twin">
+          <option value="">なし（本番）</option>
+          <option value="RP_a_uniform">選択だけを切る（一様に残す）</option>
+          <option value="RP_d_redrawn">遺伝だけを切る（組成を引き直す）</option>
+        </select></label>
+      <div class="note">「選択が蓄積したか」は、<b>同じ種・同じ boost の双子との差</b>でしか言えない。双子を切り替えて同じ量を見ること。</div>
+    </div>
+
+    <div class="box">
+      <h2>進み</h2>
+      <label><span class="k">速さ</span><input type="range" id="speed" min="1" max="12" step="1" value="4"><span class="val" id="speed_v">4</span></label>
+      <div class="row">
+        <button class="primary" id="go">開始</button>
+        <button id="step1">1世代</button>
+        <button id="reset">やり直す</button>
+        <button id="mem">記憶の比を測る</button>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>観測</h2>
+      <table class="stat">
+        <tr><td class="k">世代</td><td class="v" id="o_gen">0</td></tr>
+        <tr><td class="k">在庫 kinship（帰無 0）</td><td class="v" id="o_kin">—</td></tr>
+        <tr><td class="k">安定 homeostasis</td><td class="v" id="o_hom">—</td></tr>
+        <tr><td class="k">　その参照点（無縁な容器）</td><td class="v" id="o_homn">—</td></tr>
+        <tr><td class="k">記憶の比（決定論）</td><td class="v" id="o_mem">—</td></tr>
+        <tr><td class="k">　参照点: 上乗せが揃った系</td><td class="v" id="o_memnull">0.2500</td></tr>
+        <tr><td class="k">組成の塊の数</td><td class="v" id="o_types">—</td></tr>
+        <tr><td class="k">最大の種の割合（一様＝1/N）</td><td class="v" id="o_max">—</td></tr>
+        <tr><td class="k">周囲の組成との類似</td><td class="v" id="o_amb">—</td></tr>
+        <tr><td class="k">的との類似</td><td class="v" id="o_tsim">—</td></tr>
+        <tr><td class="k">1世代1容器の出入り</td><td class="v" id="o_ev">—</td></tr>
+        <tr><td class="k">残った創始系統</td><td class="v" id="o_founders">—</td></tr>
+      </table>
+      <div class="banner" id="verdict">走らせると判定が出る</div>
+      <div class="legend">
+        <span><span class="sw" style="background:#ff8a5c"></span>在庫</span>
+        <span><span class="sw" style="background:#5aa9ff"></span>安定</span>
+        <span><span class="sw" style="background:#5fd68a"></span>塊</span>
+      </div>
+      <div class="note">判定（事前登録）: <code>kinship ≥ 0.05</code> かつ <code>記憶の比 ≥ 0.50</code>（変種 V1）または <code>&gt; 0.27</code>（変種 V2）。
+      <b>同じ走行が V1 と V2 で別の答えになることがある</b>——それが本スケッチの中身。</div>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="observe.js"></script>
+<script>
+(function () {
+  'use strict';
+  function el(id) { return document.getElementById(id); }
+  var poolC = el('pool'), treeC = el('tree'), serC = el('series');
+  var pg = poolC.getContext('2d'), tg = treeC.getContext('2d'), sg = serC.getContext('2d');
+
+  var KINDS = 32;
+  var P, rng, rngT, rngO, bags, nid, buf, gen, target, hist, tree, evAcc, founders0, running = false;
+  var stats = { kin: NaN, hom: NaN, homn: NaN, mem: NaN, types: NaN, max: NaN, amb: NaN, tsim: NaN, ev: NaN, founders: NaN };
+  var AUTOSTART = true;   // 開いた瞬間から進む（静止画でも進行が見えるように）
+
+  function cfg() {
+    return {
+      sigma: parseFloat(el('sigma').value),
+      mode: el('mode').value,
+      self: el('source').value === 'self',
+      splitAt: Math.max(40, parseInt(el('splitAt').value, 10) || 200),
+      pool: Math.max(4, parseInt(el('pool_n').value, 10) || 24),
+      seed: parseInt(el('seed').value, 10) || 0,
+      s: parseFloat(el('sel_s').value),
+      t: el('sel_t').value,
+      twin: el('twin').value,
+      speed: parseInt(el('speed').value, 10) || 4,
+    };
+  }
+
+  function reset() {
+    var c = cfg();
+    var rb = S34.makeRng((20260913 + c.seed * 7919) >>> 0);
+    P = S34.makeParams({ kinds: KINDS, influxTotal: 1, outflow: 0.5, splitAt: c.splitAt,
+      boost: S34.makeBoost(KINDS, 50, c.sigma, rb), enhanceMode: c.mode, sourceFromSelf: c.self });
+    rng = S34.makeRng((20260913 * 3 + c.seed * 104729 + 17) >>> 0);
+    rngT = S34.makeRng((20260913 * 11 + c.seed * 2038074743) >>> 0);
+    rngO = S34.makeRng((20260913 * 13 + c.seed * 433494437) >>> 0);
+    buf = new Float64Array(2 * KINDS);
+    bags = []; nid = { v: 0 }; gen = 0; hist = []; tree = []; evAcc = 0;
+    for (var i = 0; i < c.pool; i++) {
+      bags.push(S34.makeBag(P, S34.drawFromShare(P, Math.floor(c.splitAt / 2), S34.sourceShare(P), rng), nid.v++, -1, 0));
+      bags[i].founder = i;
+    }
+    founders0 = c.pool;
+    target = c.t === 'rand' ? randSimplex(rngO) : (c.t === 'ambient' ? S34.sourceShare(P) : null);
+    stats = { kin: NaN, hom: NaN, homn: NaN, mem: NaN, types: NaN, max: NaN, amb: NaN, tsim: NaN, ev: NaN, founders: c.pool };
+    paint();
+  }
+
+  function randSimplex(r) {
+    var v = new Float64Array(KINDS), s = 0, i;
+    for (i = 0; i < KINDS; i++) { v[i] = -Math.log(1 - r()); s += v[i]; }
+    for (i = 0; i < KINDS; i++) v[i] /= s;
+    return v;
+  }
+
+  function nullDist(f, N, M) { var v = S34O.samplingNullSq(f, N, M); return v > 0 ? Math.sqrt(v) : 1e-9; }
+
+  function doGeneration() {
+    var c = cfg();
+    // frame() が直接進めた分も数える（stepGeneration の中の分だけでは足りない）
+    for (var bi = 0; bi < bags.length; bi++) evAcc += bags[bi].events;
+    var res = S34.stepGeneration(P, bags, rng, {
+      maxEvents: 400000, nextId: nid,
+      birthShare: c.twin === 'RP_d_redrawn' ? meanShare(bags) : null,
+      weightOf: function (kid) {
+        if (!target || c.s <= 0 || c.twin === 'RP_a_uniform') return 1;
+        var Np = 0;
+        for (var q = 0; q < KINDS; q++) Np += kid.parentSplit[q];
+        var dn = nullDist(S34O.share(kid.parentSplit), Np, kid.N);
+        return -c.s * Math.sqrt(S34O.sqDist(S34O.share(kid.n), target)) / dn;
+      },
+    });
+    if (target && c.s > 0 && c.twin !== 'RP_a_uniform') {
+      var mx = -Infinity, i;
+      for (i = 0; i < res.weights.length; i++) if (res.weights[i] > mx) mx = res.weights[i];
+      for (i = 0; i < res.weights.length; i++) res.weights[i] = Math.exp(res.weights[i] - mx);
+      res.keep = S34.keepSome(bags.length, res.weights, rngT);
+      res.bags = res.keep.map(function (ix) { return res.kids[ix]; });
+    }
+    res.records.forEach(function (r) { evAcc += r.events; });
+
+    var parentShares = res.records.map(function (r) { return S34O.share(r.atSplit); });
+    var kin = [], hom = [], homn = [];
+    res.keep.forEach(function (ix) {
+      var kid = res.kids[ix], fk = S34O.share(kid.n), fp = parentShares[kid.parentSlot];
+      var other = kid.parentSlot;
+      if (res.records.length > 1) while (other === kid.parentSlot) other = Math.floor(rngO() * res.records.length);
+      var a = S34O.simEuclid(fk, fp), b = S34O.simEuclid(fk, parentShares[other]);
+      kin.push(a - b); hom.push(a); homn.push(b);
+    });
+    res.bags.forEach(function (b2) { b2.founder = bags[b2.parentSlot].founder; });
+    bags = res.bags;
+    gen++;
+    if (c.t === 'self' && gen === 5) target = S34O.share(bags[0].n);
+
+    var shares = bags.map(function (b2) { return S34O.share(b2.n); });
+    var dn0 = nullDist(S34.sourceShare(P), P.splitAt, P.splitAt / 2);
+    stats.kin = S34O.mean(kin); stats.hom = S34O.mean(hom); stats.homn = S34O.mean(homn);
+    stats.types = S34O.clusterCount(shares, 2 * dn0 / Math.SQRT2, 'euclid');
+    stats.max = Math.max.apply(null, Array.prototype.slice.call(shares[0]));
+    stats.amb = S34O.mean(shares.map(function (f) { return S34O.simEuclid(f, S34.sourceShare(P)); }));
+    stats.tsim = target ? S34O.mean(shares.map(function (f) { return S34O.simEuclid(f, target); })) : NaN;
+    stats.ev = evAcc / gen / bags.length;
+    var fs = {};
+    bags.forEach(function (b2) { fs[b2.founder] = 1; });
+    stats.founders = Object.keys(fs).length;
+
+    hist.push({ kin: stats.kin, hom: stats.hom, homn: stats.homn, types: stats.types / bags.length });
+    if (hist.length > 400) hist.shift();
+    tree.push(bags.map(function (b2) { return { id: b2.id, parent: b2.parent, f: b2.founder }; }));
+    if (tree.length > 70) tree.shift();
+  }
+
+  function meanShare(bs) {
+    var out = new Float64Array(KINDS), i, b;
+    for (b = 0; b < bs.length; b++) { var f = S34O.share(bs[b].n); for (i = 0; i < KINDS; i++) out[i] += f[i] / bs.length; }
+    return out;
+  }
+
+  function measureMemory() {
+    var dirs = [], r = S34.makeRng(4242), vals = [];
+    for (var d = 0; d < 3; d++) dirs.push(S34O.randomDirection(KINDS, r));
+    var f0 = S34O.share(bags[0].n);
+    dirs.forEach(function (dir) { vals.push(S34O.memoryRatio(P, f0, dir, 0.05, 0.005)); });
+    stats.mem = S34O.median(vals);
+    paint();
+  }
+
+  // ---------------- 描画 ----------------
+
+  function paint() {
+    drawPool(); drawTree(); drawSeries(); writeStats();
+  }
+
+  function heat(v) {
+    var t = Math.max(0, Math.min(1, v));
+    var r = Math.round(20 + 235 * Math.pow(t, 0.6));
+    var g = Math.round(16 + 140 * Math.pow(t, 1.5));
+    var b = Math.round(30 + 70 * Math.pow(t, 2.6));
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  function drawPool() {
+    var W = poolC.width, H = poolC.height;
+    pg.fillStyle = '#05070a'; pg.fillRect(0, 0, W, H);
+    if (!bags) return;
+    var rows = bags.length, cw = (W - 60) / KINDS, rh = Math.max(3, Math.min(14, (H - 24) / rows));
+    var mx = 0;
+    bags.forEach(function (b) { var f = S34O.share(b.n); for (var i = 0; i < KINDS; i++) if (f[i] > mx) mx = f[i]; });
+    if (!(mx > 0)) mx = 1;
+    for (var r = 0; r < rows; r++) {
+      var f = S34O.share(bags[r].n);
+      for (var i = 0; i < KINDS; i++) {
+        pg.fillStyle = heat(f[i] / mx);
+        pg.fillRect(4 + i * cw, 18 + r * rh, Math.max(1, cw - 0.5), Math.max(1, rh - 0.5));
+      }
+      // 育ち具合の棒
+      var frac = bags[r].N / P.splitAt;
+      pg.fillStyle = '#2f6fe0';
+      pg.fillRect(W - 52, 18 + r * rh, Math.max(1, 46 * Math.min(1, frac)), Math.max(1, rh - 1.5));
+    }
+    pg.fillStyle = '#828c9c'; pg.font = '10px ui-monospace,Menlo,monospace';
+    pg.fillText('分子種 1..' + KINDS, 4, 12);
+    pg.fillText('N / 閾値', W - 52, 12);
+  }
+
+  function drawTree() {
+    var W = treeC.width, H = treeC.height;
+    tg.fillStyle = '#05070a'; tg.fillRect(0, 0, W, H);
+    if (!tree.length) return;
+    var cols = tree.length, cw = W / Math.max(8, cols), rows = tree[tree.length - 1].length;
+    var rh = (H - 16) / Math.max(1, rows);
+    var posPrev = null;
+    for (var c = 0; c < cols; c++) {
+      var pos = {};
+      tree[c].forEach(function (b, i) { pos[b.id] = { x: 6 + c * cw, y: 10 + i * rh + rh / 2, f: b.f }; });
+      if (posPrev) {
+        tg.strokeStyle = 'rgba(130,140,156,0.45)'; tg.lineWidth = 1;
+        tree[c].forEach(function (b) {
+          var p = posPrev[b.parent];
+          if (!p) return;
+          tg.beginPath(); tg.moveTo(p.x, p.y); tg.lineTo(pos[b.id].x, pos[b.id].y); tg.stroke();
+        });
+      }
+      tree[c].forEach(function (b) {
+        var h = (b.f * 47) % 360;
+        tg.fillStyle = 'hsl(' + h + ',68%,62%)';
+        tg.beginPath(); tg.arc(pos[b.id].x, pos[b.id].y, Math.max(1.2, Math.min(2.6, rh / 3)), 0, 6.2832); tg.fill();
+      });
+      posPrev = pos;
+    }
+    tg.fillStyle = '#828c9c'; tg.font = '10px ui-monospace,Menlo,monospace';
+    tg.fillText('世代 ' + Math.max(0, gen - cols + 1) + ' → ' + gen + '（色＝創始系統）', 6, 9);
+  }
+
+  function drawSeries() {
+    var W = serC.width, H = serC.height;
+    sg.fillStyle = '#05070a'; sg.fillRect(0, 0, W, H);
+    sg.strokeStyle = '#222831'; sg.lineWidth = 1;
+    for (var q = 0; q <= 4; q++) {
+      var y = 8 + (H - 22) * q / 4;
+      sg.beginPath(); sg.moveTo(4, y); sg.lineTo(W - 4, y); sg.stroke();
+    }
+    if (hist.length < 2) return;
+    var n = hist.length, dx = (W - 10) / Math.max(1, n - 1);
+    function line(key, color, lo, hi) {
+      sg.strokeStyle = color; sg.lineWidth = 1.4; sg.beginPath();
+      for (var i = 0; i < n; i++) {
+        var v = hist[i][key];
+        if (!isFinite(v)) continue;
+        var y = 8 + (H - 22) * (1 - (v - lo) / (hi - lo));
+        y = Math.max(4, Math.min(H - 6, y));
+        if (i === 0) sg.moveTo(5, y); else sg.lineTo(5 + i * dx, y);
+      }
+      sg.stroke();
+    }
+    line('hom', '#5aa9ff', 0, 1);
+    line('homn', '#828c9c', 0, 1);
+    line('types', '#5fd68a', 0, 1);
+    line('kin', '#ff8a5c', -0.1, 0.5);
+    sg.fillStyle = '#828c9c'; sg.font = '10px ui-monospace,Menlo,monospace';
+    sg.fillText('0〜1（在庫は −0.1〜0.5）', 6, H - 4);
+  }
+
+  function num(id, v, digits) {
+    var e = el(id);
+    e.textContent = (v === null || v === undefined || !isFinite(v)) ? '—' : v.toFixed(digits === undefined ? 4 : digits);
+  }
+
+  function writeStats() {
+    el('o_gen').textContent = String(gen);
+    num('o_kin', stats.kin); num('o_hom', stats.hom); num('o_homn', stats.homn);
+    num('o_mem', stats.mem); num('o_types', stats.types, 0); num('o_max', stats.max);
+    num('o_amb', stats.amb); num('o_tsim', stats.tsim); num('o_ev', stats.ev, 1);
+    el('o_founders').textContent = isFinite(stats.founders) ? (stats.founders + ' / ' + founders0) : '—';
+    var b = el('verdict');
+    if (!isFinite(stats.kin)) { b.className = 'banner'; b.textContent = '走らせると判定が出る'; return; }
+    var d1 = stats.kin >= 0.05, v1 = stats.mem >= 0.50, v2 = stats.mem > 0.27;
+    if (!isFinite(stats.mem)) { b.className = 'banner'; b.textContent = '在庫 ' + (d1 ? '○' : '×') + '（記憶の比は「記憶の比を測る」を押す）'; return; }
+    if (v1 !== v2) { b.className = 'banner split'; b.textContent = '**同じ走行が2通りに読める**: 変種V1（≥0.50）は ' + (d1 && v1 ? '○' : '×') + '、変種V2（>0.27）は ' + (d1 && v2 ? '○' : '×'); }
+    else if (d1 && v1) { b.className = 'banner yes'; b.textContent = '在庫○ 記憶○ — V1・V2 とも「組成が伝わっている」側'; }
+    else { b.className = 'banner no'; b.textContent = '在庫 ' + (d1 ? '○' : '×') + ' 記憶 ' + (v2 ? '○' : '×') + ' — 連言は立たない'; }
+  }
+
+  // ---------------- 進行 ----------------
+
+  function frame() {
+    if (running) {
+      var c = cfg(), chunk = 40;
+      for (var rep = 0; rep < c.speed; rep++) {
+        var allReady = true;
+        for (var i = 0; i < bags.length; i++) {
+          var b = bags[i], ev = 0;
+          while (b.N < P.splitAt && ev < chunk && b.N > 0) { S34.stepOnce(P, b, rng, buf); ev++; }
+          if (b.N < P.splitAt) allReady = false;
+        }
+        if (allReady) doGeneration();
+      }
+      paint();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  ['sigma', 'sel_s', 'speed'].forEach(function (id) {
+    var s = el(id), v = el(id + '_v');
+    function upd() { v.textContent = id === 'speed' ? s.value : parseFloat(s.value).toFixed(1); }
+    s.addEventListener('input', upd); upd();
+  });
+  ['sigma', 'mode', 'source', 'splitAt', 'pool_n', 'seed', 'sel_t', 'twin'].forEach(function (id) {
+    el(id).addEventListener('change', reset);
+  });
+  el('go').addEventListener('click', function () { running = !running; el('go').textContent = running ? '止める' : '開始'; });
+  el('step1').addEventListener('click', function () {
+    for (var i = 0; i < bags.length; i++) S34.growToSplit(P, bags[i], rng, 400000);
+    doGeneration(); paint();
+  });
+  el('reset').addEventListener('click', reset);
+  el('mem').addEventListener('click', measureMemory);
+
+  reset();
+  running = AUTOSTART;
+  el('go').textContent = running ? '止める' : '開始';
+  frame();
+
+  // --- 共通の実行UI（撮る / 広さ / 設定の保存と復元）を載せる ---
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('go').click(); },
+    id: 'S-34',
+    version: '1.0.0',
+    inputs: ['sigma', 'mode', 'source', 'splitAt', 'pool_n', 'seed', 'sel_s', 'sel_t', 'twin', 'speed'],
+    paramNames: {
+      sigma: { category: 'p', code: 'sigma', full: 'noise_sigma' },
+      mode: { category: 'p', code: 'mode', full: 'noise_target' },
+      source: { category: 'p', code: 'source', full: 'uptake_source' },
+      splitAt: { category: 'p', code: 'splitat', full: 'split_threshold' },
+      pool_n: { category: 's', code: 'pooln', full: 'pool_count' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      sel_s: { category: 'p', code: 'sels', full: 'selection_strength' },
+      sel_t: { category: 'p', code: 'selt', full: 'selection_target' },
+      twin: { category: 'p', code: 'twin', full: 'twin_control' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+    },
+    canvases: ['pool', 'tree', 'series'],
+    // この系に空間は無い。「広さ」は**分子種の数 N**（組成ベクトルの長さ）にあたる。
+    // 容器の数は別のつまみにしてある（母集団の大きさであって広さではない）。
+    resize: function (scale) {
+      KINDS = Math.max(4, Math.round(32 * scale));
+      reset();
+      Harness.say('分子種を ' + KINDS + ' 種にした（既定 32 の ' + scale + ' 倍）');
+    },
+  });
+})();
+</script>
+</body>
+</html>

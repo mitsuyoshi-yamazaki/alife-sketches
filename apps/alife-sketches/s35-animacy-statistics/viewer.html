@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-35 「生きているように見える」を動きの統計で測る — 4 つの生成器を並べ、判定を同時に出す</title>
+<style>
+  :root{
+    --bg:#0c0f14; --panel:#151a22; --line:#272f3b; --fg:#d8dee8; --dim:#7b8598;
+    --live:#4ade80; --dead:#64748b; --hot:#ff7a59; --cool:#4aa3ff; --gold:#fbbf24; --theory:#c084fc;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1150px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%;width:622px;align-items:flex-start}
+  .col>.box,.col>table{width:100%}
+  canvas{display:block;background:#05070b;border:1px solid var(--line);border-radius:4px;
+         max-width:100%;height:auto}
+  aside{width:330px;min-width:290px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 13px;margin-bottom:12px}
+  .box h2{margin:0 0 9px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.06em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:96px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  select,input[type=number]{background:#0a0d13;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  .val{width:60px;text-align:right;flex:none;
+       font:12px ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+  button{background:#1d2430;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#27303e}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td,table.stat th{padding:3px 2px;border-bottom:1px solid #1d2430;text-align:right}
+  table.stat th{color:var(--dim);font-weight:600;font-size:11px}
+  table.stat td.k,table.stat th.k{text-align:left;color:var(--dim);width:33%}
+  table.stat td{font-variant-numeric:tabular-nums;min-width:6ch}
+  .yes{color:var(--live)} .no{color:var(--dead)} .und{color:var(--gold)}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--dim);font-size:11px;margin-top:6px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:-1px;margin-right:4px}
+  .cap{color:var(--dim);font-size:11px;margin:0 0 3px}
+  .note{color:var(--dim);font-size:11px;margin-top:8px}
+  code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#a5b4fc}
+  b.hi{color:#fff}
+  @media(max-width:880px){aside{width:auto;min-width:0}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-35 「生きているように見える」を動きの統計で測る</h1>
+  <p>4 つの生成器を同じ規則の世界で同時に走らせ、<b class="hi">人間に訊かずに</b>判定する。
+     検出器は知覚研究の手がかり（<b class="hi">Tremoulet &amp; Feldman 2000</b>: 速さと向きの同時変化／<b class="hi">Gao, Newman &amp; Scholl 2009</b>: 追跡の幾何）と、
+     <b class="hi">自走が可視系の収支を破ること</b>から作ってある。右下の<b class="hi">再生</b>は、左下の<b class="hi">追跡</b>が受けた力をそのまま流しているだけで世界を一切読まない——
+     <b class="hi">それでも観測だけの判定は全部同じ値を返す</b>。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <p class="cap" id="cap1">4 つの生成器。<span style="color:var(--hot)">橙</span>＝検出器が見ている物体0、<span style="color:var(--cool)">青</span>＝物体1、灰＝その他。尾は直近 60 フレーム</p>
+    <canvas id="field" width="620" height="640"></canvas>
+    <div class="legend">
+      <span><span class="sw" style="background:#ff7a59"></span>物体0（判定の対象）</span>
+      <span><span class="sw" style="background:#4aa3ff"></span>物体1（円錐の中心にある相手）</span>
+      <span><span class="sw" style="background:#54606f"></span>その他</span>
+      <span><span class="sw" style="background:#4ade80"></span>判定が立っている</span>
+    </div>
+    <p class="cap" style="margin-top:10px">θ（chasing subtlety）を振ったときの <code>D4</code>。<span style="color:var(--theory)">紫</span>＝解析値 sinθ/θ、<span style="color:var(--gold)">金</span>＝Gao et al. の被験者の正答率（借りた定数）</p>
+    <canvas id="curve" width="620" height="230"></canvas>
+    <div class="box" style="margin-top:12px">
+      <h2>検出器（直近 <span id="wlen">—</span> フレーム・物体0。窓が満ちるまで値は動く）</h2>
+      <table class="stat">
+        <tr><th class="k"></th><th>物理</th><th>自走</th><th>追跡</th><th id="h4">再生</th></tr>
+        <tr><td class="k">D1 収支(線形)</td><td><span id="d1_0">—</span></td><td><span id="d1_1">—</span></td><td><span id="d1_2">—</span></td><td><span id="d1_3">—</span></td></tr>
+        <tr><td class="k">D2 収支(数え)</td><td><span id="d2_0">—</span></td><td><span id="d2_1">—</span></td><td><span id="d2_2">—</span></td><td><span id="d2_3">—</span></td></tr>
+        <tr><td class="k">D3 T&amp;F の大きさ</td><td><span id="d3_0">—</span></td><td><span id="d3_1">—</span></td><td><span id="d3_2">—</span></td><td><span id="d3_3">—</span></td></tr>
+        <tr><td class="k">D3 φ×λ の積</td><td><span id="dp_0">—</span></td><td><span id="dp_1">—</span></td><td><span id="dp_2">—</span></td><td><span id="dp_3">—</span></td></tr>
+        <tr><td class="k">D4 Gao の偏り</td><td><span id="d4_0">—</span></td><td><span id="d4_1">—</span></td><td><span id="d4_2">—</span></td><td><span id="d4_3">—</span></td></tr>
+        <tr><td class="k">D6 位置の関数か</td><td><span id="d6_0">—</span></td><td><span id="d6_1">—</span></td><td><span id="d6_2">—</span></td><td><span id="d6_3">—</span></td></tr>
+        <tr><td class="k">D4 が選んだ対</td><td id="pr_0">—</td><td id="pr_1">—</td><td id="pr_2">—</td><td id="pr_3">—</td></tr>
+        <tr><td class="k">W1 自走に見える</td><td id="w1_0">—</td><td id="w1_1">—</td><td id="w1_2">—</td><td id="w1_3">—</td></tr>
+        <tr><td class="k">W2 追跡に見える</td><td id="w2_0">—</td><td id="w2_1">—</td><td id="w2_2">—</td><td id="w2_3">—</td></tr>
+        <tr><td class="k">W3 外力でない</td><td id="w3_0">—</td><td id="w3_1">—</td><td id="w3_2">—</td><td id="w3_3">—</td></tr>
+      </table>
+      <p class="note">— は<b class="hi">観測器が答えない</b>（分母が 0・組が足りない）。W4（介入への応答）は<b class="hi">観測では取れない</b>ので、この表には出ない。</p>
+    </div>
+
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>つまみ</h2>
+      <label><span class="k">θ（追跡の甘さ）</span><input id="theta" type="range" min="0" max="150" step="30" value="30"><span class="val" id="thetav">30°</span></label>
+      <label><span class="k">円錐の引き方</span>
+        <select id="mode"><option value="clamp">clamp（Gao の原典）</option><option value="uniform">uniform（解析値 sinθ/θ）</option></select></label>
+      <label><span class="k">右下の腕</span>
+        <select id="alt">
+          <option value="tapeSame">再生・同じ世界</option>
+          <option value="tapeAlt">再生・世界を差し替え</option>
+          <option value="walk">ランダムウォーク</option>
+          <option value="field">外力場に揺すられた物体</option>
+        </select></label>
+      <label><span class="k">シード</span><input id="seed" type="number" value="7" min="1" max="99999"></label>
+      <label><span class="k">速さ</span><input id="speed" type="range" min="1" max="12" step="1" value="4"><span class="val" id="speedv">4</span></label>
+      <div class="row">
+        <button id="run" class="primary">停止</button>
+        <button id="reset">初めから</button>
+        <button id="sweep">θ を掃く</button>
+      </div>
+      <p class="note">「広さ」は<b class="hi">場の一辺</b>（⇲ で ½〜2 倍）。物体の数は 10 で固定。</p>
+    </div>
+
+    <div class="box">
+      <h2>いま何が起きているか</h2>
+      <p class="note" id="verdict">…</p>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="observer.js"></script>
+<script>
+(function () {
+  'use strict';
+  var C = window.S35, O = window.S35obs;
+  var el = function (id) { return document.getElementById(id); };
+
+  var WIN = 1800;                     // 検出器を当てる窓（D6 の組が足りるだけの長さが要る）
+  var WARMUP = 1800;                  // 開いた瞬間から値が出るように、窓ぶん先に走らせておく
+  var TAIL = 60;                      // 尾の長さ
+  var sideScale = 1;
+  var PANELS = [
+    { arm: 'inert', label: '① 純粋な物理（等速・弾性衝突のみ）' },
+    { arm: 'selfdrive', label: '② 自走（外力なしに速度が変わる）' },
+    { arm: 'cone:clamp:30', label: '③ 追跡（物体1 への円錐に進行方向を保つ）' },
+    { arm: 'tapeSame', label: '④ 再生（③ の力をそのまま流す・世界を読まない）' },
+  ];
+
+  var worlds = [], rings = [], tape = [], metrics = [null, null, null, null], frame = 0, running = true;
+  var curvePts = [], sweeping = -1, sweepAcc = [];
+
+  function cfg() {
+    return { n: 10, side: 100 * sideScale, dt: 1, v0: 1, radius: 2.5, mass: 1, frames: WIN };
+  }
+
+  function buildWorld(arm, seed, tapeRef) {
+    var c = C.cfgOf(cfg());
+    return C.makeWorld({
+      n: c.n, side: c.side, dt: c.dt, v0: c.v0, radius: c.radius, mass: c.mass,
+      seed: seed, drivers: C.armDrivers(arm, c, tapeRef), collide: true,
+      field: { amp: c.fieldAmp, k: c.fieldK },
+    });
+  }
+
+  function reset() {
+    var seed = Math.max(1, parseInt(el('seed').value, 10) || 7);
+    var th = parseInt(el('theta').value, 10), mode = el('mode').value;
+    PANELS[2].arm = 'cone:' + mode + ':' + th;
+    PANELS[3].arm = el('alt').value;
+    PANELS[2].label = '③ 追跡（θ=' + th + '°・' + mode + '）';
+    PANELS[3].label = ({
+      tapeSame: '④ 再生（③ の力をそのまま流す・世界を読まない）',
+      tapeAlt: '④ 再生・世界を差し替え（相手はもう居ない）',
+      walk: '④ ランダムウォーク（全部が自走・誰も追っていない）',
+      field: '④ 外力場に揺すられた物体（自走ではない）',
+    })[PANELS[3].arm];
+    el('h4').textContent = ({ tapeSame: '再生', tapeAlt: '再生·別', walk: '歩き', field: '外力' })[PANELS[3].arm];
+
+    tape = [];
+    worlds = []; rings = []; metrics = [null, null, null, null]; frame = 0;
+    for (var p = 0; p < 4; p++) {
+      var isTape = PANELS[p].arm === 'tapeSame' || PANELS[p].arm === 'tapeAlt';
+      var wseed = (PANELS[p].arm === 'tapeAlt') ? seed : seed;
+      var w = buildWorld(isTape ? PANELS[p].arm : PANELS[p].arm, wseed, isTape ? tape : null);
+      if (PANELS[p].arm === 'tapeAlt') {
+        for (var i = 1; i < w.n; i++) w.rng[i] = C.makeRng(((seed + 100000 + i * 7919) * 2654435761 % 4294967296) ^ (i + 1));
+      }
+      worlds.push(w);
+      rings.push({ pos: new Float64Array(WIN * w.n * 2), len: 0, head: 0 });
+    }
+    // 窓ぶんを先に走らせておく（開いた瞬間から検出器が値を返すように）
+    for (var q = 0; q < WARMUP; q++) stepAll();
+    recompute();
+    draw();
+  }
+
+  function stepAll() {
+    for (var p = 0; p < 4; p++) {
+      if (p === 3 && (PANELS[3].arm === 'tapeSame' || PANELS[3].arm === 'tapeAlt')) {
+        // ③ が受けた力をテープへ写してから ④ を進める（一歩も遅れない）
+        tape.push(worlds[2].fx[0], worlds[2].fy[0]);
+      }
+      var w = worlds[p], r = rings[p], n = w.n;
+      var base = (r.head % WIN) * n * 2;
+      for (var i = 0; i < n; i++) { r.pos[base + i * 2] = w.x[i]; r.pos[base + i * 2 + 1] = w.y[i]; }
+      r.head++; if (r.len < WIN) r.len++;
+      C.step(w);
+    }
+    frame++;
+    if (frame % 30 === 0) recompute();
+  }
+
+  // ring を素直な軌道に組み直して観測器へ渡す
+  function trajOf(p) {
+    var w = worlds[p], r = rings[p], n = w.n, F = r.len;
+    if (F < 200) return null;
+    var pos = new Float64Array(F * n * 2);
+    var start = (r.head - F) % WIN; if (start < 0) start += WIN;
+    for (var t = 0; t < F; t++) {
+      var src = ((start + t) % WIN) * n * 2;
+      for (var i = 0; i < n; i++) { pos[(t * n + i) * 2] = r.pos[src + i * 2]; pos[(t * n + i) * 2 + 1] = r.pos[src + i * 2 + 1]; }
+    }
+    return { pos: pos, n: n, frames: F, side: w.side, dt: w.dt, v0: w.v0,
+             m: Array.prototype.slice.call(w.m), r: Array.prototype.slice.call(w.r) };
+  }
+
+  function recompute() {
+    el('wlen').textContent = Math.min(frame, WIN);
+    for (var p = 0; p < 4; p++) {
+      var tr = trajOf(p);
+      metrics[p] = tr ? O.measure(tr, 0, {}) : null;
+    }
+    showStats();
+  }
+
+  // Harness.num は渡した値をそのまま書くので、**先に丸める**（生の倍精度は 20 桁出て表が崩れる）
+  function fmt(x, d) { return x === null || x === undefined || !isFinite(x) ? '—' : x.toFixed(d); }
+  // Harness.num は .num（display:inline-block）を付けるので、**<td> ではなく中の <span> に当てる**
+  // （<td> を inline-block にすると表の桁が縦に崩れる）
+  function put(id, x, d) { Harness.num(el(id), fmt(x, d), 7); }
+  function flag(v) { return v ? '<span class="yes">✓</span>' : '<span class="no">✗</span>'; }
+
+  function showStats() {
+    for (var p = 0; p < 4; p++) {
+      var m = metrics[p];
+      put('d1_' + p, m ? m.D1 : null, 4);
+      put('d2_' + p, m ? m.D2 : null, 3);
+      put('d3_' + p, m ? m.D3mag : null, 3);
+      put('dp_' + p, m ? m.D3prod : null, 4);
+      put('d4_' + p, m ? m.D4 : null, 3);
+      put('d6_' + p, m ? m.D6 : null, 3);
+      el('pr_' + p).textContent = (m && m.D4pair) ? (m.D4pair[0] + '→' + m.D4pair[1]) : '—';
+      var j = m ? O.judge(m, null) : null;
+      el('w1_' + p).innerHTML = j ? flag(j.W1) : '—';
+      el('w2_' + p).innerHTML = j ? flag(j.W2) : '—';
+      el('w3_' + p).innerHTML = j ? flag(j.W3) : '—';
+    }
+    var m2 = metrics[2], m3 = metrics[3], msg;
+    if (!m2 || !m3) msg = '窓が満ちるまで待っている。';
+    else if (PANELS[3].arm === 'tapeSame') {
+      var same = (m2.D1 === m3.D1 && m2.D2 === m3.D2 && m2.D4 === m3.D4 && m2.D6 === m3.D6);
+      msg = same
+        ? '<b class="hi">③ と ④ の観測だけの検出器は 1 桁も違わない。</b>④ は世界を一切読んでいないのに、観測からは区別できない——分けるには<b class="hi">介入</b>（世界を突いて応答を見る）が要る。'
+        : '③ と ④ が離れた（衝突の履歴が食い違ったか、窓がまだ揃っていない）。';
+    } else if (PANELS[3].arm === 'field') {
+      msg = '④ は<b class="hi">位置だけの関数である外力場</b>に揺すられている。収支（D1・D2）は破れるので W1 は通ってしまうが、'
+          + '同じ場所での加速度が揃うので <code>D6</code> が落ちる——<b class="hi">転がる石と歩く動物を分けているのは収支ではない</b>。';
+    } else if (PANELS[3].arm === 'tapeAlt') {
+      msg = '④ は ③ と同じ力を受けているが、相手はもう別の場所にいる。単体の検出器は通り、<b class="hi">関係の検出器 D4 だけが落ちる</b>。';
+    } else {
+      msg = '④ は全部が自走しているが誰も追っていない。W1 は通り <b class="hi">W2 は落ちる</b>。';
+    }
+    el('verdict').innerHTML = msg;
+  }
+
+  // ---------------------------------------------------------------- 描画
+  var cv = el('field'), cx = cv.getContext('2d');
+  function draw() {
+    var W = cv.width, H = cv.height, pw = W / 2, ph = H / 2;
+    cx.fillStyle = '#05070b'; cx.fillRect(0, 0, W, H);
+    for (var p = 0; p < 4; p++) {
+      var ox = (p % 2) * pw, oy = Math.floor(p / 2) * ph;
+      drawPanel(p, ox, oy, pw, ph);
+    }
+    cx.strokeStyle = '#272f3b'; cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(pw, 0); cx.lineTo(pw, H); cx.moveTo(0, ph); cx.lineTo(W, ph); cx.stroke();
+  }
+
+  function drawPanel(p, ox, oy, pw, ph) {
+    var w = worlds[p]; if (!w) return;
+    var pad = 22, S = Math.min(pw - 10, ph - pad - 6), sc = S / w.side;
+    var bx = ox + (pw - S) / 2, by = oy + pad;
+    cx.fillStyle = '#0a0e15'; cx.fillRect(bx, by, S, S);
+    // 尾
+    var r = rings[p], n = w.n, F = Math.min(r.len, TAIL);
+    for (var i = 0; i < n; i++) {
+      cx.beginPath();
+      var prev = null;
+      for (var t = 0; t < F; t++) {
+        var k = (r.head - F + t) % WIN; if (k < 0) k += WIN;
+        var xx = r.pos[k * n * 2 + i * 2], yy = r.pos[k * n * 2 + i * 2 + 1];
+        if (prev && (Math.abs(xx - prev[0]) > w.side / 2 || Math.abs(yy - prev[1]) > w.side / 2)) { cx.stroke(); cx.beginPath(); }
+        else if (prev) cx.lineTo(bx + xx * sc, by + yy * sc);
+        if (!prev || true) { if (!prev) cx.moveTo(bx + xx * sc, by + yy * sc); }
+        prev = [xx, yy];
+      }
+      cx.strokeStyle = i === 0 ? 'rgba(255,122,89,.55)' : (i === 1 ? 'rgba(74,163,255,.45)' : 'rgba(84,96,111,.30)');
+      cx.lineWidth = i === 0 ? 1.6 : 1; cx.stroke();
+    }
+    // 円板
+    for (var q = 0; q < n; q++) {
+      cx.beginPath();
+      cx.arc(bx + w.x[q] * sc, by + w.y[q] * sc, Math.max(2, w.r[q] * sc), 0, Math.PI * 2);
+      cx.fillStyle = q === 0 ? '#ff7a59' : (q === 1 ? '#4aa3ff' : '#54606f');
+      cx.fill();
+    }
+    // 見出しと判定札
+    var m = metrics[p], j = m ? O.judge(m, null) : null;
+    cx.font = '11px -apple-system,BlinkMacSystemFont,sans-serif';
+    cx.fillStyle = '#9aa6b8'; cx.textAlign = 'left';
+    cx.fillText(PANELS[p].label, ox + 8, oy + 14);
+    if (j) {
+      var tags = [['W1', j.W1], ['W2', j.W2], ['W3', j.W3]];
+      var tx = ox + pw - 8;
+      cx.textAlign = 'right';
+      for (var z = tags.length - 1; z >= 0; z--) {
+        cx.fillStyle = tags[z][1] ? '#4ade80' : '#3a4454';
+        cx.fillText(tags[z][0], tx, oy + ph - 8);
+        tx -= 26;
+      }
+      cx.textAlign = 'left';
+    }
+  }
+
+  // ---------------------------------------------------------------- θ 曲線
+  var cu = el('curve'), cc = cu.getContext('2d');
+  var HUMAN = { 0: 0.867, 30: 0.854, 90: 0.519 };     // Gao et al. (2009) から借りた定数
+  function drawCurve() {
+    var W = cu.width, H = cu.height, L = 46, R = 12, T = 14, B = 26;
+    cc.fillStyle = '#05070b'; cc.fillRect(0, 0, W, H);
+    var x = function (d) { return L + (d / 150) * (W - L - R); };
+    var y = function (v) { return H - B - v * (H - T - B); };
+    cc.strokeStyle = '#222a35'; cc.lineWidth = 1;
+    for (var g = 0; g <= 5; g++) {
+      cc.beginPath(); cc.moveTo(L, y(g / 5)); cc.lineTo(W - R, y(g / 5)); cc.stroke();
+      cc.fillStyle = '#5d6878'; cc.font = '10px ui-monospace,Menlo,monospace'; cc.textAlign = 'right';
+      cc.fillText((g / 5).toFixed(1), L - 5, y(g / 5) + 3);
+    }
+    cc.textAlign = 'center';
+    [0, 30, 60, 90, 120, 150].forEach(function (d) { cc.fillText(d + '°', x(d), H - 8); });
+    // 閾値
+    cc.strokeStyle = '#ff7a59'; cc.setLineDash([3, 3]);
+    cc.beginPath(); cc.moveTo(L, y(0.50)); cc.lineTo(W - R, y(0.50)); cc.stroke(); cc.setLineDash([]);
+    cc.fillStyle = '#ff7a59'; cc.textAlign = 'left'; cc.fillText('閾値 0.50', L + 4, y(0.50) - 4);
+    // 解析値
+    cc.strokeStyle = '#c084fc'; cc.lineWidth = 1.6; cc.beginPath();
+    for (var d2 = 0; d2 <= 150; d2 += 2) {
+      var v = O.analyticHeadingBias(d2 * Math.PI / 180);
+      if (d2 === 0) cc.moveTo(x(d2), y(v)); else cc.lineTo(x(d2), y(v));
+    }
+    cc.stroke();
+    // Gao の被験者
+    cc.fillStyle = '#fbbf24';
+    Object.keys(HUMAN).forEach(function (d) {
+      cc.beginPath(); cc.arc(x(+d), y(HUMAN[d]), 3.5, 0, Math.PI * 2); cc.fill();
+    });
+    // 掃引の実測
+    cc.strokeStyle = '#4ade80'; cc.lineWidth = 2; cc.beginPath();
+    curvePts.forEach(function (pt, i) { if (i === 0) cc.moveTo(x(pt[0]), y(pt[1])); else cc.lineTo(x(pt[0]), y(pt[1])); });
+    cc.stroke();
+    cc.fillStyle = '#4ade80';
+    curvePts.forEach(function (pt) { cc.beginPath(); cc.arc(x(pt[0]), y(pt[1]), 3, 0, Math.PI * 2); cc.fill(); });
+    if (sweeping >= 0) {
+      cc.fillStyle = '#9aa6b8'; cc.textAlign = 'right';
+      cc.fillText('掃引中 θ=' + [0, 30, 60, 90, 120, 150][sweeping] + '°', W - R, T + 8);
+    }
+  }
+
+  function runSweep() {
+    var mode = el('mode').value, seed = Math.max(1, parseInt(el('seed').value, 10) || 7);
+    var degs = [0, 30, 60, 90, 120, 150];
+    curvePts = [];
+    var c = cfg(); c.frames = 1200;
+    for (var i = 0; i < degs.length; i++) {
+      sweeping = i; drawCurve();
+      var tr = C.simulate('cone:' + mode + ':' + degs[i], seed, c);
+      var v = O.velocities(tr);
+      curvePts.push([degs[i], O.D4(tr, v, {}).value]);
+    }
+    sweeping = -1; drawCurve();
+    Harness.say('θ を 6 点掃いた（各 1200 フレーム）');
+  }
+
+  // ---------------------------------------------------------------- ループ
+  function tick() {
+    if (running && worlds.length) {
+      var k = parseInt(el('speed').value, 10);
+      for (var i = 0; i < k; i++) stepAll();
+      draw();
+    }
+    requestAnimationFrame(tick);
+  }
+
+  ['theta', 'mode', 'alt', 'seed'].forEach(function (id) {
+    el(id).addEventListener('change', function () {
+      el('thetav').textContent = el('theta').value + '°';
+      reset();
+    });
+  });
+  el('theta').addEventListener('input', function () { el('thetav').textContent = el('theta').value + '°'; });
+  el('speed').addEventListener('input', function () { el('speedv').textContent = el('speed').value; });
+  el('run').addEventListener('click', function () { running = !running; el('run').textContent = running ? '停止' : '再開'; });
+  el('reset').addEventListener('click', reset);
+  el('sweep').addEventListener('click', runSweep);
+
+  reset();
+  drawCurve();
+  tick();
+
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('run').click(); },
+    id: 'S-35',
+    version: '1.0.0',
+    inputs: ['theta', 'mode', 'alt', 'seed', 'speed'],
+    paramNames: {
+      theta: { category: 'p', code: 'theta', full: 'tracking_theta' },
+      mode: { category: 'p', code: 'mode', full: 'cone_mode' },
+      alt: { category: 'p', code: 'alt', full: 'alt_arm' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+    },
+    canvases: ['field', 'curve'],
+    // 「広さ」は**場の一辺**。物体の数は 10 で固定なので、広くすると密度が下がり接触が減る
+    resize: function (scale) {
+      sideScale = scale;
+      reset();
+      Harness.say('場の一辺を ' + (100 * scale) + ' にした（物体は 10 のまま）');
+    },
+    onRestore: function () {
+      el('thetav').textContent = el('theta').value + '°';
+      el('speedv').textContent = el('speed').value;
+      reset();
+    },
+  });
+})();
+</script>
+</body>
+</html>

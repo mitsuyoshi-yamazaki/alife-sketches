@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-49 トーラス重力 — 回り込む力を見る</title>
+<style>
+  :root{ --bg:#0c0f14; --panel:#151a22; --line:#262d39; --fg:#d8dee9; --dim:#78829a; --good:#4ade80; --warn:#fbbf24; --bad:#f87171; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1000px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:10px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070b;border:1px solid var(--line);border-radius:4px;max-width:100%;height:auto}
+  aside{width:330px;min-width:280px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:11px 12px;margin-bottom:11px}
+  .box h2{margin:0 0 8px;font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.07em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:118px;color:var(--dim);flex:none}
+  select,input[type=number]{background:#0a0d13;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  input[type=range]{flex:1;min-width:0}
+  input[type=checkbox]{flex:none}
+  button{background:#1d2430;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#27303e}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #1d2430}
+  table.stat td.k{color:var(--dim);width:60%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:8ch}
+  .banner{margin-top:8px;padding:7px 9px;border-radius:4px;font-size:12px;border:1px solid var(--line);background:#10141b;color:var(--dim)}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;font-size:11px;color:var(--dim)}
+  .legend .sw{display:inline-flex;align-items:center;gap:5px}
+  .legend .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .legend .line{width:16px;height:2px;display:inline-block}
+  .note{color:var(--dim);font-size:11px;margin-top:7px}
+  @media(max-width:860px){aside{width:auto;min-width:0}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-49 トーラス重力 — 上下左右が接続された平面で、重力はあらゆる方向から回り込む</h1>
+  <p>物体（点）は計算上は大きさを持たないが、表示では大きさのある点として描く。重力源（丸、大きさは GM に比例）は
+     互いに無関係な3つ。<b>実線の矢印</b>は全鏡像和（回り込みを含む本物の力）、<b>破線の矢印</b>は最近接鏡像のみ
+     （見かけ上の位置だけから素朴に計算した力）——2本が大きくずれる（とくに90°を超えて向きが変わる）ほど、
+     回り込みの寄与が現象を支配している。背景の色は各点で「回り込みがどれだけ効いているか」(wrapForceFraction)
+     を熱図にしたもの。端の外側にはみ出た薄い像は、同じ源・同じ物体がトーラスの反対側に接続していることを示す
+     「幽霊像」で、境界を越えて力が届く様子をそのまま絵にする。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <canvas id="world" width="520" height="520"></canvas>
+    <div class="legend">
+      <span class="sw"><span class="line" style="background:#7dd3fc"></span> 全鏡像和の力（本物）</span>
+      <span class="sw"><span class="line" style="background:#f87171;border-top:2px dashed #f87171;height:0"></span> 最近接鏡像のみ（素朴）</span>
+      <span class="sw"><span class="dot" style="background:#fbbf24"></span> 90°超のずれ（回り込みが向きを覆した点）</span>
+    </div>
+    <div class="banner" id="phase">「初期化」→「走らせる」で始まる</div>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>系（criteria.json 登録値。GM・ε・dt は固定）</h2>
+      <label><span class="k">重力源の配置シード</span><input type="number" id="configSeed" value="20260916"></label>
+      <label><span class="k">初期条件シード</span><input type="number" id="icSeed" value="20260951"></label>
+      <label><span class="k">物体数</span><input type="number" id="objectCount" min="1" max="40" value="12"></label>
+      <label><span class="k">鏡像打ち切り N_img（本物側）</span>
+        <select id="nimg"><option value="16" selected>16（登録値・全鏡像和）</option><option value="8">8</option><option value="4">4</option><option value="2">2</option><option value="1">1（3×3）</option><option value="0">0（最近接のみ）</option></select></label>
+      <div class="row">
+        <button class="primary" id="init">初期化</button>
+        <button id="run">走らせる</button>
+        <button id="one">1歩</button>
+      </div>
+      <label><span class="k">速さ（1フレームの歩数）</span><input type="range" id="speed" min="1" max="200" value="40"><output class="num" id="speedOut" style="min-width:4ch">40</output></label>
+    </div>
+
+    <div class="box">
+      <h2>見せ方</h2>
+      <label><input type="checkbox" id="showGhosts" checked><span>端の外側に幽霊像を描く（回り込みの直接表示）</span></label>
+      <label><input type="checkbox" id="showNaive" checked><span>最近接鏡像のみの力（破線）も描く</span></label>
+      <label><input type="checkbox" id="showHeat" checked><span>wrapForceFraction を背景の熱図にする</span></label>
+      <label><input type="checkbox" id="showTrail" checked><span>軌跡を残す</span></label>
+      <label><span class="k">熱図の解像度</span><input type="number" id="heatRes" min="20" max="140" value="70"></label>
+    </div>
+
+    <div class="box">
+      <h2>観測</h2>
+      <table class="stat">
+        <tr><td class="k">歩数 t</td><td class="v num" id="stT">0</td></tr>
+        <tr><td class="k">物体数</td><td class="v num" id="stCount">-</td></tr>
+        <tr><td class="k">90°超のずれを持つ物体数</td><td class="v num" id="stReversal">-</td></tr>
+        <tr><td class="k">wrapForceFraction 中央値（背景熱図）</td><td class="v num" id="stWrapMed">-</td></tr>
+        <tr><td class="k">エネルギー相対ドリフト（ΔΦ基準）</td><td class="v num" id="stDrift">-</td></tr>
+      </table>
+      <p class="note">判定（保存・回り込みの成否）はこの画面では下さない——本番の decisionRule は run.js が
+        criteria.json の閾値で機械的に適用する。ここは「回り込みが実装として実際に起きている」ことを
+        目で確認するための道具。</p>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="observer.js"></script>
+<script>
+(function () {
+  'use strict';
+  var cv = document.getElementById('world'), ctx = cv.getContext('2d');
+  var L = 1.0, EPS = 0.06, GM = [1.0, 0.45, 0.18], MIN_SEP = 0.2, SPEED_RANGE = [1.0, 4.0], REJECT_R = 0.18, DT = 2.0e-4;
+  var W = cv.width, H = cv.height, MARGIN = 0.16; // 端の外側に見せる幽霊像の幅（世界座標比）
+
+  function els(ids) { var o = {}; ids.forEach(function (id) { o[id] = document.getElementById(id); }); return o; }
+  var E = els(['configSeed', 'icSeed', 'objectCount', 'nimg', 'speed', 'speedOut',
+    'showGhosts', 'showNaive', 'showHeat', 'showTrail', 'heatRes',
+    'stT', 'stCount', 'stReversal', 'stWrapMed', 'stDrift', 'phase']);
+
+  var sources = null, state = null, integ = null, t = 0, running = false, timer = null;
+  var trails = []; // per-object array of {x,y}
+  var heatData = null, heatN = 0, deltaPhi = 1;
+
+  function worldToPx(x, y) {
+    // 世界 [-MARGIN, 1+MARGIN) を画面いっぱいに写す
+    var span = 1 + 2 * MARGIN;
+    return { x: ((x + MARGIN) / span) * W, y: ((y + MARGIN) / span) * H };
+  }
+
+  /** 主位置 + 端の外側に出る近傍タイルの分だけ、幽霊像の位置一覧を返す。 */
+  function ghostPositions(x, y) {
+    var out = [];
+    for (var dx = -1; dx <= 1; dx++) {
+      for (var dy = -1; dy <= 1; dy++) {
+        var gx = x + dx * L, gy = y + dy * L;
+        if (gx > -MARGIN && gx < 1 + MARGIN && gy > -MARGIN && gy < 1 + MARGIN) out.push({ x: gx, y: gy, ghost: dx !== 0 || dy !== 0 });
+      }
+    }
+    return out;
+  }
+
+  function nimgVal() { return parseInt(E.nimg.value, 10); }
+
+  function buildSources() {
+    var seed = parseInt(E.configSeed.value, 10) || 1;
+    sources = S49.makeSources(seed, GM, MIN_SEP, L);
+  }
+
+  function buildState() {
+    var icSeed = parseInt(E.icSeed.value, 10) || 1;
+    var n = Math.max(1, parseInt(E.objectCount.value, 10) || 12);
+    state = S49.makeInitialConditions(icSeed, n, SPEED_RANGE, sources, REJECT_R, L);
+    integ = new S49.VerletIntegrator(state, sources, nimgVal(), 'square', EPS, L);
+    t = 0;
+    trails = []; for (var i = 0; i < state.count; i++) trails.push([]);
+    E.stCount.textContent = state.count;
+  }
+
+  function buildHeat() {
+    if (!E.showHeat.checked) { heatData = null; return; }
+    heatN = Math.max(16, parseInt(E.heatRes.value, 10) || 70);
+    var full = S49.fieldGrid(sources, nimgVal(), 'square', EPS, L, heatN);
+    var min0 = nimgVal() === 0 ? full : S49.fieldGrid(sources, 0, 'square', EPS, L, heatN);
+    var w = S49Observer.wrapForceFraction(full, min0);
+    heatData = w.perPoint;
+    E.stWrapMed.textContent = w.median.toFixed(4) + ' (p90=' + w.p90.toFixed(3) + ')';
+
+    // ΔΦ_torus（P95-P05）をエネルギードリフト表示の正規化に使う
+    var phiSorted = Array.prototype.slice.call(full.Phi).sort(function (a, b) { return a - b; });
+    var p95 = phiSorted[Math.floor(phiSorted.length * 0.95)], p05 = phiSorted[Math.floor(phiSorted.length * 0.05)];
+    deltaPhi = (p95 - p05) || 1;
+  }
+
+  function heatColor(w) {
+    // 低い(青)→高い(赤)のシンプルな2色補間。w は概ね[0,1]だがp90超で1を超えることもあるのでクランプ。
+    var v = Math.max(0, Math.min(1, w));
+    var r = Math.round(30 + v * 200), g = Math.round(50 + (1 - Math.abs(v - 0.5) * 2) * 60), b = Math.round(200 - v * 170);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  function drawHeat() {
+    if (!heatData) return;
+    var cell = W / heatN;
+    // 熱図は主タイル [0,1) の範囲だけに描く（幽霊像領域は薄い単色の縁取りに留める）
+    var span = 1 + 2 * MARGIN, mainPx0 = (MARGIN / span) * W, mainPxSpan = (1 / span) * W;
+    var cellPx = mainPxSpan / heatN;
+    for (var iy = 0; iy < heatN; iy++) {
+      for (var ix = 0; ix < heatN; ix++) {
+        ctx.fillStyle = heatColor(heatData[iy * heatN + ix]);
+        ctx.fillRect(mainPx0 + ix * cellPx, mainPx0 + iy * cellPx, cellPx + 0.6, cellPx + 0.6);
+      }
+    }
+  }
+
+  function drawFrame() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#05070b'; ctx.fillRect(0, 0, W, H);
+    drawHeat();
+
+    // 主タイルの枠
+    var p0 = worldToPx(0, 0), p1 = worldToPx(1, 1);
+    ctx.strokeStyle = '#3a4152'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(p0.x, p0.y, p1.x - p0.x, p1.y - p0.y);
+
+    // 幽霊像の領域を薄く縁取り
+    if (E.showGhosts.checked) {
+      ctx.fillStyle = 'rgba(255,255,255,0.03)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#05070b'; ctx.fillRect(p0.x, p0.y, p1.x - p0.x, p1.y - p0.y);
+      if (heatData) drawHeat();
+      ctx.strokeStyle = '#3a4152'; ctx.strokeRect(p0.x, p0.y, p1.x - p0.x, p1.y - p0.y);
+    }
+
+    // 重力源（幽霊像も含めて描く。大きさは GM に比例）
+    var maxGM = Math.max.apply(null, Array.from(sources.gm));
+    for (var s = 0; s < sources.count; s++) {
+      var r = 6 + 16 * Math.sqrt(sources.gm[s] / maxGM);
+      var positions = E.showGhosts.checked ? ghostPositions(sources.x[s], sources.y[s]) : [{ x: sources.x[s], y: sources.y[s], ghost: false }];
+      positions.forEach(function (pos) {
+        var px = worldToPx(pos.x, pos.y);
+        ctx.globalAlpha = pos.ghost ? 0.32 : 1;
+        ctx.beginPath(); ctx.arc(px.x, px.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = '#f4d35e'; ctx.fill();
+        ctx.strokeStyle = '#8a6d1a'; ctx.lineWidth = 1.5; ctx.stroke();
+        if (!pos.ghost) {
+          ctx.globalAlpha = 1; ctx.fillStyle = '#1c1a16'; ctx.font = '10px ui-monospace,Menlo,monospace';
+          ctx.textAlign = 'center'; ctx.fillText('GM=' + sources.gm[s].toFixed(2), px.x, px.y + 3);
+        }
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    if (!state) return;
+    var nRev = 0;
+    var N = nimgVal();
+    for (var i = 0; i < state.count; i++) {
+      // 軌跡
+      if (E.showTrail.checked) {
+        var tr = trails[i];
+        ctx.strokeStyle = 'rgba(125,211,252,0.25)'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        var started = false;
+        for (var k = 0; k < tr.length; k++) {
+          if (k > 0 && S49.torusDist(tr[k - 1].x, tr[k - 1].y, tr[k].x, tr[k].y, L) > 0.3) started = false; // 端をまたいだら線を切る
+          var pk = worldToPx(tr[k].x, tr[k].y);
+          if (!started) { ctx.moveTo(pk.x, pk.y); started = true; } else ctx.lineTo(pk.x, pk.y);
+        }
+        ctx.stroke();
+      }
+
+      var positions = E.showGhosts.checked ? ghostPositions(state.x[i], state.y[i]) : [{ x: state.x[i], y: state.y[i], ghost: false }];
+      var fFull = S49.fieldAt(state.x[i], state.y[i], sources, N, 'square', EPS, L);
+      var fNaive = N === 0 ? fFull : S49.fieldAt(state.x[i], state.y[i], sources, 0, 'square', EPS, L);
+      var magFull = Math.hypot(fFull.fx, fFull.fy), magNaive = Math.hypot(fNaive.fx, fNaive.fy);
+      var cosang = (magFull > 1e-9 && magNaive > 1e-9) ? (fFull.fx * fNaive.fx + fFull.fy * fNaive.fy) / (magFull * magNaive) : 1;
+      var reversed = cosang < 0;
+      if (reversed) nRev++;
+
+      positions.forEach(function (pos) {
+        var px = worldToPx(pos.x, pos.y);
+        ctx.globalAlpha = pos.ghost ? 0.35 : 1;
+        ctx.beginPath(); ctx.arc(px.x, px.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = reversed ? '#fbbf24' : '#e8e2d6'; ctx.fill();
+        if (!pos.ghost) {
+          var scale = 22 / (Math.max(magFull, magNaive) || 1);
+          if (E.showNaive.checked) {
+            ctx.strokeStyle = '#f87171'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+            ctx.beginPath(); ctx.moveTo(px.x, px.y); ctx.lineTo(px.x + fNaive.fx * scale, px.y - fNaive.fy * scale); ctx.stroke();
+            ctx.setLineDash([]);
+          }
+          ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(px.x, px.y); ctx.lineTo(px.x + fFull.fx * scale, px.y - fFull.fy * scale); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      });
+    }
+    E.stReversal.textContent = nRev;
+  }
+
+  function stepOnce() {
+    integ.step(DT);
+    t++;
+    for (var i = 0; i < state.count; i++) {
+      trails[i].push({ x: state.x[i], y: state.y[i] });
+      if (trails[i].length > 400) trails[i].shift();
+    }
+    E.stT.textContent = t;
+  }
+
+  var E0 = null;
+  function init() {
+    if (timer) { clearInterval(timer); timer = null; E.phase.textContent = '停止中'; }
+    buildSources();
+    buildState();
+    buildHeat();
+    E0 = S49.energyPerObject(state, sources, nimgVal(), 'square', EPS, L);
+    drawFrame();
+    E.phase.textContent = '初期化した（N_img=' + nimgVal() + ' 物体=' + state.count + '）';
+    E.stDrift.textContent = '0';
+  }
+
+  function updateDrift() {
+    var E1 = S49.energyPerObject(state, sources, nimgVal(), 'square', EPS, L);
+    var maxDrift = 0;
+    for (var i = 0; i < E1.length; i++) maxDrift = Math.max(maxDrift, Math.abs(E1[i] - E0[i]) / deltaPhi);
+    E.stDrift.textContent = maxDrift.toExponential(3);
+  }
+
+  // K-80: configSeed/icSeed が決めるのは「系の振る舞いそのもの」（源の配置・初期条件という構造）
+  // なので、シードだけでなく生成後の値そのものを export する（シード→値の変換は実装依存のため）。
+  // 表示・操作の設定（見せ方の各種チェックボックス等）はシードに依らないただの s パラメータ。
+  function getParams() {
+    var v = {
+      configSeed: E.configSeed.value, icSeed: E.icSeed.value, objectCount: E.objectCount.value,
+      nimg: E.nimg.value, speed: E.speed.value,
+      showGhosts: E.showGhosts.checked, showNaive: E.showNaive.checked, showHeat: E.showHeat.checked,
+      showTrail: E.showTrail.checked, heatRes: E.heatRes.value
+    };
+    if (sources) v.sourcePositions = Array.from(sources.x).map(function (x, i) { return [x, sources.y[i]]; });
+    if (state) v.initialObjects = Array.from(state.x).map(function (x, i) { return [x, state.y[i], state.vx[i], state.vy[i]]; });
+    return v;
+  }
+  function setParams(v) {
+    if (v.configSeed != null) E.configSeed.value = v.configSeed;
+    if (v.icSeed != null) E.icSeed.value = v.icSeed;
+    if (v.objectCount != null) E.objectCount.value = v.objectCount;
+    if (v.nimg != null) E.nimg.value = v.nimg;
+    if (v.speed != null) { E.speed.value = v.speed; E.speedOut.textContent = v.speed; }
+    if (v.showGhosts != null) E.showGhosts.checked = !!v.showGhosts;
+    if (v.showNaive != null) E.showNaive.checked = !!v.showNaive;
+    if (v.showHeat != null) E.showHeat.checked = !!v.showHeat;
+    if (v.showTrail != null) E.showTrail.checked = !!v.showTrail;
+    if (v.heatRes != null) E.heatRes.value = v.heatRes;
+    init();
+    // シードからの再生成の後で、export された厳密な値があればそれで上書きする
+    // （将来 core.js の乱数の使い方が変わっても、この設定は同じパターンを再現できる）
+    if (v.sourcePositions && sources && v.sourcePositions.length === sources.count) {
+      v.sourcePositions.forEach(function (p, i) { sources.x[i] = p[0]; sources.y[i] = p[1]; });
+    }
+    if (v.initialObjects && state && v.initialObjects.length === state.count) {
+      v.initialObjects.forEach(function (o, i) { state.x[i] = o[0]; state.y[i] = o[1]; state.vx[i] = o[2]; state.vy[i] = o[3]; });
+    }
+    // 位置を上書きした後は、積分器がキャッシュしている旧位置での加速度が古くなるので作り直す
+    integ = new S49.VerletIntegrator(state, sources, nimgVal(), 'square', EPS, L);
+    E0 = S49.energyPerObject(state, sources, nimgVal(), 'square', EPS, L);
+    trails = []; for (var ti = 0; ti < state.count; ti++) trails.push([]);
+    buildHeat();
+    drawFrame();
+  }
+
+  document.getElementById('init').addEventListener('click', init);
+  document.getElementById('one').addEventListener('click', function () { stepOnce(); drawFrame(); updateDrift(); });
+  document.getElementById('run').addEventListener('click', function () {
+    if (timer) { clearInterval(timer); timer = null; E.phase.textContent = '停止中'; return; }
+    E.phase.textContent = '走行中';
+    timer = setInterval(function () {
+      var n = parseInt(E.speed.value, 10) || 1;
+      for (var i = 0; i < n; i++) stepOnce();
+      drawFrame(); updateDrift();
+    }, 30);
+  });
+  E.speed.addEventListener('input', function () { E.speedOut.textContent = E.speed.value; });
+  ['showGhosts', 'showNaive', 'showTrail'].forEach(function (id) { E[id].addEventListener('change', drawFrame); });
+  E.showHeat.addEventListener('change', function () { buildHeat(); drawFrame(); });
+  E.heatRes.addEventListener('change', function () { buildHeat(); drawFrame(); });
+  E.nimg.addEventListener('change', function () { init(); });
+
+  Harness.mount({
+    pause: function () { if (timer) document.getElementById('run').click(); },
+    id: 'S-49', version: '1.0.0',
+    getParams: getParams, setParams: setParams,
+    paramNames: {
+      configSeed: { category: 's', code: 'cseed', full: 'config_seed' },
+      icSeed: { category: 's', code: 'iseed', full: 'ic_seed' },
+      objectCount: { category: 's', code: 'n', full: 'object_count' },
+      nimg: { category: 'p', code: 'nimg', full: 'n_img' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+      showGhosts: { category: 's', code: 'ghosts', full: 'show_ghosts' },
+      showNaive: { category: 's', code: 'naive', full: 'show_naive' },
+      showHeat: { category: 's', code: 'heat', full: 'show_heat' },
+      showTrail: { category: 's', code: 'trail', full: 'show_trail' },
+      heatRes: { category: 's', code: 'hres', full: 'heat_res' },
+      sourcePositions: { category: 'd', code: 'srcpos', full: 'source_positions' },
+      initialObjects: { category: 'd', code: 'ic', full: 'initial_objects' },
+    },
+    canvases: ['world'],
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>

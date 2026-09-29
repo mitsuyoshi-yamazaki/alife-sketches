@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>代理データを負コントロールの生成器にする — 収支を第三項に足すと偽陽性が 0.53 から 0.00 へ落ちる — 人工生命スケッチ</title><link rel="stylesheet" href="../../../../assets/style.css"></head><body class="sketchpage"><nav class="crumbs"><a href="../../../../index.html">人工生命スケッチ</a><span class="sep">›</span><span aria-current="page">S-29 代理データを負コントロールの生成器にする — 収支を第三項に足すと偽陽性が 0.53 から 0.00 へ落ちる</span></nav><header class="shead"><div class="sline"><span class="cid">S-29</span><h1>代理データを負コントロールの生成器にする — 収支を第三項に足すと偽陽性が 0.53 から 0.00 へ落ちる</h1><span class="ver">v1.0.0</span></div><div class="tags"><span class="tag">代理データ</span><span class="tag">負コントロール</span><span class="tag">AAFT</span><span class="tag">iAAFT</span><span class="tag">ブロック・ブートストラップ</span><span class="tag">保存量</span><span class="tag">収支</span><span class="tag">連言</span><span class="tag">偽陽性率</span><span class="tag">母集団</span></div><div class="sacts"><button class="btn ovopen" data-go="r-main">📄 代理データを負コントロールの生成器にする — 収支が効くのは「収支だから」ではなく「非線形に結びついているから」</button><button class="btn ovopen" data-go="comments">💬 コメント（0）</button></div></header><div class="stagewrap"><iframe class="stage" title="実行窓" data-run="main" src="../../../../apps/alife-sketches/s29-surrogate-controls/viewer.html"></iframe><div class="overlay" id="overlay" data-open="r-main"><div class="ovbar"><span class="ovwho" title="代理データを負コントロールの生成器にする — 収支を第三項に足すと偽陽性が 0.53 から 0.00 へ落ちる">S-29</span><div class="ovtabs"><button class="ovtab" data-go="r-main">代理データを負コントロールの生成器にする — 収支が効くのは「収支だから」ではなく「非線形に結びついているから」</button><button class="ovtab" data-go="comments">💬 コメント（0）</button></div><button class="ovclose" id="ovclose" title="閉じて実行に戻る">✕</button></div><div class="ovbody"><section class="pane" data-pane="r-main" hidden><div class="rmeta"><span class="angle">主レポート（最初の切り口）</span><span class="ver">記載時の版 v1.0.0</span></div><details class="rtoc"><summary>目次</summary><a href="#一行で言うと">一行で言うと</a><a href="#何をやったか">何をやったか</a><a href="#結果-事前登録した解析">結果（事前登録した解析）</a><a href="#事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</a><a href="#本家-artificial-life-への含意-候補として挙げるだけ-要件化しない">本家 artificial-life への含意（<strong>候補として挙げるだけ。要件化しない</strong>）</a><a href="#限界-この実験が言えないこと">限界（この実験が言えないこと）</a><a href="#method-md-への追記候補-本体の更新は親が行う-ここでは候補として書く"><a href="">method.md</a> への追記候補（<strong>本体の更新は親が行う。ここでは候補として書く</strong>）</a></details><article class="md"><h1 id="s-29-代理データを負コントロールの生成器にする">S-29: 代理データを負コントロールの生成器にする</h1>
+<ul><li><strong>実施日</strong>: 2026-09-13</li><li><strong>アプリ</strong>: <span class="deadlink">apps/alife-sketches/s29-surrogate-controls/</span></li><li><strong>可視化</strong>: <code>viewer.html</code>（上段に元の生ログ、下に 6 段の代理が同じ物差しで並ぶ。1 ティックごとに新しい代理が作られ、右の偽陽性率の表が動き続ける）</li><li><strong>生ログ</strong>: <span class="deadlink">raw/surrogates.jsonl</span>（<strong>1 代理 1 行 × 16,020 行</strong>・4.4 MB・状態ハッシュは 16,020 個すべて相異なる）／<span class="deadlink">raw/originals.jsonl</span>・<span class="deadlink">raw/falsepositive.jsonl</span>・<span class="deadlink">raw/budget-by-kind.jsonl</span>・<span class="deadlink">raw/knobs.jsonl</span>・<span class="deadlink">raw/structure.jsonl</span>・<span class="deadlink">raw/summary.json</span></li><li><strong>所要</strong>: 妥当性検査 0.6 秒 ＋ 本番 <strong>4.4 秒</strong>（新しいシミュレータを 1 つも書いていない。入力は既作の生ログである）</li><li><strong>事前登録</strong>: <span class="deadlink">criteria.json</span> sha256 <code>535f7e4e07307502…</code>（<code>summary.json</code> に刻んである）</li></ul>
+<p><strong>出典</strong>（アイデアのみ。<strong>コードは参照せず定義から実装した</strong>）:</p>
+<ul><li><strong>Schreiber, T. &amp; Schmitz, A. (1996)</strong> "Improved Surrogate Data for Nonlinearity Tests", *Phys. Rev. Lett.* <strong>77</strong>, 635（arXiv <code>chao-dyn/9909041</code>・<strong>本文に到達</strong>）</li><li><strong>Schreiber, T. &amp; Schmitz, A. (2000)</strong> "Surrogate time series", *Physica D* <strong>142</strong>, 346-382（arXiv <code>chao-dyn/9909037</code>・<strong>本文に到達</strong>）</li><li>Theiler, J. et al. (1992) *Physica D* <strong>58</strong>, 77-94（AAFT の原典。<strong>到達できなかった</strong>——後述）</li><li>Künsch (1989) / Politis &amp; Romano (1994)（ブロック・ブートストラップ。<strong>到達できなかった</strong>）</li><li>題材の出所: <a href="../../../S-18-alife-in-fiction/report/main/index.html">S-18</a> 候補3（待ち行列 #22）。海野十三「人造物語」(1931) の「へたばった」</li></ul>
+<hr>
+<h2 id="一行で言うと">一行で言うと</h2>
+<p><strong>機構を持たない代理は、既作スケッチが事前登録した主の秩序変数を 0.539、その源自身の 2 項連言を 0.528 の割合で通り抜けた</strong>—— つまり<strong>連言を 1 項から 2 項へ増やしても偽陽性はほとんど落ちない</strong>。 第三項に<strong>収支</strong>を足すと 0.000〜0.007 へ落ちる（<span class="deadlink">K-28</span> は成立する）。 だが<strong>差分だけを並べ替える代理</strong>に対しては 0.281 に戻り、S-16 に限れば <strong>3項/2項 = 0.985 で収支がまったく効かない</strong>。 <strong>効いていたのは「収支だから」ではなく「非線形に結びついているから」だった</strong>—— 線形な恒等式と単調性しか持たない源は、差分を並べ替えるだけの代理で丸ごと偽装できる。 そして <strong>6 段のどれも 4 種類の収支を全部は保てない</strong>（最良の段でも 0.533）。</p>
+<hr>
+<h2 id="何をやったか">何をやったか</h2>
+<h3 id="入力は既作の生ログ-読むだけ">入力は既作の生ログ（読むだけ）</h3>
+<p>新しいシミュレータは書いていない。<strong>既作 5 スケッチの生ログを 1 レプリケート 1 枚の表（行＝索引、列＝チャネル）として読み込む</strong>。 系統が重ならないように選び、<strong><a href="../../../S-13-ripley-k/report/main/index.html">S-13</a> は必ず入れた</strong>（K-28 の出所なので）。</p>
+<div class="tw"><table><thead><tr><th>源</th><th>読んだもの</th><th>枚数 × 長さ</th><th>代理の対象になる列</th><th>元の検出器が発火した枚数</th></tr></thead><tbody><tr><td>S-02 粒子の群れ</td><td><code>trace.jsonl</code></td><td>12 × 20</td><td>3</td><td><strong>0</strong></td></tr><tr><td>S-04 記号列の化学</td><td><code>trace.jsonl</code></td><td>12 × 60</td><td>5</td><td>3</td></tr><tr><td>S-06 空間ハイパーサイクル（輪=4）</td><td><code>trace.jsonl</code></td><td>6 × 36</td><td>11</td><td>3</td></tr><tr><td>S-13 点過程の曲線</td><td><code>curves.jsonl</code></td><td>21 × 26〜52</td><td>4</td><td>21</td></tr><tr><td>S-16 仮想機械の進化</td><td><code>trace.jsonl</code></td><td>38 × 30</td><td>10</td><td>22</td></tr></tbody></table></div>
+<p><strong>他のスケッチのディレクトリへは 1 バイトも書いていない。</strong> 検出器は元のコードを読んで自分の <code>core.js</code> へ書き直した<strong>再実装</strong>である。</p>
+<h3 id="代理生成器の階層-何を保ち-何を壊すかを段ごとに宣言する">代理生成器の階層（何を保ち、何を壊すかを段ごとに宣言する）</h3>
+<div class="tw"><table><thead><tr><th>段</th><th>生成器</th><th>保つと宣言</th><th>壊すと宣言</th></tr></thead><tbody><tr><td><strong>G0</strong></td><td>完全置換（列ごと独立）</td><td>値の多重集合</td><td>順序・自己相関・スペクトル・行の対応</td></tr><tr><td><strong>G1</strong></td><td>AAFT（列ごと独立）</td><td>＋パワースペクトル（近似）</td><td>非線形構造・行の対応</td></tr><tr><td><strong>G2</strong></td><td>iAAFT（列ごと独立）</td><td>＋スペクトルをより厳密に</td><td>同上</td></tr><tr><td><strong>G3</strong></td><td>ブロック・ブートストラップ（列ごと独立・b=T/8）</td><td>ブロック長以内の局所構造</td><td>ブロックをまたぐ構造・値の多重集合</td></tr><tr><td><strong>G4</strong></td><td>行の置換（結合）</td><td>行の多重集合・<strong>同時刻の恒等式</strong></td><td>順序・<strong>単調性</strong></td></tr><tr><td><strong>G5</strong></td><td>差分の置換（結合）</td><td>差分の多重集合・両端・<strong>単調性</strong>・<strong>線形な恒等式</strong></td><td>差分の順序・値域・<strong>非線形な恒等式</strong></td></tr></tbody></table></div>
+<p>「列ごと独立」と「結合」の違いが要点で、<strong>独立に作る代理はチャネル間の関係を必ず壊す</strong>。</p>
+<h3 id="収支-見せるために作られていないチャネル-k-28">収支＝「見せるために作られていないチャネル」（K-28）</h3>
+<p>各源につき、その系の生ログが構成から満たすはずの関係を条件として登録した。種別は 4 つ:</p>
+<ul><li><strong>pointwise-linear</strong>（線形の同時刻恒等式）: S-06「6 状態の個数の総和＝格子の点数」／S-16「個体数の増減＝産まれた数−取り除かれた数」</li><li><strong>pointwise-nonlinear</strong>（非線形・不等式）: S-13「<strong>J(r)(1−F(r)) = 1−G(r)</strong>」／S-06「存続状態の数＝個数が正の状態の数」／S-04「多様度は種数の対数で頭打ち」／S-02「成分に属する粒子数 ≥ 成分数×10」</li><li><strong>monotone</strong>（累積量の非減少）: S-13「G・F・K(r) は半径について非減少」／S-16「産まれた数・取り除かれた数・実行命令数は非減少」</li><li><strong>range</strong>（値域）</li></ul>
+<h3 id="妥当性検査-node-selftest-js-31-項目すべて通過-0-6-秒">妥当性検査（<code>node selftest.js</code> — <strong>31 項目すべて通過</strong>・0.6 秒）</h3>
+<div class="tw"><table><thead><tr><th>種類</th><th>結果</th></tr></thead><tbody><tr><td><strong>正コントロール</strong> PC1 再実装した 5 検出器が元と同じ判定を返す</td><td><strong>89/89</strong> ✅</td></tr><tr><td>PC2a 数値まで厳密一致（S-02 の終端値・S-16 の終端値）</td><td><strong>50/50</strong> ✅</td></tr><tr><td>PC2b S-13 の走査版が原典の <code>exitFraction</code> を厳密再現（全長 100 点）</td><td><strong>24/24</strong> ✅</td></tr><tr><td>PC3 元の生ログはすべての収支条件を満たす</td><td><strong>89/89・違反 0</strong> ✅</td></tr><tr><td><strong>近道の検算</strong> フーリエ変換の往復が恒等（長さ 20/30/36/47/60/101）</td><td>最大相対誤差 <strong>1.1e-14</strong> ✅</td></tr><tr><td>位相の無作為化がパワースペクトルと総和を保つ</td><td>食い違い <strong>7.1e-30</strong> ✅</td></tr><tr><td>iAAFT が AAFT よりスペクトルの食い違いを小さくする（原典の主張）</td><td><strong>5.70e-2 → 7.72e-4</strong>（9 反復で不動点） ✅</td></tr><tr><td><strong>負コントロール</strong> NC1 一様乱数の表で 3項連言が発火しない</td><td>0/100 ✅</td></tr><tr><td>NC2 収支の相手を入れ替えた表（列ごとには本物）で収支が破れる</td><td>85/88 ✅</td></tr><tr><td>NC3 代理をもう一度代理にしても収支の合否が変わらない</td><td>13/13 ✅</td></tr><tr><td>NC4 G5 は S-16 の収支をすべて通す（＝収支だけでは落とせない段が実在する）</td><td>190/190 ✅</td></tr><tr><td><strong>生成器そのものを疑う（K-17 の自己適用）</strong> 12 項目</td><td>すべて ✅（下表）</td></tr><tr><td>再現性（同一シードで状態ハッシュ完全一致・6 段）</td><td>✅</td></tr></tbody></table></div>
+<h4 id="検査を書いている途中で-検査の設計が-2-つ壊れた">検査を書いている途中で、検査の設計が 2 つ壊れた</h4>
+<p><strong>① 順位の同値処理が、自分の測定器に偽の構造を作っていた。</strong> 「G0 は時間順序を壊す」を Spearman 順位相関で測ったところ <strong>0.748</strong> を返した——壊れていないように見える。 原因は系そのものではなく<code>ranks()</code> の実装で、<strong>同値に出現順で順位を振っていたため、値が全部同じ列でも順位が 0,1,2,… になり、並べ替えても相関が 1 になっていた</strong>。 平均順位へ直すと <strong>0.113</strong> になった。<span class="deadlink">K-38</span>（測る道具そのものが現象を作る）がそのまま出た形である。</p>
+<p><strong>② 負コントロール NC2 が、89 本中 16 本で何も入れ替えていなかった。</strong> 「隣の 1 本と列を入れ替える」と書いたが、 <strong>入れ替えた相手が元と同一の走行である組があった</strong>（<a href="../../../S-16-avida-like/report/main/index.html">S-16 は腕が違っても状態ハッシュが一致する組を持つ</a>）。 入れ替えても表が変わらなければ対照になっていない。変わる相手を選ぶよう直し、選べなかった 1 本を退化として数えることにした。 <strong>いずれも本番を 1 回も走らせる前の修正で、<code>criteria.json</code> は変更していない。</strong></p>
+<h4 id="生成器の宣言は実測と合った">生成器の宣言は実測と合った</h4>
+<div class="tw"><table><thead><tr><th>段</th><th>値の多重集合ずれ</th><th>スペクトルずれ</th><th>\</th><th>Spearman\</th><th></th><th>acf 差</th><th>行の多重集合ずれ</th><th>差分行のずれ</th><th>両端ずれ</th></tr></thead><tbody><tr><td>G0</td><td><strong>0</strong></td><td>1.10</td><td>0.121</td><td>0.645</td><td>0.932</td><td>0.989</td><td>1.12</td></tr><tr><td>G1</td><td><strong>0</strong></td><td>0.415</td><td>0.289</td><td>0.198</td><td>0.929</td><td>0.986</td><td>1.12</td></tr><tr><td>G2</td><td><strong>0</strong></td><td><strong>0.144</strong></td><td>0.296</td><td><strong>0.094</strong></td><td>0.934</td><td>0.986</td><td>1.05</td></tr><tr><td>G3</td><td>1</td><td>0.893</td><td>0.201</td><td>0.247</td><td>0.944</td><td>0.968</td><td>1.06</td></tr><tr><td>G4</td><td><strong>0</strong></td><td>1.09</td><td>0.128</td><td>0.644</td><td><strong>0</strong></td><td>0.952</td><td>1.04</td></tr><tr><td>G5</td><td>4</td><td>1.47</td><td>0.570</td><td>0.187</td><td>0.943</td><td><strong>0</strong></td><td><strong>6.7e-16</strong></td></tr></tbody></table></div>
+<p>G0 → G1 → G2 でスペクトルのずれが 1.10 → 0.415 → 0.144 と単調に縮み、acf の差も 0.645 → 0.198 → 0.094 と縮む。<strong>階層は宣言どおりに並んでいる。</strong></p>
+<hr>
+<h2 id="結果-事前登録した解析">結果（事前登録した解析）</h2>
+<p><strong>89 枚 × 6 段 × 30 種 = 16,020 個の代理</strong>。状態ハッシュは 16,020 個すべて相異なる。</p>
+<h3 id="1-連言を-2-項にしても偽陽性はほとんど落ちない-落としたのは第三項の収支だった">1. 連言を 2 項にしても偽陽性はほとんど落ちない。落としたのは第三項の収支だった</h3>
+<p>母集団 <strong>P1（代理の個数）</strong>・全源:</p>
+<div class="tw"><table><thead><tr><th>段</th><th>1項（主の秩序変数）</th><th>2項（その源自身の連言）</th><th><strong>3項（＋収支）</strong></th><th>収支を全部満たす割合</th></tr></thead><tbody><tr><td>G0 完全置換</td><td>0.539</td><td>0.528</td><td><strong>0.000</strong></td><td>0.026</td></tr><tr><td>G1 AAFT</td><td>0.553</td><td>0.538</td><td><strong>0.005</strong></td><td>0.027</td></tr><tr><td>G2 iAAFT</td><td>0.557</td><td>0.540</td><td><strong>0.003</strong></td><td>0.025</td></tr><tr><td>G3 ブロック</td><td>0.552</td><td>0.538</td><td><strong>0.007</strong></td><td>0.041</td></tr><tr><td>G4 行の置換</td><td>0.539</td><td>0.539</td><td><strong>0.056</strong></td><td>0.337</td></tr><tr><td><strong>G5 差分の置換</strong></td><td>0.551</td><td>0.539</td><td><strong>0.281</strong></td><td>0.533</td></tr></tbody></table></div>
+<ul><li><strong>1項 → 2項の低下は 0.539 → 0.528（2%）にすぎない。</strong> <span class="deadlink">K-14</span> は「特異性は連言でしか出ない」と言うが、</li></ul>
+<p><strong>その源自身が選んだ 2 つ目の項は、機構を持たない代理をほとんど落とさなかった</strong></p>
+<ul><li><strong>3項/2項 の比</strong>: G0 <strong>0.000</strong> / G1 0.009 / G2 0.006 / G3 0.013 / G4 0.104 / <strong>G5 0.521</strong>。</li></ul>
+<p>事前登録した主張 P-A（G0〜G4 で 1/5 以下）は <strong>成立</strong>、P-B（G5 では 0.5 を超える源がある）も <strong>成立</strong></p>
+<ul><li>代理がどれだけ元の構造を保っていても（G0 から G2 へ行っても）<strong>1項の偽陽性率は動かない</strong>。</li></ul>
+<p><strong>検出器は、自分が見ていると思っている構造を見ていない</strong></p>
+<h3 id="2-g5-で何が起きるか-源によって収支の効きが-0-と-0-985-に割れる">2. G5 で何が起きるか——源によって収支の効きが 0 と 0.985 に割れる</h3>
+<p>G5（差分の置換）での <strong>3項/2項 の比</strong>:</p>
+<div class="tw"><table><thead><tr><th>源</th><th>比</th><th>その源の収支の中身</th></tr></thead><tbody><tr><td><strong>S-13</strong></td><td><strong>0.000</strong></td><td>非線形恒等式 J(1−F)=1−G ＋ 単調性 ＋ 値域</td></tr><tr><td>S-04</td><td>0.550</td><td>非線形不等式のみ</td></tr><tr><td>S-06</td><td>0.744</td><td>線形恒等式 2 つ ＋ 非線形 1 つ</td></tr><tr><td><strong>S-16</strong></td><td><strong>0.985</strong></td><td>線形恒等式 ＋ 単調性 ＋ 値域（<strong>非線形な結びつきが 1 つも無い</strong>）</td></tr></tbody></table></div>
+<p><strong>S-16 の収支は、差分を並べ替えるだけの代理が丸ごと満たす。</strong> 個体数＝産まれた数−取り除かれた数という関係は<strong>線形</strong>なので、 差分ベクトルをどう並べ替えても成り立つ。累積カウンタの非減少も、差分が全部 0 以上なら並べ替えで保たれる。値域も同様。 <strong>S-16 の「収支」は、機構の証拠ではなく、線形代数の帰結だった。</strong></p>
+<p>一方 <strong>S-13 の J(1−F)=1−G は 3 つの曲線の積で結ばれている</strong>ので、差分を並べ替えると G5 の全代理で破れる （違反の中央値 <strong>0.252</strong>・許容 3e-4 に対して 800 倍）。<strong>S-13 は、元の検出器が 21 枚すべてで発火しているのに 3項の偽陽性率が 6 段とも 0.000 になった唯一の源である</strong>（S-02 も全段 0.000 だが、そちらは元が 1 枚も発火していないためである）。</p>
+<blockquote>S-13 は「F・G・K・J の 4 つの連言ですら、ピークを合わせただけのトマス過程を通した」と報告した。 **同じ 4 つの曲線でも、値ではなく *曲線どうしを結ぶ恒等式* を見ると、どの機械的な代理も通れない。**</blockquote>
+<h3 id="3-どの段も収支-4-種を全部は保てない-事前登録した-p-c">3. どの段も収支 4 種を全部は保てない（事前登録した P-C）</h3>
+<p>収支の種別 × 段（保たれた割合。<strong>保</strong>＝0.9 以上・<strong>破</strong>＝0.1 以下・<strong>中</strong>＝その間）:</p>
+<div class="tw"><table><thead><tr><th>種別</th><th>G0</th><th>G1</th><th>G2</th><th>G3</th><th>G4</th><th>G5</th></tr></thead><tbody><tr><td>pointwise-linear</td><td>破 0.000</td><td>破 0.000</td><td>破 0.000</td><td>破 0.000</td><td><strong>保 1.000</strong></td><td><strong>保 0.974</strong></td></tr><tr><td>pointwise-nonlinear</td><td>中 0.124</td><td>中 0.126</td><td>中 0.122</td><td>中 0.150</td><td><strong>保 1.000</strong></td><td>中 0.280</td></tr><tr><td>monotone</td><td>破 0.000</td><td>破 0.000</td><td>破 0.000</td><td>破 0.000</td><td>破 0.000</td><td><strong>保 1.000</strong></td></tr><tr><td>range</td><td>保 1.000</td><td>保 1.000</td><td>保 1.000</td><td>保 1.000</td><td>保 1.000</td><td>中 0.892</td></tr></tbody></table></div>
+<p><strong>G4 は単調性で落ち、G5 は非線形恒等式で落ちる。</strong> 収支を全部満たす代理の割合は最良の G5 でも <strong>0.533</strong>。 <strong>P-C は成立した</strong>——ただし「全部は保てない」の内訳は段によって違う。</p>
+<h3 id="4-予測表-k-52-24-マス中-18-マス的中-外れた-6-マスは-1-つの機構に帰着した">4. 予測表（<span class="deadlink">K-52</span>）: 24 マス中 18 マス的中。外れた 6 マスは 1 つの機構に帰着した</h3>
+<p>実装を 1 行も書く前に固定した 24 マスのうち、<strong>18 マスが的中</strong>。外れは 6 マスで、<strong>5 つが同じ列（pointwise-nonlinear）</strong>にある。 予測は「破」（＝ほぼ全部で破れる）だったが、実測は「中」（0.12〜0.28）だった。</p>
+<p>**原因は、収支の条件がその走行では*定数*になっていることだった**（原因の特定そのものは結果を見てから行った。手続きは事前登録した）:</p>
+<ul><li><strong>S-06 の「存続状態の数＝個数が正の状態の数」は、6 枚中 4 枚で <code>ringStatesPresent</code> が 4 のまま動かない</strong>——</li></ul>
+<p>値が変わらない列は、どう並べ替えても関係が破れない。<strong>4/6 = 0.667 で、実測の保持率 0.667 と厳密に一致する</strong></p>
+<ul><li><strong>S-02 の 12 枚のうち ρ=0.01 の 1 枚は <code>clusterFraction</code>・<code>clusterCount</code> がどちらも恒等的に 0</strong></li></ul>
+<p>これは <span class="deadlink">K-53</span>（秩序変数 × 腕には定義上答えが決まるマスがある）が、<strong>秩序変数ではなく収支の側に出た形</strong>である。 6 マス目（G5 の range）も同じ S-02 が引き下げていた（0.386）。</p>
+<p><strong>そして予測表の外れが実装の欠陥を 1 件捕まえた。</strong> 最初の走行では G4 の pointwise-nonlinear が予測「保」に対して実測「中」になり、 追ったところ <strong>代理を作る関数が表の <code>meta</code> を上書きしており、S-02 の収支に要る粒子数が失われていた</strong>。 直して走らせ直すと、そのマスは 1.000 で予測どおりになった。<strong><code>criteria.json</code> は変更していない</strong>（sha256 は同一）。</p>
+<h3 id="5-偽陽性率の帯-検出器-段-30-マス中-18-マス的中">5. 偽陽性率の帯（検出器 × 段）: 30 マス中 18 マス的中</h3>
+<p>外れた 12 マスは<strong>全部 S-02（12 枚中 6 マス）と S-04（6 マス）</strong>である。</p>
+<ul><li><strong>S-02 の偽陽性率は全段で厳密に 0.000</strong>。理由は単純で、<strong>12 枚のどれも <code>clusterFraction</code> が 0.5 を超える行を 1 つも持たない</strong>——</li></ul>
+<p>元の検出器が 1 枚も発火していないのだから、その値を並べ替えた代理も発火しようがない。 <strong>これは検出器が特異だったのではなく、<span class="deadlink">K-53</span> の言う「定義上答えが決まっているマス」である</strong></p>
+<ul><li>S-04 は予測「高」に対し実測 0.167〜0.297（中〜低）</li></ul>
+<h3 id="6-母集団を替えると向きが変わる-k-30">6. 母集団を替えると向きが変わる（<span class="deadlink">K-30</span>）</h3>
+<p><strong>3項連言</strong>の偽陽性率:</p>
+<div class="tw"><table><thead><tr><th>段</th><th>P1 代理の個数</th><th>P2 元の生ログ（過半数則）</th><th>P3 検出器の種類</th><th><strong>P4 元が発火した生ログ由来のみ</strong></th></tr></thead><tbody><tr><td>G0</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.000</td></tr><tr><td>G4</td><td>0.056</td><td>0.056</td><td><strong>0.200</strong></td><td>0.102</td></tr><tr><td>G5</td><td>0.281</td><td>0.292</td><td>0.200</td><td><strong>0.510</strong></td></tr></tbody></table></div>
+<p><strong>1項連言</strong>では差がもっと大きい:</p>
+<div class="tw"><table><thead><tr><th>段</th><th>P1</th><th>P2</th><th>P3</th><th><strong>P4</strong></th></tr></thead><tbody><tr><td>G0</td><td>0.539</td><td>0.539</td><td>0.600</td><td><strong>0.980</strong></td></tr><tr><td>G2</td><td>0.557</td><td>0.562</td><td>0.600</td><td><strong>0.999</strong></td></tr><tr><td>G5</td><td>0.551</td><td>0.551</td><td>0.600</td><td><strong>1.000</strong></td></tr></tbody></table></div>
+<blockquote><strong>「元の検出器が発火した生ログだけを数える」と、機構を持たない代理は主の秩序変数を 98〜100% 通る。</strong> 「代理の個数で数える」と 0.54 である。<strong>同じ『偽陽性率』という名前で、0.54 と 1.00 が並ぶ。</strong></blockquote>
+<p>P4 が高いのは当然に見えるが、そうではない——P4 は「その検出器が本物を拾ったと報告した場面」だけを集めた母集団であり、 <strong>報告の現場そのもの</strong>にあたる。P1 は S-02 のような「一度も発火しない源」で薄められている。</p>
+<h3 id="7-感度比-k-19-の適用順序">7. 感度比（<span class="deadlink">K-19</span> の適用順序）</h3>
+<ul><li><strong>R_control</strong>（主ノブのまま段 G0..G5 を振ったときの 3項偽陽性率の振れ幅）= <strong>0.2809</strong></li><li><strong>R_knob</strong>（各段でノブ 27 通り＝窓 3 × 集約 3 × 許容 3 を振ったときの振れ幅の平均）= <strong>0.0126</strong></li><li><strong>感度比 = 0.0447</strong></li></ul>
+<p><strong>1 を大きく下回り、0.5 も下回る</strong>ので、登録した手順に従い <span class="deadlink">K-19</span> は当てない（<a href="../../../S-20-nineteen-review/report/main/index.html">S-20</a> の帯では最も低い部類）。 <strong>測っているのは観測器の性質ではなく、代理の段そのものの性質である。</strong> 参照点 G5 は床にも天井にも張り付いていない（3項 0.281・収支 0.533）ので、<span class="deadlink">K-26 の S-26 追記</span>が言う「参照点が動かない」状態でもない。</p>
+<p>ノブの振れ幅は段によって偏る: G1〜G3 では 0.0004〜0.0007 とほぼ 0、G4・G5 で 0.034。 <strong>収支が効かなくなる段でだけ、観測器の選択が見えるようになる。</strong></p>
+<hr>
+<h2 id="事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</h2>
+<h3 id="収支の-非線形さ-が効きの強さを決めている">収支の「非線形さ」が効きの強さを決めている</h3>
+<p>段 G5 での 3項/2項 の比を、その源の収支が持つ<strong>非線形な条件の割合</strong>と並べると単調に並ぶ:</p>
+<div class="tw"><table><thead><tr><th>源</th><th>非線形な収支条件 / 全条件</th><th>G5 での 3項/2項</th></tr></thead><tbody><tr><td>S-13</td><td>1/4 だが<strong>全代理で破れる</strong>（違反中央値 0.252）</td><td>0.000</td></tr><tr><td>S-04</td><td>3/3</td><td>0.550</td></tr><tr><td>S-06</td><td>1/3</td><td>0.744</td></tr><tr><td>S-16</td><td><strong>0/4</strong></td><td>0.985</td></tr></tbody></table></div>
+<p>S-04 が S-06 より効いているのは条件の数ではなく<strong>不等式の厳しさ</strong>による。<strong>4 点では傾向としか言えない。</strong></p>
+<h3 id="収支を検出器へ昇格させる-ことの費用">「収支を検出器へ昇格させる」ことの費用</h3>
+<p>収支の条件は 1 源あたり 2〜4 個、実装は 1 条件 3〜8 行だった。<strong>5 源ぶんで 60 行</strong>である。 <span class="deadlink">K-49</span>（公表値を持つ別系の較正台は 60 行・1 分で作れる）と同じ桁で、<strong>収支もまた安い</strong>。</p>
+<hr>
+<h2 id="本家-artificial-life-への含意-候補として挙げるだけ-要件化しない">本家 artificial-life への含意（<strong>候補として挙げるだけ。要件化しない</strong>）</h2>
+<ol><li><strong>「保存量は偽装しにくい」を、そのまま採らない。</strong> 偽装しにくいのは保存量だからではなく、</li></ol>
+<p><strong>複数のチャネルが非線形に結びついているから</strong>である。総和や差引のような線形な収支は、 差分を並べ替えるだけの代理が満たしてしまう（本スケッチで 0.985）。 検出器へ昇格させるなら、<strong>積・数え上げ・対数・不等式で結ばれた量</strong>を探す</p>
+<ol><li><strong>負コントロールは、既作の生ログから機械的に作れる。</strong> 新しい帰無過程を設計せずに、</li></ol>
+<p>同じ生ログの「忘れ方」を 6 通り変えるだけで 16,020 個の対照が 4.4 秒で出る（<span class="deadlink">K-33</span> の最も安い形）</p>
+<ol><li><strong>連言の項数を増やすことと、特異性が上がることは別である。</strong> 同じ源が選んだ 2 つ目の項は</li></ol>
+<p>偽陽性を 2% しか落とさなかった。<strong>項を足すなら、別の種類のチャネルから足す</strong></p>
+<ol><li><strong>収支の条件がその走行で定数になっていないかを見る。</strong> 定数の条件は「常に満たされる」ので、</li></ol>
+<p>検出器としては空回りする（本スケッチで S-06 の 4/6 枚）</p>
+<hr>
+<h2 id="限界-この実験が言えないこと">限界（この実験が言えないこと）</h2>
+<ul><li><strong>AAFT の原典に到達できなかった。</strong> Theiler et al. (1992) は arXiv 以前の論文で、</li></ul>
+<p>OA 版（UNT Digital Library の LANL 報告書の走査）は<strong>クライアント側の proof-of-work 認証で止まる</strong>。 本スケッチの AAFT の定義は <strong>Schreiber &amp; Schmitz (1996/2000) による再記述から取った</strong>もので、原典の再現ではない。 iAAFT は原典（Schreiber &amp; Schmitz 1996）に到達しており、アルゴリズム・不動点での停止・ 「分布側 r^(∞) を返す」という選択はいずれも原典の記述に従っている</p>
+<ul><li><strong>ブロック・ブートストラップも原典に到達できなかった。</strong> Künsch (1989) の PDF は入手できたが<strong>文字層の無い走査画像</strong>で、</li></ul>
+<p>Politis &amp; Romano (1994) は OA 版が無い。定義は Politis 自身の後年の解説（二次資料）から取った。 したがって G3 は<strong>「循環ブロック・ブートストラップとして自分で整合的に起こしたもの」</strong>であり、原典の再現ではない</p>
+<ul><li><strong>「代理が機構を持たない」ことは構成から言えるが、「本物が機構を持つ」ことは測っていない。</strong></li></ul>
+<p>本スケッチが測ったのは偽陽性率だけで、<strong>感度（偽陰性）は 1 つも測っていない</strong>。 収支を第三項に足したとき本物が落ちるかは、元の生ログ 89 枚がすべて収支を満たすことしか確かめていない</p>
+<ul><li><strong>特異性は示していない（示せない）。</strong> 試した 6 段の代理に対して落とせた／落とせなかったと言えるだけで、</li></ul>
+<p>試していない代理に対しては何も言えない（<span class="deadlink">K-20</span>・Campbell &amp; Fiske 1959）。 実際、<strong>G5 という 1 つの段を足しただけで S-16 の収支は無力になった</strong></p>
+<ul><li><strong>源が 5 つ・収支の種別が 4 つしかない。</strong> 「非線形な結びつきが効く」は 4 源の並びから読んだもので、</li></ul>
+<p><strong>条件の数と種類が交絡している</strong>（S-16 は非線形条件 0 個であると同時に、チャネルが最も多い源でもある）</p>
+<ul><li><strong>検出器は元の定義そのものではない。</strong> 5 つとも<strong>生ログの列から再構成した再実装</strong>で、</li></ul>
+<p>S-02・S-16 は数値まで一致し S-13 は <code>exitFraction</code> が厳密一致するが、 <strong>S-04（生ログが 5 世代ごとの間引き）と S-06（終端窓の値と原典の累積値が別物）は判定の一致までしか確かめていない</strong></p>
+<ul><li><strong>S-06 は輪=4 の腕しか使っていない。</strong> 輪=5 の腕では、絶滅した走行で生ログの終端窓が 0 を返す一方</li></ul>
+<p>原典の累積値は 2.3〜2.7 を返すため、再実装の正コントロールが立たなかった。<strong>6 枚という薄さはここから来ている</strong></p>
+<ul><li><strong>生ログの丸めが収支の許容を決めている。</strong> S-06 の占有率と S-13 の曲線は生ログが 4 桁で丸められているので、</li></ul>
+<p>許容をそれぞれ 2e-4・3e-4 に取った。<strong>より細かい破れは原理的に見えない</strong></p>
+<ul><li><strong>S-02 は 1 マスも情報を出していない。</strong> 12 枚とも元の検出器が発火しないので、</li></ul>
+<p>偽陽性率は定義上 0.000 にしかならない（<span class="deadlink">K-53</span>）。<strong>5 源のうち実質 4 源である</strong></p>
+<hr>
+<h2 id="method-md-への追記候補-本体の更新は親が行う-ここでは候補として書く"><span class="deadlink">method.md</span> への追記候補（<strong>本体の更新は親が行う。ここでは候補として書く</strong>）</h2>
+<ul><li><strong>K-28 への限定</strong>: <strong>保存量が偽装しにくいのは「保存量だから」ではなく「非線形に結びついているから」</strong>。</li></ul>
+<p>線形な収支（総和・差引）と単調性しか持たない系は、<strong>差分ベクトルを並べ替えるだけの代理が丸ごと満たす</strong>（S-16 で 3項/2項 = 0.985）。 収支を検出器へ昇格させるときは、<strong>積・数え上げ・不等式で結ばれた量を選ぶ</strong>。S-13 の J(1−F)=1−G は 6 段すべてを落とした</p>
+<ul><li><strong>K-14 への追記</strong>: <strong>「連言を 2 項にする」ことと「特異性が上がる」ことは別</strong>。89 枚 × 6 段で、その源自身が選んだ 2 つ目の項は</li></ul>
+<p>偽陽性を <strong>0.539 → 0.528（2%）</strong> しか落とさなかった。効いたのは<strong>別の種類のチャネル</strong>から取った第三項だけである（0.528 → 0.000）</p>
+<ul><li><strong>新しい知見の候補</strong>: <strong>負コントロールは既作の生ログから機械的に生成できる。</strong></li></ul>
+<p>「忘れ方」を段階的に変える 6 つの生成器で、新しい帰無過程を 1 つも設計せずに 16,020 個の対照が 4.4 秒で出る。 <strong>そして生成器自身に <span class="deadlink">K-17</span> を当てること</strong>——「保つ/壊す」を宣言し、機械検査する。 本スケッチではその検査が<strong>自分の順位計算の欠陥</strong>（同値に出現順で順位を振ると、定数列でも相関が 1 に見える）を捕まえた</p>
+<ul><li><strong>K-53 への追記</strong>: <strong>定義上答えが決まるマスは、秩序変数の側だけでなく収支の側にも出る。</strong></li></ul>
+<p>収支の条件に使う列がその走行で<strong>定数</strong>なら、どんな並べ替えでも破れない。 本スケッチでは予測表の外れ 6 マスが全部これで説明でき、S-06 は <strong>4/6 枚が定数 → 保持率 0.667</strong> と数まで一致した</p>
+<ul><li><strong>K-51 への追記</strong>: 借り物の定数は<strong>閾値だけでなく検出器の規則ごと</strong>借りうる。</li></ul>
+<p>本スケッチは 5 源の閾値（0.5 / 1.5 / 0.5 / 1 / 走査版の規則）を全部借りており、これらは観測器のノブではない</p>
+<ul><li><strong>K-40 の数え</strong>: 本スケッチが試した知見と本数——</li></ul>
+<p><strong>K-28</strong>（5 源 × 89 枚 × 6 段 = 16,020 個の代理で試験・<strong>限定が付いた</strong>）／ <strong>K-17</strong>（生成器 6 段の宣言を 12 項目で機械検査・<strong>欠陥を 1 件捕まえた</strong>）／ <strong>K-14</strong>（検出器 5 種 × 連言 3 段階・<strong>限定が付いた</strong>）／ <strong>K-33</strong>（6 段が全部「同じ生ログの忘れ方だけ違う」形・<strong>成立</strong>）／ <strong>K-30</strong>（母集団 4 通り・<strong>向きが変わった</strong>: 0.54 対 1.00）／ <strong>K-52</strong>（24 + 30 マスの予測表・<strong>18/24 と 18/30 的中、外れが実装の欠陥を 1 件捕まえた</strong>）／ <strong>K-53</strong>（<strong>収支の側でも再現</strong>）／<strong>K-38</strong>（<strong>自分の測定器に返ってきた</strong>）</p></article><p class="src">原典: <code>docs/subprojects/alife-sketches/sketches/S-29-surrogate-controls/reports/main.md</code></p></section><section class="pane" data-pane="comments" hidden><div class="comments" data-slug="S-29-surrogate-controls" data-run="main" data-readonly><div id="clist" class="clist">読み込み中…</div><script type="application/json" id="cdata">{"version":1,"sketch":"S-29-surrogate-controls","comments":[]}</script></div></section></div></div></div><button class="fab" id="fab" title="メニュー" aria-label="メニュー">☰</button><div class="menu" id="menu" hidden><div class="menuhead">人工生命スケッチ</div><a href="../../../../index.html">🏠 ホーム（スケッチ一覧）</a><a href="../../../../reports/index.html">📄 レポート一覧</a></div><script src="../../../../assets/menu.js"></script><script src="../../../../assets/overlay.js"></script><script src="../../../../assets/comments-ui.js"></script></body></html>

@@ -1,0 +1,285 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-05 自己複製プログラムの進化（Tierra 風）</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  label b{color:var(--fg);font-variant-numeric:tabular-nums;min-width:4.2em}
+  input[type=range]{width:130px}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;image-rendering:pixelated}
+  table{border-collapse:collapse;font-size:12px;min-width:250px}
+  th,td{padding:4px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left}
+  td{font-variant-numeric:tabular-nums}
+  /* 桁が変わってもレイアウトが動かないよう、数値の幅を予約する */
+  #stats td:last-child{min-width:155px}
+  #top td:first-child{min-width:14ch}
+  #top td:last-child{min-width:5ch}
+  .fx{display:inline-block;font-variant-numeric:tabular-nums}
+  .hi{color:#f778ba}
+  .legend{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.9}
+  .sw{display:inline-block;width:22px;height:9px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:900px}
+  footer b{color:var(--fg)}
+  @media(max-width:760px){.wrap{flex-direction:column}}
+</style>
+
+<header>
+  <h1>S-05 — 共有メモリ上で自分を複写する機械語プログラム</h1>
+  <p class="sub">32 語の命令集合を持つ仮想機械。番地は持たず、<b>近傍のビット列パターン（テンプレート）を探して</b>自分を参照する。<br>
+    複写のたびに確率で命令が化ける。メモリが尽きたら待ち行列の先頭から取り除かれる。／ 出典: Thomas S. Ray (1991) <i>An Approach to the Synthesis of Life</i></p>
+</header>
+
+<div class="bar">
+  <button id="run">停止</button>
+  <button id="reset">最初から</button>
+  <label>複写の誤り率 <input type="range" id="rate" min="0" max="40" value="10"> <b id="rateV">0.0010</b></label>
+  <label>速さ <input type="range" id="speed" min="1" max="40" value="12"> <b id="speedV">120k</b></label>
+  <button id="inject">借用体を1つ注入</button>
+  <span style="flex:1"></span>
+  <span style="color:var(--dim)">実行命令数 <b id="instr" class="fx" style="color:var(--fg);min-width:11ch">0</b></span>
+</div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>共有メモリ（1画素 = 1セル・左上から順に <span id="memcap">24000</span> セル）</h2>
+    <canvas id="soup" width="640" height="600"></canvas>
+    <div class="legend">
+      <span class="sw" style="background:#10131a"></span>空き
+      <span class="sw" style="background:#3fb950;margin-left:10px"></span>プロセスのブロック（色相は<b>長さ</b>。長さが変われば色が変わる）
+      <span class="sw" style="background:#f778ba;margin-left:10px"></span><b>自前の複写命令を持たない</b>ブロック
+      <span class="sw" style="background:#e3b341;margin-left:10px"></span>複写命令を<b>自分の外から</b>取得している
+      <br>明るく見える帯は<b>書き込み中の確保領域</b>（＝いま作られつつある複写）。
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>いま測れているもの</h2>
+    <table id="stats">
+      <tbody>
+        <tr><td>プロセス数</td><td id="pop">—</td></tr>
+        <tr><td>分裂の総数</td><td id="births">—</td></tr>
+        <tr><td>取り除きの総数</td><td id="reaps">—</td></tr>
+        <tr><td>ブロック長 最小/中央/最大</td><td id="len">—</td></tr>
+        <tr><td>相異なる系統の数</td><td id="geno">—</td></tr>
+        <tr class="hi"><td><b>外部から取得した複写命令の割合</b></td><td id="foreign">—</td></tr>
+        <tr><td>自前の複写命令を持たない割合</td><td id="nocopy">—</td></tr>
+        <tr><td>複写命令の過半を外から取る個体</td><td id="borrow">—</td></tr>
+      </tbody>
+    </table>
+    <div class="legend">
+      <b style="color:var(--fg)">主の秩序変数は一番上の行。</b><br>
+      どのプロセスも自分のコードだけを実行する系では<br>
+      定義から<b>厳密に 0</b> になる（理論的な帰無値）。<br>
+      半径も窓幅も選ばずに測れる量にしてある。
+    </div>
+    <h2 style="margin-top:16px">時系列</h2>
+    <canvas id="plot" width="300" height="150" style="image-rendering:auto"></canvas>
+    <div class="legend">
+      <span class="sw" style="background:#3fb950"></span>プロセス数
+      <span class="sw" style="background:#f778ba;margin-left:10px"></span>外部取得の割合
+      <span class="sw" style="background:#58a6ff;margin-left:10px"></span>ブロック長の中央値
+    </div>
+    <h2 style="margin-top:16px">上位の系統（長さ-内容ハッシュ）</h2>
+    <table><tbody id="top"></tbody></table>
+  </div>
+</div>
+
+<footer>
+  <p><b>見どころ</b>: 誤り率を 0 にすると、祖先（長さ59）だけが並んで埋まり、色は一様なまま動かない——
+  秩序変数は厳密に 0 を指し続ける。誤り率を上げると長さが揺らいで色がまだらになり、
+  やがて<span class="hi">桃色</span>（自前の複写命令を持たないブロック）が現れる。
+  <b>「借用体を1つ注入」</b>は手で書いた借用プログラムを置く——検出器が反応することを目で確かめられる。
+  誤り率を上げすぎると増える速さより壊れる速さが勝ち、メモリは空へ向かう。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var W_BASE = 160, H_BASE = 150;         // 既定の共有メモリ = 160 × 150 = 24000 セル
+  var W = W_BASE, H = H_BASE, MEM = W * H;
+  var soup = document.getElementById('soup'), sx = soup.getContext('2d');
+  var plot = document.getElementById('plot'), px = plot.getContext('2d');
+  var off = document.createElement('canvas'); off.width = W; off.height = H;
+  var ox = off.getContext('2d');
+  var img = ox.createImageData(W, H);
+
+  var vm = null, running = true, rate = 0.001, budget = 120000;
+  var history = [], marks = [], lastCounters = null;
+
+  function reset() {
+    vm = S05.createVM({ memSize: MEM, copyErrorRate: rate, reapAttempts: 2 }, 20260911);
+    S05.inject(vm, S05.assemble(S05.SOURCE_SELFCOPY), 0);
+    history = [];
+    lastCounters = S05.counters(vm);
+  }
+
+  function hsl(h, s, l) {
+    // 0..360, 0..1, 0..1 → [r,g,b]
+    var c = (1 - Math.abs(2 * l - 1)) * s, hp = h / 60, x = c * (1 - Math.abs(hp % 2 - 1));
+    var r = 0, g = 0, b = 0;
+    if (hp < 1) { r = c; g = x; } else if (hp < 2) { r = x; g = c; }
+    else if (hp < 3) { g = c; b = x; } else if (hp < 4) { g = x; b = c; }
+    else if (hp < 5) { r = x; b = c; } else { r = c; b = x; }
+    var m = l - c / 2;
+    return [(r + m) * 255 | 0, (g + m) * 255 | 0, (b + m) * 255 | 0];
+  }
+
+  function drawSoup() {
+    var colors = {};    // pid → [r,g,b]（自分のブロック用）
+    var dcolors = {};   // pid → [r,g,b]（書き込み中の確保領域用。明るくする）
+    for (var i = 0; i < vm.procs.length; i++) {
+      var p = vm.procs[i], c;
+      if (!S05.hasCopyInstruction(vm, p)) c = [247, 120, 182];           // 桃: 自前の複写命令が無い
+      else if (p.movii > 0 && p.moviiOut / p.movii > 0.5) c = [227, 179, 65]; // 橙: 外から借りている
+      else c = hsl((p.len * 11) % 360, 0.55, 0.45);
+      colors[p.pid] = c;
+      dcolors[p.pid] = [Math.min(255, c[0] + 70), Math.min(255, c[1] + 70), Math.min(255, c[2] + 70)];
+    }
+    var d = img.data, own = vm.owner;
+    for (var a = 0; a < MEM; a++) {
+      var o = own[a], k = a << 2, col;
+      if (o === 0) { d[k] = 16; d[k + 1] = 19; d[k + 2] = 26; d[k + 3] = 255; continue; }
+      col = colors[o];
+      if (!col) { d[k] = 40; d[k + 1] = 44; d[k + 2] = 56; d[k + 3] = 255; continue; }
+      d[k] = col[0]; d[k + 1] = col[1]; d[k + 2] = col[2]; d[k + 3] = 255;
+    }
+    // 書き込み中の確保領域を明るく塗り直す
+    for (var j = 0; j < vm.procs.length; j++) {
+      var q = vm.procs[j];
+      if (q.dlen <= 0) continue;
+      var dc = dcolors[q.pid];
+      for (var t = 0; t < q.dlen; t++) {
+        var k2 = (q.dstart + t) << 2;
+        d[k2] = dc[0]; d[k2 + 1] = dc[1]; d[k2 + 2] = dc[2];
+      }
+    }
+    ox.putImageData(img, 0, 0);
+    sx.imageSmoothingEnabled = false;
+    sx.drawImage(off, 0, 0, W, H, 0, 0, soup.width, soup.height);
+  }
+
+  function drawPlot() {
+    var w = plot.width, h = plot.height;
+    px.fillStyle = '#0b0d13'; px.fillRect(0, 0, w, h);
+    if (history.length < 2) return;
+    var n = history.length, maxPop = 1, maxLen = 1;
+    for (var i = 0; i < n; i++) { if (history[i].pop > maxPop) maxPop = history[i].pop; if (history[i].len > maxLen) maxLen = history[i].len; }
+    function line(get, color, max) {
+      px.strokeStyle = color; px.lineWidth = 1.5; px.beginPath();
+      for (var i = 0; i < n; i++) {
+        var x = i / (n - 1) * (w - 1), y = h - 1 - get(history[i]) / max * (h - 6);
+        i ? px.lineTo(x, y) : px.moveTo(x, y);
+      }
+      px.stroke();
+    }
+    line(function (r) { return r.pop; }, '#3fb950', maxPop);
+    line(function (r) { return r.len; }, '#58a6ff', maxLen);
+    line(function (r) { return r.foreign; }, '#f778ba', 1);
+  }
+
+  function refresh() {
+    var m = S05.measure(vm, lastCounters);
+    document.getElementById('pop').textContent = m.population;
+    document.getElementById('births').textContent = vm.births;
+    document.getElementById('reaps').textContent = vm.reaps;
+    document.getElementById('len').textContent = m.minLength + ' / ' + m.medianLength + ' / ' + m.maxLength;
+    document.getElementById('geno').textContent = m.genotypeCount;
+    document.getElementById('foreign').textContent = m.foreignCopyFraction.toFixed(4);
+    document.getElementById('nocopy').textContent = m.noCopyFraction.toFixed(3) + '（' + m.noCopyCount + ' 体）';
+    document.getElementById('borrow').textContent = m.borrowerFraction.toFixed(3) + '（' + m.borrowerCount + ' 体）';
+    document.getElementById('instr').textContent = (vm.instr / 1e6).toFixed(2) + ' M';
+    document.getElementById('top').innerHTML = m.topGenotypes.slice(0, 6)
+      .map(function (g) { return '<tr><td>' + g.genotype + '</td><td>' + g.count + '</td></tr>'; }).join('');
+    history.push({ pop: m.population, len: m.medianLength, foreign: m.foreignCopyFraction });
+    if (history.length > 300) history.shift();
+    lastCounters = S05.counters(vm);
+    drawPlot();
+  }
+
+  var frame = 0;
+  function loop() {
+    if (running && vm) {
+      if (vm.procs.length > 0) S05.runInstructions(vm, budget);
+      drawSoup();
+      if (++frame % 6 === 0) refresh();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  document.getElementById('run').onclick = function () {
+    running = !running; this.textContent = running ? '停止' : '再開';
+  };
+  document.getElementById('reset').onclick = reset;
+  document.getElementById('rate').oninput = function () {
+    rate = this.value / 10000;
+    document.getElementById('rateV').textContent = rate.toFixed(4);
+    if (vm) vm.params.copyErrorRate = rate;
+  };
+  document.getElementById('speed').oninput = function () {
+    budget = this.value * 10000;
+    document.getElementById('speedV').textContent = (budget / 1000) + 'k';
+  };
+  document.getElementById('inject').onclick = function () {
+    // 手で書いた借用プログラム（自前の複写手続きを持たない）を、既存のプロセスの隣へ置く
+    if (!vm || vm.procs.length === 0) return;
+    var code = S05.assemble(S05.SOURCE_NOCOPY);
+    var host = vm.procs[(vm.procs.length / 2) | 0];
+    var at = host.start + host.len;
+    for (var a = at; a < at + code.length; a++) if (a >= MEM || vm.owner[a] !== 0) { at = -1; break; }
+    if (at < 0) { for (var s = 0; s + code.length < MEM; s++) { var ok = true; for (var t = 0; t < code.length; t++) if (vm.owner[s + t] !== 0) { ok = false; break; } if (ok) { at = s; break; } } }
+    if (at < 0) return;
+    S05.inject(vm, code, at);
+  };
+
+  reset();
+  refresh();
+  drawSoup();
+  requestAnimationFrame(loop);
+
+  // --- 共通の実行UI（撮る / 広さ / 設定の保存と復元）を載せる ---
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (running) document.getElementById('run').click(); },
+    id: 'S-05',
+    version: '1.0.0',
+    inputs: ['rate', 'speed'],
+    // URLパラメータの短縮名/フル名（K-80・2026-09-15 ユーザ指定）。rate は複写誤り率で物理法則、
+    // speed は1フレームあたりの実行命令数（表示の速さ）でソフトウェア
+    paramNames: {
+      rate: { category: 'p', code: 'rate', full: 'rate' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+    },
+    canvases: ['soup', 'plot'],
+    // この系の「広さ」は**共有メモリの容量**。絵の縦横（160×150 セル）にそのまま
+    // 倍率を掛けるので、容量は W×H で動く。祖先の長さ 59 や誤り率は据え置き。
+    resize: function (scale) {
+      var w = Math.max(40, Math.round(W_BASE * scale)), h = Math.max(40, Math.round(H_BASE * scale));
+      if (w === W && h === H) return;
+      W = w; H = h; MEM = W * H;
+      off.width = W; off.height = H;
+      img = ox.createImageData(W, H);
+      document.getElementById('memcap').textContent = MEM;
+      reset();
+      refresh();
+      drawSoup();
+      Harness.say('共有メモリを ' + MEM + ' セル（' + W + '×' + H + '）にした');
+    },
+  });
+})();
+</script>

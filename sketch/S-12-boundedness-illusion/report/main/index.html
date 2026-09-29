@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>走行長だけで結論が変わるか（boundedness illusion の再現） — 人工生命スケッチ</title><link rel="stylesheet" href="../../../../assets/style.css"></head><body class="sketchpage"><nav class="crumbs"><a href="../../../../index.html">人工生命スケッチ</a><span class="sep">›</span><span aria-current="page">S-12 走行長だけで結論が変わるか（boundedness illusion の再現）</span></nav><header class="shead"><div class="sline"><span class="cid">S-12</span><h1>走行長だけで結論が変わるか（boundedness illusion の再現）</h1><span class="ver">v1.0.0</span></div><div class="tags"><span class="tag">オープンエンド</span><span class="tag">走行長</span><span class="tag">手法の偽陽性</span></div><div class="sacts"><button class="btn ovopen" data-go="r-main">📄 走行長だけで結論が変わるか（boundedness illusion の再現）</button><button class="btn ovopen" data-go="comments">💬 コメント（0）</button></div></header><div class="stagewrap"><iframe class="stage" title="実行窓" data-run="main" src="../../../../apps/alife-sketches/s12-boundedness-illusion/viewer.html"></iframe><div class="overlay" id="overlay" data-open="r-main"><div class="ovbar"><span class="ovwho" title="走行長だけで結論が変わるか（boundedness illusion の再現）">S-12</span><div class="ovtabs"><button class="ovtab" data-go="r-main">走行長だけで結論が変わるか（boundedness illusion の再現）</button><button class="ovtab" data-go="comments">💬 コメント（0）</button></div><button class="ovclose" id="ovclose" title="閉じて実行に戻る">✕</button></div><div class="ovbody"><section class="pane" data-pane="r-main" hidden><div class="rmeta"><span class="angle">主レポート（最初の切り口）</span></div><details class="rtoc"><summary>目次</summary><a href="#一行で言うと">一行で言うと</a><a href="#何をやったか">何をやったか</a><a href="#結果-事前登録した解析">結果（事前登録した解析）</a><a href="#事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</a><a href="#原典との照合">原典との照合</a><a href="#本家サブプロジェクトへの含意-候補として挙げるだけ-要件化しない">本家サブプロジェクトへの含意（<strong>候補として挙げるだけ。要件化しない</strong>）</a><a href="#限界-この実験が言えないこと">限界（この実験が言えないこと）</a></details><article class="md"><h1 id="s-12-走行長だけで結論が変わるか-boundedness-illusion-の再現">S-12: 走行長だけで結論が変わるか（boundedness illusion の再現）</h1>
+<ul><li><strong>実施日</strong>: 2026-09-11</li><li><strong>アプリ</strong>: <span class="deadlink">apps/alife-sketches/s12-boundedness-illusion/</span></li><li><strong>可視化</strong>: <code>viewer.html</code>（つまみは1本——<strong>「ここまでしか見ていない: T」</strong>。動かすと、その T までのデータだけに当てはめた漸近線が引かれ、<strong>消えずに残る</strong>。走行を延ばすと実測が次々とそれを越えていく）</li><li><strong>生ログ</strong>: <span class="deadlink">raw/horizons.jsonl</span>（24 行）・<span class="deadlink">raw/replicates.jsonl</span>（<strong>60 レプリケート</strong>）・<span class="deadlink">raw/trajectories.jsonl</span>（6 腕 × 140 点）・<span class="deadlink">raw/verdicts.jsonl</span>・<span class="deadlink">raw/summary.json</span>／事後解析 <span class="deadlink">raw/posthoc-horizon.jsonl</span>・<span class="deadlink">raw/posthoc-knobs.jsonl</span>・<span class="deadlink">raw/posthoc-slope.jsonl</span>・<span class="deadlink">raw/posthoc-summary.json</span></li><li><strong>所要</strong>: 本番 726 秒（6 腕 × 10 レプリケート × 10⁶ 世代）＋ 事後解析 726 秒 ＋ 妥当性検査 65 項目（全項目 PASS）</li><li><strong>判定基準</strong>: <code>criteria.json</code> sha256:<code>c2530406c3afc020</code>（事前登録 2026-09-11 rev1）</li></ul>
+<p><strong>出典</strong>（アイデアのみ。<strong>コードは参照せず、抄録から設計を起こした</strong>）: Wiser, M. J., Dolson, E. L., Vostinar, A., Lenski, R. E., Ofria, C. (2018) "The Boundedness Illusion: Asymptotic projections from early evolution underestimate evolutionary potential", *PeerJ Preprints* 6:e27246v2, doi:10.7287/peerj.preprints.27246v2。 当てはめる2つの関数形（双曲線＝有界／冪＝非有界）は Wiser, Ribeck &amp; Lenski (2013) *Science* 342:1364–1367 に由来する。</p>
+<h2 id="一行で言うと">一行で言うと</h2>
+<p>上限を仕込んでいない系で、<strong>T までのデータだけで予測した上限を 10T の実測が 4 つの T すべてで超え</strong>（T=10³ の予測は 10⁴ の実測の <strong>0.53 倍</strong>）、 同じ手続きを<strong>上限 9.0 が解析的に分かっている系</strong>へ当てると <strong>T=10²・10³ では 10/10 レプリケートで同じ超過が起き、T=10⁴ 以降で比が 1.05 へ回復した</strong>—— <strong>「早期のデータが漸近線を破ること」自体は有界な系でも起きる</strong>ので、illusion の判定には「T を伸ばして予測が回復するか」という第2項が要る。</p>
+<h2 id="何をやったか">何をやったか</h2>
+<h3 id="題材-既作10本が1本も振っていない次元">題材——既作10本が1本も振っていない次元</h3>
+<p><span class="deadlink">K-20</span> は、文献調査の結論として<strong>未検査の次元が2つある</strong>と書いた。ひとつが<strong>走行長</strong>である。 既作の10本はすべて固定の長さで走らせて結論を出している。</p>
+<p>原典が示したのは、<strong>同じ観測量が、走らせる長さだけで「有界」とも「非有界」とも言う</strong>ことである。 早い時期のデータに漸近線を当てはめると上限があるように見えるが、実験を延長するとその上限を軽く超える。</p>
+<p>ここで振るのは<strong>観測器のノブではない</strong>。走行長は「どう測るか」ではなく「どこまで実験するか」に属する。 <span class="deadlink">S-10</span> の分類でいえば A1〜A4 のどれでもなく、<strong>実験の設計そのもの</strong>である。 だからこそ、他のノブと違って<strong>「正しい値」を選ぶことができない</strong>——常に有限で打ち切るしかない。</p>
+<h3 id="系-上限を仕込まず-稀な事象の待ち時間だけを長くする">系——上限を仕込まず、稀な事象の待ち時間だけを長くする</h3>
+<p>作為的に漸近線を埋め込んだのでは実験にならない。<strong>稀な事象の待ち時間が長い</strong>というだけの系にすれば、 「止まりかけているように見えて止まっていない」形は自然に出る。</p>
+<p>長さ L のビット列（word）を 64 本。毎世代すべてを作り直す——標本2本から score の大きいほうを親に選び、 写し、Poisson(μL) 個のビットを一様無作為に反転する（μ = 0.45/351 は全腕で共通）。</p>
+<p>ビット列は先頭から <strong>block</strong> に区切られている。block k は block 0..k−1 が<strong>全て 1</strong> のときだけ意味を持ち、 block k 自身が全て 1 で埋まると score が 1 増えて block k+1 が開く。 <strong>block の内部は score に効かない</strong>ので、中は純粋な浮動になる—— 次の block を開けるには、幅 w 個のビットが<strong>偶然そろう</strong>のを待つしかない。</p>
+<pre><code>width_k = w0 + floor(k · slope)        ladder: w0=1, slope=1 → 1, 2, 3, …, 26   (L=351)</code></pre>
+<p>幅が k とともに広がるので、<strong>block k を埋めるまでの待ち時間が幾何級数的に伸びる</strong>。 結果、平均 score は log t 的に——減速しながら際限なく——伸びる。 実測した grand-mean 軌跡（10 レプリケートの平均）:</p>
+<div class="tw"><table><thead><tr><th>世代</th><th>10⁰</th><th>10¹</th><th>10²</th><th>10³</th><th>10⁴</th><th>10⁵</th><th>10⁶</th></tr></thead><tbody><tr><td>ladder</td><td>1.003</td><td>1.234</td><td>2.295</td><td>4.484</td><td>9.834</td><td>13.719</td><td><strong>16.892</strong></td></tr></tbody></table></div>
+<p>10⁶ 世代でも深さ 16〜18 / 26 で、<strong>block を使い切っていない</strong>（全 10 レプリケート）。 天井は一度も存在していない。</p>
+<h3 id="核には-進化-も-適応度-も無い">核には「進化」も「適応度」も無い</h3>
+<p><code>core.js</code> の系の側が持つ語彙は word / bit / block / tier / score / pool / copy / noise だけである。 生物学の語も、「有界」「漸近線」といった観測器の語も、系の側には現れない。 当てはめと判定は同じファイルの別の節（B 部）にあり、そちらだけが「上限」「予測」を語る。</p>
+<h3 id="観測器-理論的な帰無値-1-0-を持つ比">観測器——理論的な帰無値 1.0 を持つ比</h3>
+<pre><code>projectionRatio(T) = 〔T までのデータだけで当てはめた双曲線の漸近線 p+q〕 ÷ 〔同じ走行の 10T における実測〕</code></pre>
+<p>双曲線 y(t) = p + q·t/(t+b) は<strong>硬い上限 p+q</strong> を持つ。これを [1, T] の対数等間隔 48 点へ最小二乗で当て、 予測上限を <strong>10T の実測</strong>と突き合わせる。予測が当たっていれば <strong>1.0</strong>（帰無値）、illusion が起きていれば 1 未満。 スケールの選択を含まない無次元量である（<span class="deadlink">K-10</span>）。</p>
+<p>副の観測量として、非有界モデル（冪 y = p + q((1+bt)^a − 1)）との <strong>ΔBIC</strong> も測った—— <strong>「早期のデータは、有界と非有界を区別できるのか」</strong>を見るためである。</p>
+<h3 id="事前登録した秩序変数は-連言-そして第2項が要ることを本番前に確かめた">事前登録した秩序変数は「連言」——そして第2項が要ることを本番前に確かめた</h3>
+<pre><code>illusion = (登録した4つの T すべてで 10T の実測 &gt; 予測上限) かつ (T=10⁵ での比 ≤ 0.95)</code></pre>
+<p>第1項だけでは足りない。<strong>真に有界な系でも、窓が系の時定数より短ければ第1項は立つ</strong>。 妥当性検査 §6(c) で、<strong>上限がちょうど 10 の双曲線そのもの</strong>を T=100 の窓で見ると 予測上限が <strong>4.24</strong> になることを確かめた（T=10⁵ の窓なら 10.000 に戻る）。 <span class="deadlink">K-14</span> が言う「連言でしか特異性が出ない」の、時間軸版である。</p>
+<h3 id="妥当性検査-65-項目-すべて通過">妥当性検査（65 項目、すべて通過）</h3>
+<p>本スケッチ固有の要点を挙げる。</p>
+<p><strong>① 「T より先を覗いていない」ことを機械で確かめた。</strong> 走行長が操作対象である以上、 当てはめが T より先のデータに触れていたら実験全体が無意味になる。 軌跡の T より後ろを全部 −999 に潰した複製を作り、<strong>予測上限が 1 ビットも変わらない</strong>ことを確認した （6.675561027109 / 6.675561027109）。</p>
+<p><strong>② 正コントロールを恒等式から取った</strong>（<span class="deadlink">K-18</span>）。 厳密な双曲線データに双曲線を当てると p・q・b が 1e-6 以内で戻り、残差は 2.9e-28、上限は厳密に p+q。 これは実装の外から来る要求なので、実装ごと間違っている場合も捕まえられる。</p>
+<p><strong>③ 本番で使う判定規則そのものを、解析的に既知の曲線へ通した</strong>（<span class="deadlink">K-15</span>）。</p>
+<ul><li>y = 1 + ln(1+t)（解析的に非有界）→ 4/4 の T で超過、<strong>illusion = true</strong>、比 0.769/0.752/0.745/0.743</li><li>y = 1 + 9t/(t+3000)（解析的に有界・上限 10）→ 一度も超過せず、<strong>illusion = false</strong>、予測上限は 4 つの T すべてで 10.000000</li><li>天井で止まる階段 → <strong>illusion = false</strong>（最大の T で比 1.009）</li><li>完全に平坦 → <strong>illusion = false</strong>（比 1.000000000）</li></ul>
+<p><strong>④ 有界な梯子が上限そのものに到達し、一度も超えない</strong>ことを 30000 世代 × 64 本で確認した（最大 9 / 上限 9）。</p>
+<p><strong>⑤ 負コントロールが対照になっているか</strong>も見た（<span class="deadlink">K-17</span>）—— 打ち切り梯子は「動かない箱」ではなく実際に天井へ到達し、早期には本番と同じく上る（mean 1.00 → 3.00）。</p>
+<h2 id="結果-事前登録した解析">結果（事前登録した解析）</h2>
+<h3 id="6つの腕-事前の予想と-6-6-一致した">6つの腕——事前の予想と 6/6 一致した</h3>
+<div class="tw"><table><thead><tr><th>腕</th><th>何か</th><th>比（T=10², 10³, 10⁴, 10⁵）</th><th>illusion</th><th>予想</th></tr></thead><tbody><tr><td><strong>ladder</strong></td><td>slope=1。待ちが幾何級数的に伸びる</td><td><strong>0.696 / 0.526 / 0.741 / 0.785</strong></td><td><strong>true</strong></td><td>✓ true</td></tr><tr><td><code>half</code></td><td>slope=0.5</td><td><strong>0.595 / 0.667 / 0.710 / 0.741</strong></td><td><strong>true</strong></td><td>✓ true</td></tr><tr><td><code>flat</code></td><td>slope=0（待ちが伸びない）</td><td>0.669 / 32.9 / 253 / 1.587</td><td>false</td><td>✓ false</td></tr><tr><td><code>cap</code></td><td><strong>真に有界</strong>（上限 9.0・同じ機構）</td><td><strong>0.572 / 0.672</strong> / 1.051 / 1.027</td><td>false</td><td>✓ false</td></tr><tr><td><code>smooth</code></td><td><strong>真に有界</strong>（上限 2.0・滑らか）</td><td>1.884 / 1.077 / 1.030 / 1.018</td><td>false</td><td>✓ false</td></tr><tr><td><code>drift</code></td><td>選択を切る（tournament=1）</td><td>93.1 / 1.425 / 0.908 / 1.148</td><td>false</td><td>✓ false</td></tr></tbody></table></div>
+<p><strong>予測上限を実測が超えた回数: 117 / 240</strong>（6 腕 × 10 レプリケート × 4 つの T）。</p>
+<h3 id="ladder-4つの-t-すべてで予測が破られた">ladder——4つの T すべてで予測が破られた</h3>
+<div class="tw"><table><thead><tr><th>見た長さ T</th><th>予測上限</th><th>T での実測</th><th>10T での実測</th><th>比</th><th>超過</th><th>b/T</th><th>ΔBIC</th></tr></thead><tbody><tr><td>10²</td><td>3.109</td><td>2.297</td><td>4.466</td><td><strong>0.696</strong></td><td>✓</td><td>0.48</td><td><strong>+9.7</strong></td></tr><tr><td>10³</td><td>4.995</td><td>4.466</td><td>9.498</td><td><strong>0.526</strong></td><td>✓</td><td>0.23</td><td>−36.4</td></tr><tr><td>10⁴</td><td>10.105</td><td>9.498</td><td>13.631</td><td><strong>0.741</strong></td><td>✓</td><td>0.16</td><td>−65.6</td></tr><tr><td>10⁵</td><td>13.267</td><td>13.631</td><td>16.892</td><td><strong>0.785</strong></td><td>✓</td><td>0.04</td><td>−61.3</td></tr></tbody></table></div>
+<p>T=10³ までしか見なければ「上限は約 5.0」と読める。<strong>実測は 10⁴ で 9.5、10⁶ で 16.9 になる。</strong> どの窓でも当てはめは railing していない（b/T ≤ 0.5、つまり時定数は窓の内側にある）—— <strong>当てはめは「まだ収束していない」とは言っていない。「もう収束した、上限はここだ」と言っている。</strong></p>
+<p>さらに、T=10⁵ の行で <strong>予測上限 13.267 が、その時点の実測 13.631 より既に低い</strong>。 当てはめは<strong>過去のデータに引っ張られて、現在地さえ下回る上限</strong>を出している。</p>
+<h3 id="bic-早期のデータは-有界モデルを積極的に支持する">ΔBIC——早期のデータは、有界モデルを積極的に支持する</h3>
+<p>T=10² では <strong>ΔBIC = +9.7</strong>、すなわち<strong>有界モデル（双曲線）のほうが非有界モデル（冪）より良い</strong>と出る。 <code>half</code>（+10.9）・<code>cap</code>（+10.9）・<code>smooth</code>（+9.8）も同じ向きである。 T を 10³ 以上へ伸ばすと ladder は −36.4 → −65.6 → −61.3 と反転し、非有界モデルが選ばれる。</p>
+<p><strong>モデル選択は、走行長への防御にならない。</strong> 早期のデータは「有界」を支持し、 しかもその支持は |ΔBIC| &gt; 6 で「決定的」に見える。</p>
+<h3 id="k-19-の適用-真に有界な系でも-illusion-は起き-そして回復した">K-19 の適用——真に有界な系でも illusion は起き、そして回復した</h3>
+<p>これが本スケッチで一番効いた検査である。<code>cap</code> は <strong>ladder と同じ機構のまま block を 8 個で打ち切った</strong>もので、 <strong>上限が解析的に 9.0 と分かっている</strong>。同じ手続きを当てると:</p>
+<div class="tw"><table><thead><tr><th>見た長さ T</th><th>予測上限</th><th>10T での実測</th><th>比</th><th>超過</th><th>超過したレプリケート</th></tr></thead><tbody><tr><td>10²</td><td>2.901</td><td>5.067</td><td><strong>0.572</strong></td><td>✓</td><td><strong>10 / 10</strong></td></tr><tr><td>10³</td><td>5.814</td><td>8.650</td><td><strong>0.672</strong></td><td>✓</td><td><strong>10 / 10</strong></td></tr><tr><td>10⁴</td><td>9.283</td><td>8.836</td><td>1.051</td><td>—</td><td>2 / 10</td></tr><tr><td>10⁵</td><td>9.085</td><td>8.845</td><td>1.027</td><td>—</td><td>1 / 10</td></tr></tbody></table></div>
+<p><strong>T=10² と T=10³ では、上限が解析的に分かっている系で、10/10 のレプリケートが予測上限を超えた。</strong> 第1項（全 T で超過）だけを判定に使っていたら、<strong>真の上限を知っている系を「非有界」と誤って宣言していた</strong>。</p>
+<p>分けたのは第2項だけである。T=10⁴ 以降で予測上限は <strong>9.283 → 9.085</strong>、真の 9.0 との差は <strong>3.1% → 0.9%</strong>。 一方 ladder は T=10⁵ でも 0.785 のままで、回復しない。</p>
+<blockquote><strong>走行長に対する感度は、「観測器の恣意性」ではなく「系の構造」である。</strong> ただしそれを言うには、<strong>同じ手続きを、上限が分かっている系にも当てて回復を見る</strong>必要がある。 <span class="deadlink">K-19</span> が空間スケールについて言ったことが、時間スケールでそのまま成り立った。</blockquote>
+<p><code>smooth</code>（上限 2.0・滑らかに飽和）はもっと素直で、<strong>40 回の突き合わせで一度も超過しなかった</strong>。 予測上限は 3.766 → 2.153 → 2.060 → 2.035 と真の 2.0 へ収束する。 <strong>早期に一度だけ過大評価する向き</strong>（比 1.884）で、illusion とは逆である。</p>
+<h3 id="flat-待ちが伸びないと-当てはめは-上限がある-と言わなくなる">flat——待ちが伸びないと、当てはめは「上限がある」と言わなくなる</h3>
+<p><code>flat</code>（幅が一定 6・block 60 個）では、T=10³ と 10⁴ で<strong>時定数 b が探索上端に張り付いた</strong>（b/T ≈ 1100）。 railing した当てはめは実質ほぼ直線で、予測上限は 365 と 10878 になる—— <strong>「上限はここだ」ではなく「上限などない」と言っている。</strong> そして T=10⁵ では本当の飽和（43.4）が窓の中に入り、比は 1.587 へ戻る。</p>
+<p>ただし<strong>この腕は 10/10 のレプリケートで block 60 個を使い切った</strong>。 つまり flat は走行の途中で<strong>真に有界な系になった</strong>。 「待ちが伸びなければ illusion は出ない」と言うより、 <strong>「待ちが伸びなければ、供給が尽きて天井が窓の内側に現れる」</strong>というのが実際に起きたことである。</p>
+<h3 id="drift-選択を切ると比は-1-付近へ張り付く">drift——選択を切ると比は 1 付近へ張り付く</h3>
+<p><code>drift</code>（tournament=1）は偶然の浮動しか起きず、10⁶ 世代でも平均 1.438・深さ 0〜2 に留まる。 比は 93.1 / 1.425 / 0.908 / 1.148。<strong>T=10⁴ で 1 度だけ超過した</strong>（0.908）—— 平坦な雑音でも単発の超過は起きる。連言の両項が要る理由がここにも出ている。</p>
+<h3 id="レプリケート単位で見ると-k-3">レプリケート単位で見ると（<span class="deadlink">K-3</span>）</h3>
+<p>事前登録した主系列は grand-mean（10 レプリケートの平均軌跡）だが、1本ごとの生ログも全て残してある。</p>
+<p><strong>1本の走行は階段である。</strong> ladder の1レプリケートでは、跳躍の直後に窓が閉じると当てはめが急勾配を外挿して 比が 377 や 475 になる（rep5 の T=10³、rep6 の T=10²）。 そのため「4つの T すべてで超過」という連言は 10 本中 <strong>3 本</strong>しか満たさない。</p>
+<p>しかし <strong>T ごとの超過回数</strong>で見ると別の姿になる:</p>
+<div class="tw"><table><thead><tr><th>T</th><th>10²</th><th>10³</th><th>10⁴</th><th>10⁵</th></tr></thead><tbody><tr><td>ladder（超過 / 10）</td><td>5</td><td>8</td><td>9</td><td><strong>10</strong></td></tr><tr><td>half（超過 / 10）</td><td>9</td><td>8</td><td>10</td><td><strong>10</strong></td></tr><tr><td>cap（超過 / 10）</td><td><strong>10</strong></td><td><strong>10</strong></td><td>2</td><td>1</td></tr><tr><td>smooth（超過 / 10）</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody></table></div>
+<p><strong>illusion は、長く走らせるほど確実になる。</strong> ladder は T=10⁵ で 10/10。 これは直観に反する——「もっと見れば分かる」のではなく、 <strong>もっと見るほど「上限がある」という誤った確信が強くなる</strong>。 一方 <code>cap</code> は逆向きに動く（10/10 → 1/10）。<strong>この向きの違いが、有界と非有界を分ける唯一の徴候だった。</strong></p>
+<p>なお <code>half</code> の per-replicate 一致率（37/40）は ladder（32/40）より<strong>高い</strong>。 事前に「ladder より弱い」と予想したが、<strong>その予想は外れた</strong>（grand-mean の比も 0.595〜0.741 で ladder と同程度）。</p>
+<h2 id="事後解析-事前登録していない">事後解析（<strong>事前登録していない</strong>）</h2>
+<p>以下は結果を見てから足した解析である（<span class="deadlink">K-11</span>）。上の結論は書き換えていない。 コードは <code>posthoc.js</code>、生ログは <code>posthoc-*.jsonl</code> に分けてある。</p>
+<h3 id="走行長を細かく掃くと-ladder-と-cap-は-値-ではなく-向き-で分かれる">① 走行長を細かく掃くと、ladder と cap は「値」ではなく「向き」で分かれる</h3>
+<p>事前登録した T は 4 点だけなので、30〜10⁵ を対数等間隔に <strong>26 点</strong>で掃き直した。</p>
+<div class="tw"><table><thead><tr><th>見た長さ T</th><th>30</th><th>110</th><th>210</th><th>400</th><th>1,065</th><th>2,818</th><th>5,392</th><th>10,318</th><th>27,311</th><th>100,000</th></tr></thead><tbody><tr><td><strong>ladder</strong></td><td>0.953</td><td>0.674</td><td>0.519</td><td>0.488</td><td>0.524</td><td>0.623</td><td>0.691</td><td>0.756</td><td>0.787</td><td><strong>0.785</strong></td></tr><tr><td><strong>cap</strong>（真の上限 9.0）</td><td>(railed)</td><td>0.564</td><td>0.491</td><td>0.552</td><td>0.668</td><td>0.939</td><td><strong>1.035</strong></td><td>1.040</td><td>1.050</td><td><strong>1.027</strong></td></tr></tbody></table></div>
+<p>比が 1 を下回った点は <strong>ladder が 24/26、cap が 14/26、flat が 8/26</strong>。 <strong>どの単一の T を選んでも、両者を値では分けられない</strong>——T≈200〜400 では両方が 0.49 付近で、区別がつかない。</p>
+<p>分けたのは<strong>向き</strong>だけである。ladder の比は T≈300 で底（0.488）を打ったあと <strong>0.785 まで戻って止まり</strong>、 cap は同じ底（0.491）から <strong>T≈5,400 で 1.0 を横切って</strong>そのまま上に留まる。 同じことを予測上限そのもので見ると、cap は</p>
+<pre><code>T=110→2.93  402→4.43  1,065→5.78  2,818→8.23  5,392→9.12  10,318→9.26  100,000→9.09</code></pre>
+<p>と、<strong>真の上限 9.0 へ単調に寄って 1% 以内で止まる</strong>。ladder にはこの落ち着き先が無い。</p>
+<blockquote><strong>これは「値」ではなく「向き」が徴候になっている例である。</strong> 既作のスケッチの秩序変数は どれも「ある T で測った値が閾値を超えるか」という形をしていた。ここで効いたのは <strong>T を動かしたときに予測が収束するか否か</strong>——1つの走行から取れる数ではなく、<strong>走行長の族に対する挙動</strong>である。</blockquote>
+<h3 id="観測器のノブは-走行長に比べて-10-分の-1-しか効かない-感度比-0-12">② 観測器のノブは、走行長に比べて 10 分の 1 しか効かない（感度比 0.12）</h3>
+<p><span class="deadlink">S-10</span> の感度比 <strong>R_knob / R_control</strong> を計算した。 制御変数は走行長 T そのもので、ノブは格子（対数／線形）・標本点数（16/24/48/96）・系列（平均／最大）・ 時定数 b の探索上端（10T〜10⁵T）・突き合わせ倍率（3T/10T/30T）・参照点（生／基底を引く）の 6 種 18 通り。</p>
+<div class="tw"><table><thead><tr><th>腕</th><th>R_knob</th><th>R_control</th><th><strong>感度比</strong></th></tr></thead><tbody><tr><td>ladder</td><td>0.078</td><td>0.630</td><td><strong>0.124</strong></td></tr><tr><td>cap</td><td>0.049</td><td>0.505</td><td><strong>0.097</strong></td></tr><tr><td>flat</td><td>3.923</td><td>2.734</td><td><strong>1.435</strong></td></tr></tbody></table></div>
+<p><strong>ladder と cap では感度比が 0.1 前後</strong>、すなわち<strong>予測上限は、観測器をどういじるかより、どこまで走らせたかで 10 倍動く</strong>。 S-02 の 3.82（観測器のほうが効いていた）とは逆向きである。<strong>走行長は観測器のノブではなく、はるかに大きい梃子だった。</strong></p>
+<p>判定（比が 1 を下回るか）が反転したノブ設定は <strong>204 通り中 6 通り</strong>で、うち <strong>5 通りは <code>flat</code></strong>—— 当てはめが railing している腕でだけノブが効く。ladder で反転したのは1つだけで、 <strong>突き合わせ倍率を 3T に縮めた T=10² の場合</strong>（比 1.038）である。 つまり<strong>「先をあまり見ない」と illusion は見えなくなる</strong>——これは illusion の否定ではなく、その定義そのものである。</p>
+<p><code>flat</code> の感度比 1.435 は S-10 の基準では「報告している閾値は系の性質ではなく観測器の性質」に当たる。 <code>flat</code> の数値は railing の産物なので、<strong>読むべきでない</strong>と考えるのが妥当である。</p>
+<h3 id="待ち時間の広がり方-slope-illusion-が出るのは-slope-0-5">③ 待ち時間の広がり方（slope）——illusion が出るのは slope ≥ 0.5</h3>
+<p>block の幅の広がり方 <code>width_k = w0 + floor(k·slope)</code> の slope を 6 通りに振った （4 レプリケート・到達する最大幅を 19〜20 に揃えてある）。</p>
+<div class="tw"><table><thead><tr><th>slope</th><th>0</th><th>0.25</th><th>0.5</th><th>0.75</th><th>1.0</th><th>1.5</th></tr></thead><tbody><tr><td>比（T=10³）</td><td>(railed) 49.7</td><td>0.595</td><td>0.599</td><td>0.442</td><td>0.510</td><td>0.555</td></tr><tr><td>比（T=10⁵）</td><td>1.586</td><td>0.840</td><td>0.763</td><td>0.811</td><td>0.832</td><td>0.833</td></tr><tr><td><strong>illusion</strong></td><td>false</td><td>false</td><td><strong>true</strong></td><td><strong>true</strong></td><td><strong>true</strong></td><td><strong>true</strong></td></tr></tbody></table></div>
+<p>slope=0（待ちが広がらない）では、10⁶ 世代で <strong>block 60 個を使い切って 42.7 で止まり</strong>、 比が 1.586 へ戻る——<strong>天井が窓の内側に現れる</strong>。</p>
+<p>slope=0.25 が false になったのは T=10² の比が 1.42 だったからで、他の 3 点は 0.595〜0.840 と illusion 側にある。 この腕は block を 76 個持つため出足が速く（t=10 で既に 4.66）、<strong>最短の窓が take-off の途中に落ちた</strong>のが理由である。 <strong>「slope が小さいと illusion が消える」のではなく、「4 点のうち 1 点が系の立ち上がりに当たった」</strong>と読むのが正確である。</p>
+<blockquote>待ち時間が広がりさえすれば、広がり方の速さ（slope 0.5 と 1.5 の比は 0.763 と 0.833）はほとんど効かない。 <strong>illusion の有無を決めているのは「広がるかどうか」であって「どれだけ速く広がるか」ではない。</strong></blockquote>
+<h2 id="原典との照合">原典との照合</h2>
+<p><strong>原典の本文には到達できなかった。</strong> PeerJ（<code>peerj.com/preprints/27246</code>）は HTML も PDF も Cloudflare が 403 を返し、 bioRxiv 版（doi:10.1101/298497）は 429 のあと 403、EuropePMC の全文 XML は 404 だった。 入手できたのは <strong>EuropePMC の REST API 経由の抄録のみ</strong>である。</p>
+<p>抄録から確認できたのは次の3点で、本スケッチの設計はこれに沿っている:</p>
+<ol><li>対象は「単純な digital evolution 実験の各走行」であること</li><li>手続きは「測定した適応度への最良の当てはめを求め、それを外挿すると<strong>たいてい漸近線に拘束されると予測される</strong>」こと</li><li>「実験を延長すると、適応度はしばしばその漸近線を<strong>大きく超える</strong>」こと</li></ol>
+<p><strong>再現の忠実性は確認できていない。</strong> 原典が使った系（おそらく Avida）も、当てはめの関数形の詳細も、 レプリケート数も、走行長の刻みも読めていない。本スケッチは<strong>同じ現象を、自分で設計した別の系で作り直したもの</strong>であり、 原典の数値との比較はしていない。当てはめる2つの関数形だけは、同じ著者群の Wiser, Ribeck &amp; Lenski (2013) *Science* の双曲線／冪の対を採った（こちらは既知の内容から書いた）。</p>
+<h2 id="本家サブプロジェクトへの含意-候補として挙げるだけ-要件化しない">本家サブプロジェクトへの含意（<strong>候補として挙げるだけ。要件化しない</strong>）</h2>
+<ol><li><strong>「非有界性を観測した」という主張は、走行長を振らなければ成立しない。</strong></li></ol>
+<p>本スケッチでは、上限が解析的に 9.0 と分かっている系で <strong>T=10² と T=10³ のとき 10/10 のレプリケートが予測上限を破った</strong>。 単一の走行長で得た「まだ伸びている」は、有界な系と区別がついていない</p>
+<ol><li><strong>判定に入れる余地があるのは「値」ではなく「向き」。</strong> 比が 1 を下回った回数では ladder(24/26) と cap(14/26) は程度の差でしかなく、</li></ol>
+<p>T≈300 ではどちらも 0.49 で重なる。分けたのは <strong>T を対数的に伸ばしたとき予測上限が収束するか、しないか</strong>だけだった。 これは「1つの走行から取れる数」ではなく「<strong>走行長の族に対する挙動</strong>」である</p>
+<ol><li><strong>モデル選択は防御にならない。</strong> 最短の窓（T=10²）では BIC が<strong>有界モデルを決定的に支持する</strong>（ΔBIC ≈ +10）。</li></ol>
+<p>これは ladder でも cap でも smooth でも同じ向きだった</p>
+<ol><li><strong>走行長は「観測器のノブ」と別扱いが要る。</strong> 感度比は 0.10〜0.12——</li></ol>
+<p><strong>どう測るかより、どこまで走らせるかのほうが 10 倍効く</strong>。 他のノブは正しい値を選べる余地があるが、走行長には無い。有限で打ち切るしかない以上、 <strong>打ち切った事実そのものを報告の一部にする</strong>という扱いが要る</p>
+<ol><li><strong><span class="deadlink">S-14</span> と対になる。</strong> あちらは打ち切り 10,000 歩では 363 本中 <strong>0%</strong> しか連言が確定せず、</li></ol>
+<p>200,000 歩でも <strong>11.6%</strong> が出現しないままだった。 <strong>S-14 は「早く止めると現象そのものを見逃す」、S-12 は「早く止めると上限を誤る」。</strong> 走行長の短さは、見落とし（偽陰性）と誤った境界（偽の有界性）という<strong>2つの別の誤り</strong>を同時に生む</p>
+<h2 id="限界-この実験が言えないこと">限界（この実験が言えないこと）</h2>
+<ul><li><strong>原典の再現ではない。</strong> 本文に到達できておらず、系も当てはめ手続きも自分で設計し直している（上記）</li><li><strong>「非有界である」ことを示していない。</strong> ladder も 10⁶ 世代で block 26 個のうち 16〜18 までしか進んでいない。</li></ul>
+<p>block を使い切れば ladder も有界になる。<strong>示したのは「10⁶ 世代の窓の内側では上限が見えない」ことだけ</strong>である。 これは原典の主張そのもの（有限の実験からは決められない）でもあるが、<strong>本スケッチもその制約の内側にいる</strong></p>
+<ul><li><strong>変異負荷という別の上限がある。</strong> どの腕でも、深さが増えると保護すべきビットが増え、</li></ul>
+<p>写しが壊れる割合が上がる。<code>flat</code> が 42.7 で止まったのはこれと block の枯渇の両方である。 ladder も十分長く走らせれば同じ壁に当たる。 <strong>したがって本系は「原理的に非有界」ではなく「観測窓の内側で上限が見えない」系である</strong></p>
+<ul><li><strong>「向き」の一般化がどこまで効くかは分からない。</strong> 本スケッチで有界と非有界を分けたのは</li></ul>
+<p>「T を伸ばすと予測上限が収束するか」という向きだったが、これが効いたのは <strong>収束が観測窓の内側で完了する有界系（cap は T≈5,400 で横切った）を選んだから</strong>である。 上限の時定数が 10⁶ 世代より長い有界系を対照に取れば、向きも ladder と区別がつかなくなるはずで、 実際に妥当性検査 §6(c) では、上限 10 の双曲線でも時定数 b=3×10⁵ にすると T=100 の窓で予測が 4.24 に落ちた。 <strong>「向きを見れば分かる」は「窓が系の時定数より長ければ分かる」の言い換えにすぎず、 窓がどれだけ長ければ足りるかは、やはり系を知らなければ決まらない</strong></p>
+<ul><li><strong>特異性は示していない。</strong> <span class="deadlink">K-20</span> が引く Campbell &amp; Fiske (1959) のとおり、</li></ul>
+<p>試した対照（cap・smooth・drift・flat）に対して連言が分離することしか示せない。 別の種類の有界な系が連言を通る可能性は排除できていない</p>
+<ul><li><strong>grand-mean への依存。</strong> 事前登録した主系列は 10 レプリケートの平均軌跡である。</li></ul>
+<p>1本ごとに見ると階段で、連言を満たすのは 10 本中 3 本しかない（超過の回数で見れば 32/40）。 <strong>「平均を取ったから滑らかな漸近線に見えた」という経路は、本スケッチでは潰せていない</strong>—— ただし cap の grand-mean も同じ平均化を受けており、そちらでは比が回復した</p>
+<ul><li><strong>T=10² の窓は短すぎる。</strong> 4 つの T のうち最短のものは、当てはめに使える点が 41 点しかなく、</li></ul>
+<p>系がまだ take-off の途中にある。この窓の結果は他の 3 つより不安定である（ladder のレプリケート間で 5/10 しか超過しない）</p>
+<ul><li><strong>事前登録した予想のうち、外れたものが 2 つある。</strong></li></ul>
+<p>① <code>half</code> は「ladder より弱い」と予想したが、per-replicate 一致率は <strong>37/40 対 32/40</strong> で <code>half</code> のほうが高く、 grand-mean の比も同程度だった。② <code>flat</code> が false になる理由を「待ちが伸びないので天井が窓の内側に現れる」と書いたが、 実際に起きたのは <strong>block 60 個を 10/10 のレプリケートで使い切った</strong>こと—— つまり <code>flat</code> は走行の途中で<strong>真に有界な系になった</strong>。腕としての判定は当たったが、機構の予想は外れている</p>
+<ul><li><strong>事後解析の slope 掃引は 4 レプリケートで、<code>flat</code> の組み直しも 4 本である</strong>（本番は 10 本）。</li></ul>
+<p>slope=0.25 が false になった件は、この本数では確定的に読めない</p>
+<ul><li><strong>可視化は目視できていない。</strong> <code>viewer.html</code> が意図どおり見えるかは、ユーザが最初に開いたときに初めて分かる</li></ul>
+<p>（<span class="deadlink">method の既知の弱点</span>）。API の実在と非 ES module であることは検査 §9 で機械的に確かめてある</p></article><p class="src">原典: <code>docs/subprojects/alife-sketches/sketches/S-12-boundedness-illusion/reports/main.md</code></p></section><section class="pane" data-pane="comments" hidden><div class="comments" data-slug="S-12-boundedness-illusion" data-run="main" data-readonly><div id="clist" class="clist">読み込み中…</div><script type="application/json" id="cdata">{"version":1,"sketch":"S-12-boundedness-illusion","comments":[]}</script></div></section></div></div></div><button class="fab" id="fab" title="メニュー" aria-label="メニュー">☰</button><div class="menu" id="menu" hidden><div class="menuhead">人工生命スケッチ</div><a href="../../../../index.html">🏠 ホーム（スケッチ一覧）</a><a href="../../../../reports/index.html">📄 レポート一覧</a></div><script src="../../../../assets/menu.js"></script><script src="../../../../assets/overlay.js"></script><script src="../../../../assets/comments-ui.js"></script></body></html>

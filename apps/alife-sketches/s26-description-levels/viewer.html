@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-26 記述の層 — 同じ走行を層0／層1／層2 で見る</title>
+<style>
+  :root{
+    --bg:#0e1014; --panel:#171a21; --line:#2a2f3a; --fg:#d7dce5; --dim:#7e8797;
+    --hot:#ff7a59; --cool:#4aa3ff; --good:#4ade80; --warn:#fbbf24; --dead:#343b47;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1100px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:12px;min-width:0;max-width:100%}
+  canvas{display:block;background:#05070a;border:1px solid var(--line);border-radius:4px;
+         max-width:100%;height:auto}
+  canvas#field{image-rendering:pixelated}
+  aside{width:330px;min-width:290px;max-width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 13px;margin-bottom:12px}
+  .box h2{margin:0 0 9px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.06em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:112px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  input[type=number],select{background:#0c0e13;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  .val{width:52px;text-align:right;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:none;
+       font-variant-numeric:tabular-nums}
+  button{background:#20252f;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#2a3140}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  button.primary:hover{background:#2557e6}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #20242c}
+  table.stat td.k{color:var(--dim);width:56%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:8ch}
+  tr.sel td{background:#1d2531;color:#fff}
+  .banner{margin-top:9px;padding:8px 10px;border-radius:4px;font-size:12px;
+          border:1px solid var(--line);background:#12161d;color:var(--dim)}
+  .banner.fire{border-color:var(--good);background:#102019;color:#c8f5dc}
+  .banner.no{border-color:#3a4150;background:#151922}
+  .banner.undef{border-color:var(--warn);background:#241d0c;color:#ffe9b0}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;color:var(--dim);font-size:11px;margin-top:6px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .note{color:var(--dim);font-size:11px;margin-top:8px}
+  .cap{color:var(--dim);font-size:11px;margin:0 0 3px}
+  code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#a5b4fc}
+  b.hi{color:#fff}
+  @media(max-width:860px){aside{width:auto;min-width:0}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-26 — 同じ1本の走行を、3つの記述の層で見る</h1>
+  <p>基層は <code>B3/S23</code> の局所規則だけ。<b class="hi">層0＝マス／層1＝連結対象／層2＝個体群</b>は
+     観測器が作る粗視化で、核は知らない。3層に当てるのは<b class="hi">同じ1つの検出器</b>——
+     「同一性の鎖が窓の間ずっと切れず、記述子が周期 <code>p ≤ P</code> で反復する」。
+     <b class="hi">層のつまみを動かすと、同じ盤面が層ごとに『持続して見える／見えない』が入れ替わる。</b></p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <div>
+      <p class="cap" id="fieldcap">層1: 連結対象。<b class="hi">明るい対象が「持続」と判定されたもの</b>。</p>
+      <canvas id="field" width="480" height="480"></canvas>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div>
+      <p class="cap">層2 の記述子の推移。<span style="color:#4aa3ff">青 = 対象の個数 n(t)</span> /
+        <span style="color:#ff7a59">橙 = 1 のマスの総数 m(t)</span>。横の帯が判定に使う窓。</p>
+      <canvas id="series" width="420" height="150"></canvas>
+    </div>
+    <div>
+      <p class="cap">3つの層の「持続した対象の割合」。<b class="hi">横線が閾値 0.5</b>。</p>
+      <canvas id="bars" width="420" height="130"></canvas>
+    </div>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>つまみ</h2>
+      <label><span class="k">見る層</span>
+        <select id="level">
+          <option value="0">層0 — マス</option>
+          <option value="1" selected>層1 — 連結対象</option>
+          <option value="2">層2 — 個体群</option>
+        </select></label>
+      <label><span class="k">置くもの（腕）</span>
+        <select id="arm"></select></label>
+      <label><span class="k">忘れ方（参照点）</span>
+        <select id="forget">
+          <option value="none">そのまま</option>
+          <option value="shift">位置の履歴を忘れる</option>
+          <option value="scramble">形と位置を忘れる</option>
+        </select></label>
+      <label><span class="k">連結半径 r</span><input type="range" id="r" min="1" max="3" step="1" value="1"><span class="val" id="rv">1</span></label>
+      <label><span class="k">周期の上限 P</span><input type="range" id="P" min="1" max="32" step="1" value="32"><span class="val" id="Pv">32</span></label>
+      <label><span class="k">窓の長さ T</span><input type="range" id="T" min="16" max="128" step="8" value="64"><span class="val" id="Tv">64</span></label>
+      <label><span class="k">最小サイズ</span><input type="range" id="sMin" min="1" max="8" step="1" value="1"><span class="val" id="sMinv">1</span></label>
+      <label><span class="k">シード</span><input type="number" id="seed" value="20260912" min="1" step="1"></label>
+      <div class="row">
+        <button class="primary" id="play">再生</button>
+        <button id="step">1ステップ</button>
+        <button id="reset">やり直す</button>
+      </div>
+      <p class="note">つまみを動かすと自動でやり直す。窓が <span class="num" id="need">64</span> 枚たまってから判定が出る。</p>
+    </div>
+
+    <div class="box">
+      <h2>同じ走行を3層で読む</h2>
+      <table class="stat">
+        <tr><td class="k">ステップ</td><td class="v" id="gen">0</td></tr>
+        <tr><td class="k">控えた枚数</td><td class="v" id="nf">0</td></tr>
+        <tr id="row0"><td class="k"><b class="hi">層0</b> マス</td><td class="v" id="f0">—</td></tr>
+        <tr id="row1"><td class="k"><b class="hi">層1</b> 連結対象</td><td class="v" id="f1">—</td></tr>
+        <tr id="row2"><td class="k"><b class="hi">層2</b> 個体群</td><td class="v" id="f2">—</td></tr>
+        <tr><td class="k">母集団（層0 / 層1）</td><td class="v" id="pops">—</td></tr>
+        <tr><td class="k">見つかった周期</td><td class="v" id="per">—</td></tr>
+        <tr><td class="k">鎖が切れなかった割合</td><td class="v" id="chain">—</td></tr>
+      </table>
+      <div class="banner" id="verdict">窓がたまるまで待つ</div>
+    </div>
+
+    <div class="box">
+      <h2>読み方</h2>
+      <p class="note">
+        <b class="hi">静物を置くと層0で既に発火する</b>——マスの値が変わらないので、
+        「持続」は層1に固有ではない。<br>
+        <b class="hi">グライダーを置くと層0では発火せず層1で発火する</b>——
+        マスの値は反復しないが、連結対象の形は周期4で戻る。<br>
+        <b class="hi">周期の上限 P を 1 まで下げる</b>と、振動子も銃も層0・層1から消える。
+        <b class="hi">層の分かれ方そのものが P で変わる。</b><br>
+        <b class="hi">忘れ方を「位置の履歴を忘れる」にする</b>と層0・層1は消えるのに
+        <b class="hi">層2 は発火したまま</b>である——層2の記述子は位置を含まない。
+      </p>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="levels.js"></script>
+<script src="arms.js"></script>
+<script>
+(function () {
+  'use strict';
+  var THETA = 0.5;
+  var ANALYSE_EVERY = 4;
+  var L = 96, gridScale = 1;
+
+  var el = function (id) { return document.getElementById(id); };
+  var field = el('field'), series = el('series'), bars = el('bars');
+  var fx = field.getContext('2d'), sx = series.getContext('2d'), bx = bars.getContext('2d');
+  var off = document.createElement('canvas'), ox = off.getContext('2d');
+
+  var F = null, buf = [], obs = null, playing = false, since = 0;
+  var nHist = [], mHist = [], HIST = 400;
+
+  // 腕の一覧をつまみへ
+  (function () {
+    var sel = el('arm');
+    S26A.ORDER.forEach(function (a) {
+      var o = document.createElement('option');
+      o.value = a; o.textContent = a;
+      if (a === 'movers') o.selected = true;
+      sel.appendChild(o);
+    });
+  })();
+
+  function opts() {
+    return {
+      r: parseInt(el('r').value, 10),
+      P: parseInt(el('P').value, 10),
+      T: parseInt(el('T').value, 10),
+      sMin: parseInt(el('sMin').value, 10),
+    };
+  }
+
+  function reset() {
+    // つまみがまだ値を持たない経路（復元の途中・古いブラウザ）でも落ちないようにする
+    var arm = el('arm').value;
+    if (!arm || !S26A.ARMS[arm]) arm = 'movers';
+    var seed = parseInt(el('seed').value, 10) || 1;
+    L = Math.max(S26A.ARMS[arm].fit, Math.round(96 * gridScale / 8) * 8);
+    F = S26A.buildField(arm, { L: L, seed: seed });
+    buf = []; obs = null; since = 0; nHist = []; mHist = [];
+    off.width = L; off.height = L;
+    ['r', 'P', 'T', 'sMin'].forEach(function (id) { el(id + 'v').textContent = el(id).value; });
+    el('need').textContent = opts().T + 1;
+    render();
+  }
+
+  /** 1ステップ進め、窓の控えを更新する。 */
+  function advance() {
+    S26.stepField(F);
+    push();
+  }
+  function push() {
+    var o = opts();
+    buf.push(Uint8Array.from(F.cells));
+    while (buf.length > o.T + 1) buf.shift();
+    var cs = S26L.components(F.cells, L, o.r, o.sMin);
+    nHist.push(cs.list.length); mHist.push(S26.countOnes(F.cells));
+    while (nHist.length > HIST) { nHist.shift(); mHist.shift(); }
+  }
+
+  function analyse() {
+    var o = opts();
+    if (buf.length < o.T + 1) { obs = null; return; }
+    var frames = buf;
+    var fg = el('forget').value;
+    if (fg !== 'none') frames = S26L.forget(buf, L, fg, S26.makeRng(12345));
+    obs = S26L.observeAll(frames, { L: L, r: o.r, P: o.P, sMin: o.sMin });
+    obs.frames = frames;
+    obs.d = S26L.decide(obs, THETA);
+  }
+
+  /* ---------------- 描画 ---------------- */
+
+  var PALETTE = ['#ff7a59','#4aa3ff','#4ade80','#fbbf24','#c084fc','#f472b6','#2dd4bf','#fb923c'];
+
+  function drawField() {
+    var lev = parseInt(el('level').value, 10);
+    var src = obs && obs.frames ? obs.frames[obs.frames.length - 1] : F.cells;
+    var img = ox.createImageData(L, L), d = img.data;
+    function put(i, r, g, b) { var p = i * 4; d[p] = r; d[p + 1] = g; d[p + 2] = b; d[p + 3] = 255; }
+    for (var i = 0; i < L * L; i++) put(i, 5, 7, 10);
+
+    if (lev === 0) {
+      // 層0: 持続と判定されたマスを明るく。**マスが対象**であることが見えるように1マスずつ塗る。
+      var mark = obs ? obs.l0.mark : null;
+      for (var j = 0; j < L * L; j++) {
+        if (!src[j]) continue;
+        if (mark && mark[j]) put(j, 255, 122, 89);
+        else put(j, 60, 68, 82);
+      }
+    } else if (lev === 1) {
+      // 層1: 成分ごとに色。持続した対象は鮮やかに、そうでないものは暗く。
+      var cs = obs ? obs.comps[obs.comps.length - 1] : S26L.components(src, L, opts().r, opts().sMin);
+      var keep = {};
+      if (obs) {
+        obs.l1.objects.forEach(function (o2) {
+          if (obs.l1.persistedIds[o2.id] !== undefined) {
+            for (var q = 0; q < o2.cur.length; q++) keep[o2.cur[q]] = 1;
+          }
+        });
+      }
+      cs.list.forEach(function (c, ci) {
+        var col = PALETTE[ci % PALETTE.length];
+        var R = parseInt(col.substr(1, 2), 16), G = parseInt(col.substr(3, 2), 16), B = parseInt(col.substr(5, 2), 16);
+        for (var q = 0; q < c.cells.length; q++) {
+          if (keep[c.cells[q]]) put(c.cells[q], R, G, B);
+          else put(c.cells[q], (R * 0.28) | 0, (G * 0.28) | 0, (B * 0.28) | 0);
+        }
+      });
+    } else {
+      // 層2: 系全体が1つの対象。中身は一様に描き、**枠の色が判定**になる。
+      var on = obs && obs.d && obs.d.level2;
+      for (var k = 0; k < L * L; k++) if (src[k]) put(k, on ? 74 : 90, on ? 222 : 97, on ? 128 : 113);
+    }
+    ox.putImageData(img, 0, 0);
+    fx.imageSmoothingEnabled = false;
+    fx.fillStyle = '#05070a'; fx.fillRect(0, 0, field.width, field.height);
+    fx.drawImage(off, 0, 0, L, L, 0, 0, field.width, field.height);
+    if (lev === 2) {
+      fx.strokeStyle = obs && obs.d && obs.d.level2 ? '#4ade80' : '#3a4150';
+      fx.lineWidth = 6;
+      fx.strokeRect(3, 3, field.width - 6, field.height - 6);
+    }
+    var caps = [
+      '層0: マスが対象。<b class="hi">橙のマスが「持続」</b>（値が周期 P 以内で反復する）。灰は同じ生きたマスでも持続していない。',
+      '層1: 連結対象が対象。<b class="hi">鮮やかな対象が「持続」</b>。暗いものは鎖が切れたか周期が立たなかったもの。',
+      '層2: 系全体が1つの対象。<b class="hi">枠が緑なら「持続」</b>——記述子は (対象の個数, 1 の総数) だけで、位置も形も見ていない。',
+    ];
+    el('fieldcap').innerHTML = caps[lev];
+    var legs = [
+      '<span><span class="sw" style="background:#ff7a59"></span>持続したマス</span><span><span class="sw" style="background:#3c4452"></span>持続していないマス</span>',
+      '<span><span class="sw" style="background:#4ade80"></span>持続した対象（色は対象ごと）</span><span><span class="sw" style="background:#16311f"></span>持続しなかった対象</span>',
+      '<span><span class="sw" style="background:#4ade80"></span>層2が持続</span><span><span class="sw" style="background:#5a6171"></span>層2は持続せず</span>',
+    ];
+    el('legend').innerHTML = legs[lev];
+  }
+
+  function drawSeries() {
+    sx.fillStyle = '#05070a'; sx.fillRect(0, 0, series.width, series.height);
+    if (!nHist.length) return;
+    var pad = 8, H = series.height - 2 * pad, W = series.width;
+    var nMax = Math.max(1, Math.max.apply(null, nHist));
+    var mMax = Math.max(1, Math.max.apply(null, mHist));
+    // 判定に使う窓の帯
+    var o = opts();
+    var w0 = Math.max(0, nHist.length - (o.T + 1));
+    sx.fillStyle = 'rgba(190,200,215,.10)';
+    sx.fillRect(w0 / HIST * W, 0, (nHist.length - w0) / HIST * W, series.height);
+    function line(arr, mx, col) {
+      sx.strokeStyle = col; sx.lineWidth = 1.5; sx.beginPath();
+      for (var i = 0; i < arr.length; i++) {
+        var x = i / HIST * W, y = pad + (1 - arr[i] / mx) * H;
+        if (i === 0) sx.moveTo(x, y); else sx.lineTo(x, y);
+      }
+      sx.stroke();
+    }
+    line(mHist, mMax, '#ff7a59');
+    line(nHist, nMax, '#4aa3ff');
+    sx.fillStyle = 'rgba(215,220,229,.7)'; sx.font = '10px ui-monospace,Menlo,monospace';
+    sx.fillText('n最大 ' + nMax, 4, pad + 9);
+    sx.fillText('m最大 ' + mMax, 4, pad + 22);
+  }
+
+  function drawBars() {
+    bx.fillStyle = '#05070a'; bx.fillRect(0, 0, bars.width, bars.height);
+    var lev = parseInt(el('level').value, 10);
+    var vals = obs ? [obs.l0.fraction, obs.l1.fraction, obs.l2.fraction] : [0, 0, 0];
+    var defs = obs ? [obs.l0.defined, obs.l1.defined, obs.l2.defined] : [true, true, true];
+    var names = ['層0 マス', '層1 連結対象', '層2 個体群'];
+    var pad = 10, bw = (bars.width - 2 * pad) / 3 - 12, H = bars.height - 34;
+    bx.strokeStyle = 'rgba(255,255,255,.35)'; bx.setLineDash([4, 3]); bx.beginPath();
+    bx.moveTo(pad, 12 + (1 - THETA) * H); bx.lineTo(bars.width - pad, 12 + (1 - THETA) * H); bx.stroke();
+    bx.setLineDash([]);
+    for (var i = 0; i < 3; i++) {
+      var x = pad + i * ((bars.width - 2 * pad) / 3) + 6;
+      var h = defs[i] ? vals[i] * H : 0;
+      bx.fillStyle = !defs[i] ? '#6b5a24' : (vals[i] >= THETA ? '#4ade80' : '#3a4150');
+      bx.fillRect(x, 12 + H - h, bw, h);
+      bx.strokeStyle = i === lev ? '#fff' : '#2a2f3a';
+      bx.lineWidth = i === lev ? 2 : 1;
+      bx.strokeRect(x, 12, bw, H);
+      bx.fillStyle = i === lev ? '#fff' : '#7e8797';
+      bx.font = '11px -apple-system,"Hiragino Sans",sans-serif';
+      bx.fillText(names[i], x, bars.height - 14);
+      bx.fillStyle = '#d7dce5';
+      bx.font = '11px ui-monospace,Menlo,monospace';
+      bx.fillText(defs[i] ? vals[i].toFixed(3) : '未定義', x, bars.height - 2);
+    }
+    bx.fillStyle = 'rgba(255,255,255,.5)'; bx.font = '10px ui-monospace,Menlo,monospace';
+    bx.fillText('閾値 ' + THETA, bars.width - 54, 12 + (1 - THETA) * H - 3);
+  }
+
+  function render() {
+    drawField(); drawSeries(); drawBars();
+    Harness.num('gen', F ? F.t : 0, 7);
+    Harness.num('nf', buf.length, 7);
+    var lev = parseInt(el('level').value, 10);
+    [0, 1, 2].forEach(function (i) { el('row' + i).className = i === lev ? 'sel' : ''; });
+    if (obs) {
+      var fr = [obs.l0, obs.l1, obs.l2];
+      [0, 1, 2].forEach(function (i) {
+        Harness.num('f' + i, fr[i].defined ? fr[i].fraction.toFixed(3) : '未定義', 8);
+      });
+      Harness.num('pops', obs.l0.population + ' / ' + obs.l1.population, 8);
+      var ps = lev === 0 ? obs.l0.periods : lev === 1 ? obs.l1.periods : (obs.l2.period ? [obs.l2.period] : []);
+      var uniq = {}; ps.forEach(function (p) { uniq[p] = 1; });
+      Harness.num('per', Object.keys(uniq).sort(function (a, b) { return a - b; }).join(',') || '—', 8);
+      Harness.num('chain', obs.l1.chainKeptFraction.toFixed(3), 8);
+      var b = el('verdict'), o2 = fr[lev];
+      var names = ['層0（マス）', '層1（連結対象）', '層2（個体群）'];
+      if (!o2.defined) {
+        b.className = 'banner undef';
+        b.textContent = names[lev] + ' は**答えない** — 母集団が空（対象が 0 個）。発火とも非発火とも数えない';
+      } else if (o2.fraction >= THETA) {
+        b.className = 'banner fire';
+        b.textContent = names[lev] + ' で発火 — 対象 ' + o2.population + ' 個のうち ' + o2.persisted + ' 個が持続（' + o2.fraction.toFixed(3) + '）';
+      } else {
+        b.className = 'banner no';
+        b.textContent = names[lev] + ' では発火せず — 対象 ' + o2.population + ' 個のうち ' + o2.persisted + ' 個（' + o2.fraction.toFixed(3) + '）';
+      }
+    } else {
+      [0, 1, 2].forEach(function (i) { Harness.num('f' + i, '—', 8); });
+      Harness.num('pops', '—', 8); Harness.num('per', '—', 8); Harness.num('chain', '—', 8);
+      var b2 = el('verdict'); b2.className = 'banner';
+      b2.textContent = '窓がたまるまで待つ（あと ' + Math.max(0, opts().T + 1 - buf.length) + ' 枚）';
+    }
+  }
+
+  function frame() {
+    if (playing) {
+      advance();
+      if (++since >= ANALYSE_EVERY) { analyse(); since = 0; }
+      render();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------------- つまみの配線 ---------------- */
+  ['r', 'P', 'T', 'sMin'].forEach(function (id) {
+    el(id).addEventListener('input', function () {
+      el(id + 'v').textContent = el(id).value;
+      el('need').textContent = opts().T + 1;
+      reset();
+    });
+  });
+  ['arm', 'seed'].forEach(function (id) { el(id).addEventListener('change', reset); });
+  el('forget').addEventListener('change', function () { analyse(); render(); });
+  el('level').addEventListener('change', function () { render(); });
+  el('play').addEventListener('click', function () {
+    playing = !playing; this.textContent = playing ? '止める' : '再生';
+  });
+  el('step').addEventListener('click', function () { advance(); analyse(); render(); });
+  el('reset').addEventListener('click', reset);
+
+  reset();
+  frame();
+
+  // --- 共通の実行UI（撮る / 広さ / 設定の保存と復元）---
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (playing) document.getElementById('play').click(); },
+    id: 'S-26',
+    version: '1.0.0',
+    inputs: ['level', 'arm', 'forget', 'r', 'P', 'T', 'sMin', 'seed'],
+    // level は表示専用（描画にのみ使う）。forget/r/sMin は検出器（観測装置）の定義で、
+    // この系の主題そのもの——系の力学寄りと見て p にした。P/T は探索窓・期間の上限で s にした。
+    // （いずれも判断に迷った点として報告済み）
+    paramNames: {
+      level: { category: 's', code: 'level', full: 'level' },
+      arm: { category: 'p', code: 'arm', full: 'arm' },
+      forget: { category: 'p', code: 'forget', full: 'forget_mode' },
+      r: { category: 'p', code: 'r', full: 'connect_radius' },
+      P: { category: 's', code: 'p', full: 'period_cap' },
+      T: { category: 's', code: 't', full: 'window_length' },
+      sMin: { category: 'p', code: 'smin', full: 'min_size' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+    },
+    canvases: ['field', 'series', 'bars'],
+    // 「広さ」は**格子の大きさ**。層1の対象の数も層2の記述子も格子の大きさで変わる。
+    resize: function (scale) {
+      gridScale = scale;
+      reset();
+      Harness.say('格子を ' + L + '×' + L + ' にした（腕が収まる最小の大きさで下から止まる）');
+    },
+    onRestore: function () {
+      ['r', 'P', 'T', 'sMin'].forEach(function (id) { el(id + 'v').textContent = el(id).value; });
+      reset();
+    },
+  });
+})();
+</script>
+</body>
+</html>

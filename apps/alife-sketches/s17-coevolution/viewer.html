@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-17 共進化する二つの側 — CIAO 行列</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --line:#2a2f3a; --fg:#d7dce5; --dim:#7e8797;
+    --hot:#ff7a59; --cool:#4aa3ff; --good:#4ade80; --warn:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:4px 0 0;color:var(--dim);font-size:12px;max-width:1100px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:12px}
+  canvas{display:block;background:#05070a;border:1px solid var(--line);border-radius:4px}
+  canvas#ciao{image-rendering:pixelated}
+  aside{width:340px;min-width:300px}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 13px;margin-bottom:12px}
+  .box h2{margin:0 0 9px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.06em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:104px;color:var(--dim);flex:none}
+  input[type=range]{flex:1;min-width:0}
+  input[type=number],select{background:#0c0e13;color:var(--fg);border:1px solid var(--line);
+      border-radius:4px;padding:4px 6px;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  .val{width:60px;text-align:right;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--fg);flex:none}
+  button{background:#20252f;color:var(--fg);border:1px solid var(--line);border-radius:4px;
+         padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover{background:#2a3140}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  button.primary:hover{background:#2557e6}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;
+             font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 0;vertical-align:top;border-bottom:1px solid #20242c}
+  table.stat td.k{color:var(--dim);width:56%}
+  table.stat td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .banner{margin-top:9px;padding:8px 10px;border-radius:4px;font-size:12px;
+          border:1px solid var(--line);background:#12161d;color:var(--dim)}
+  .banner.gain{border-color:var(--hot);background:#2a1610;color:#ffd1c2}
+  .banner.track{border-color:var(--cool);background:#0e1c2b;color:#c2e0ff}
+  .banner.still{border-color:var(--warn);background:#241d0c;color:#ffe9b0}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--dim);font-size:11px;margin-top:7px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .note{color:var(--dim);font-size:11px;margin-top:8px}
+  .cap{color:var(--dim);font-size:11px;margin:0 0 2px}
+  code{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#a5b4fc}
+  b.hi{color:#fff}
+  @media(max-width:820px){aside{width:auto;min-width:0;max-width:100%}
+                          .col{min-width:0;max-width:100%}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-17 — 二つの側が互いに合わせ合う。進んでいるのか、回っているだけなのか</h1>
+  <p>片側の形質 a と反対側の形質 b が出会うと、位置ごとに
+     <code>a=b→1 / a=1,b=0→w / a=0,b=1→0</code> の値が付き、その平均が side 0 の取り分になる。
+     それだけ。<b class="hi">つまみは w ひとつ</b>——0 では「相手と同じ位置を持つ」ことだけが利き、
+     1 では「1 を持つ」ことが相手によらず損をしない。
+     右下の CIAO 行列は<b class="hi">世代 i の side 0 と世代 j の side 1 を全ペア対戦させた勝ち分</b>で、
+     <b class="hi">下三角が「現在の個体 vs 過去の相手」</b>にあたる。</p>
+</header>
+
+<div class="wrap">
+  <div class="col">
+    <div>
+      <p class="cap">CIAO 行列（縦 = side 0 の世代 ↓新しい / 横 = side 1 の世代 →新しい）。<b class="hi">左下の三角</b>が現在 vs 過去。</p>
+      <canvas id="ciao" width="440" height="440"></canvas>
+      <div class="legend">
+        <span><span class="sw" style="background:#4aa3ff"></span>side 0 が負ける（&lt;0.5）</span>
+        <span><span class="sw" style="background:#e8e8e8"></span>五分</span>
+        <span><span class="sw" style="background:#ff7a59"></span>side 0 が勝つ（&gt;0.5）</span>
+        <span>対角＝同時代</span>
+      </div>
+    </div>
+    <div>
+      <p class="cap">遅れ断面 <code>D(k) = W(+k) − W(−k)</code>。灰の帯は時間の順序を壊した帰無の包絡線。</p>
+      <canvas id="lag" width="440" height="150"></canvas>
+    </div>
+  </div>
+
+  <div class="col">
+    <div>
+      <p class="cap">位置ごとの「1 の割合」の推移（上 = side 0 / 下 = side 1。横が世代）。</p>
+      <canvas id="waves" width="440" height="256"></canvas>
+    </div>
+    <div>
+      <p class="cap">同時代の相手に対する取り分 <code>W(0)</code> の推移（横線が 0.5）。</p>
+      <canvas id="contemp" width="440" height="110"></canvas>
+    </div>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>つまみ</h2>
+      <label><span class="k">w（表の1マス）</span><input type="range" id="w" min="0" max="1" step="0.05" value="0"><span class="val" id="wv">0.00</span></label>
+      <label><span class="k">反転確率 mu</span><input type="range" id="mu" min="0" max="0.05" step="0.001" value="0.01"><span class="val" id="muv">0.010</span></label>
+      <label><span class="k">1 の維持費 cost</span><input type="range" id="cost" min="0" max="0.6" step="0.02" value="0"><span class="val" id="costv">0.00</span></label>
+      <label><span class="k">複製の規則</span>
+        <select id="sel">
+          <option value="tournament">重みで籤（2体）</option>
+          <option value="none">重みを使わない（漂動）</option>
+        </select></label>
+      <label><span class="k">相手</span>
+        <select id="mode">
+          <option value="encounter">相手と対戦する</option>
+          <option value="objective">相手を見ない（固定の的）</option>
+        </select></label>
+      <label><span class="k">side 1 を凍結</span><input type="checkbox" id="freeze"></label>
+      <label><span class="k">シード</span><input type="number" id="seed" value="11" min="1" step="1"></label>
+      <label><span class="k">控える間隔</span><input type="number" id="every" value="2" min="1" max="20" step="1"></label>
+      <div class="row">
+        <button class="primary" id="play">再生</button>
+        <button id="step">1控えぶん</button>
+        <button id="reset">やり直す</button>
+        <button id="preset0">w=0 の例</button>
+        <button id="preset1">w=1 の例</button>
+      </div>
+      <p class="note">つまみを動かすと自動でやり直す。控えは最大 <span id="capn">140</span> 枚で止まる。</p>
+    </div>
+
+    <div class="box">
+      <h2>同じ1枚の行列を、三つの参照点で読む</h2>
+      <table class="stat">
+        <tr><td class="k">世代</td><td class="v" id="gen">0</td></tr>
+        <tr><td class="k">控えた枚数 G</td><td class="v" id="gcount">1</td></tr>
+        <tr><td class="k"><b class="hi">同時代</b> W(0)</td><td class="v" id="c0">—</td></tr>
+        <tr><td class="k"><b class="hi">近い過去</b> H_near（遅れ 1–10）</td><td class="v" id="hn">—</td></tr>
+        <tr><td class="k"><b class="hi">遠い過去</b> H_far（遅れ 40–80）</td><td class="v" id="hf">—</td></tr>
+        <tr><td class="k">H_far / H_near</td><td class="v" id="pers">—</td></tr>
+        <tr><td class="k">|D| が最大になる遅れ</td><td class="v" id="kmax">—</td></tr>
+        <tr><td class="k">形質の動き（1世代）</td><td class="v" id="turn">—</td></tr>
+      </table>
+      <div class="banner" id="verdict">まだ判定していない</div>
+      <p class="note">判定は <code>criteria.json</code> と同じ規則: H_far が 0.03 以上かつ帰無包絡線の上なら
+        <b class="hi">lastingGain</b>、H_near だけがそうなら <b class="hi">trackingOnly</b>。
+        <b class="hi">同時代の勝率だけを見ると、この二つは区別できない。</b></p>
+    </div>
+
+    <div class="box">
+      <h2>読み方</h2>
+      <p class="note">
+        <b class="hi">下三角が赤く染まれば</b>、新しい side 0 が古い side 1 に勝ち越している。<br>
+        <b class="hi">対角の周りだけに帯ができて、離れると白に戻れば</b>、
+        勝っているのは「直前の相手」に対してだけで、遠い過去に対しては五分に戻る。<br>
+        どちらの場合も<b class="hi">対角（同時代）の色は同じになりうる</b>——それがこのスケッチの要点。
+      </p>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="stats.js"></script>
+<script>
+(function () {
+  'use strict';
+  var CAP = 140;
+  var NEAR = [1, 10], FAR = [40, 80];
+  var POP0 = 64, popScale = 1;   // 片側の個体数。既定は 64 のまま
+
+  var el = function (id) { return document.getElementById(id); };
+  var ciao = el('ciao'), lag = el('lag'), waves = el('waves'), contemp = el('contemp');
+  var cx = ciao.getContext('2d'), lx = lag.getContext('2d'),
+      wx = waves.getContext('2d'), tx = contemp.getContext('2d');
+
+  var off = document.createElement('canvas');
+  var ox = off.getContext('2d');
+
+  var W = null, arch = [[], []], freq = [[], []], M = null, G = 0, playing = false;
+  var w0series = [], lastAn = null, lastDec = null, every = 2;
+
+  function opts() {
+    return {
+      L: 30, N: Math.max(4, 2 * Math.round(POP0 * popScale / 2)),
+      w: parseFloat(el('w').value),
+      mu: parseFloat(el('mu').value),
+      cost: parseFloat(el('cost').value),
+      encounters: 8,
+      selection: el('sel').value,
+      mode: el('mode').value,
+      frozen: [false, el('freeze').checked],
+      seed: parseInt(el('seed').value, 10) || 1,
+    };
+  }
+
+  function reset() {
+    every = Math.max(1, parseInt(el('every').value, 10) || 2);
+    W = S17.createWorld(opts());
+    arch = [[], []]; freq = [[], []]; M = null; G = 0; w0series = [];
+    lastAn = null; lastDec = null;
+    off.width = CAP; off.height = CAP;
+    ox.clearRect(0, 0, CAP, CAP);
+    cx.fillStyle = '#05070a'; cx.fillRect(0, 0, ciao.width, ciao.height);
+    wx.fillStyle = '#05070a'; wx.fillRect(0, 0, waves.width, waves.height);
+    tx.fillStyle = '#05070a'; tx.fillRect(0, 0, contemp.width, contemp.height);
+    lx.fillStyle = '#05070a'; lx.fillRect(0, 0, lag.width, lag.height);
+    takeSnapshot();
+    render();
+  }
+
+  /** 控えを1枚取り、CIAO 行列の新しい行と列を埋める。 */
+  function takeSnapshot() {
+    if (G >= CAP) return false;
+    var L = W.L, mask = S17.maskOf(L);
+    var a = Int32Array.from(W.side[0]), b = Int32Array.from(W.side[1]);
+    arch[0].push(a); arch[1].push(b);
+    freq[0].push(S17.oneFraction(a, L)); freq[1].push(S17.oneFraction(b, L));
+    var g = G; G++;
+    // 新しい行 g（side0 の新しい控え）と 列 g を全ペア平均で埋める
+    var Mn = new Float64Array(G * G);
+    if (M) {
+      for (var i = 0; i < g; i++) for (var j = 0; j < g; j++) Mn[i * G + j] = M[i * g + j];
+    }
+    function cell(A, B) {
+      var acc = 0;
+      for (var x = 0; x < A.length; x++) { var t = A[x];
+        for (var y = 0; y < B.length; y++) acc += S17.scorePair(t, B[y], L, W.w, mask); }
+      return acc / (A.length * B.length);
+    }
+    for (var j2 = 0; j2 < G; j2++) Mn[g * G + j2] = cell(arch[0][g], arch[1][j2]);
+    for (var i2 = 0; i2 < G; i2++) Mn[i2 * G + g] = cell(arch[0][i2], arch[1][g]);
+    M = Mn;
+    w0series.push(M[g * G + g]);
+    drawWaveColumn(g);
+    return true;
+  }
+
+  function advance() {
+    for (var s = 0; s < every; s++) S17.stepWorld(W);
+    return takeSnapshot();
+  }
+
+  /* ---------------- 描画 ---------------- */
+
+  function colorOf(v) {
+    var t = Math.max(-1, Math.min(1, (v - 0.5) * 2.4));
+    if (t >= 0) return [232 + (255 - 232) * t, 232 - 110 * t, 232 - 143 * t];
+    var u = -t;
+    return [232 - 158 * u, 232 - 69 * u, 232 + 23 * u];
+  }
+
+  function drawCiao() {
+    if (!G) return;
+    var img = ox.createImageData(G, G), d = img.data;
+    for (var i = 0; i < G; i++) {
+      for (var j = 0; j < G; j++) {
+        var c = colorOf(M[i * G + j]), p = (i * G + j) * 4;
+        d[p] = c[0]; d[p + 1] = c[1]; d[p + 2] = c[2]; d[p + 3] = 255;
+      }
+    }
+    off.width = G; off.height = G;
+    ox.putImageData(img, 0, 0);
+    cx.imageSmoothingEnabled = false;
+    cx.fillStyle = '#05070a'; cx.fillRect(0, 0, ciao.width, ciao.height);
+    cx.drawImage(off, 0, 0, G, G, 0, 0, ciao.width, ciao.height);
+    // 対角線
+    cx.strokeStyle = 'rgba(255,255,255,.35)'; cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(0, 0); cx.lineTo(ciao.width, ciao.height); cx.stroke();
+    cx.fillStyle = 'rgba(215,220,229,.8)'; cx.font = '11px ui-monospace,Menlo,monospace';
+    cx.fillText('現在の side 0 vs 過去の side 1', 8, ciao.height - 10);
+    cx.fillText('（逆）', ciao.width - 44, 16);
+  }
+
+  function drawWaveColumn(g) {
+    var L = W.L, h = Math.floor((waves.height - 6) / (2 * L));
+    if (h < 1) h = 1;
+    var colw = Math.max(1, Math.floor(waves.width / CAP));
+    for (var r = 0; r < 2; r++) {
+      var f = freq[r][g];
+      for (var p = 0; p < L; p++) {
+        var v = f[p], s = Math.round(30 + 200 * v);
+        wx.fillStyle = r === 0 ? 'rgb(' + s + ',' + Math.round(s * 0.55) + ',' + Math.round(s * 0.42) + ')'
+                               : 'rgb(' + Math.round(s * 0.42) + ',' + Math.round(s * 0.62) + ',' + s + ')';
+        wx.fillRect(g * colw, 3 + (r * L + p) * h, colw, h);
+      }
+    }
+    wx.fillStyle = 'rgba(255,255,255,.25)';
+    wx.fillRect(0, 2 + L * h, waves.width, 1);
+  }
+
+  function drawContemp() {
+    tx.fillStyle = '#05070a'; tx.fillRect(0, 0, contemp.width, contemp.height);
+    var n = w0series.length; if (!n) return;
+    var pad = 6, H = contemp.height - 2 * pad;
+    function y(v) { return pad + (1 - v) * H; }
+    tx.strokeStyle = 'rgba(255,255,255,.28)'; tx.beginPath();
+    tx.moveTo(0, y(0.5)); tx.lineTo(contemp.width, y(0.5)); tx.stroke();
+    tx.strokeStyle = '#ff7a59'; tx.lineWidth = 1.5; tx.beginPath();
+    for (var i = 0; i < n; i++) {
+      var x = (i / Math.max(1, CAP - 1)) * contemp.width;
+      if (i === 0) tx.moveTo(x, y(w0series[i])); else tx.lineTo(x, y(w0series[i]));
+    }
+    tx.stroke();
+    tx.fillStyle = 'rgba(215,220,229,.7)'; tx.font = '10px ui-monospace,Menlo,monospace';
+    tx.fillText('1.0', 3, y(1) + 9); tx.fillText('0.5', 3, y(0.5) - 3); tx.fillText('0.0', 3, y(0) - 2);
+  }
+
+  function drawLag() {
+    lx.fillStyle = '#05070a'; lx.fillRect(0, 0, lag.width, lag.height);
+    if (!lastAn) return;
+    var o = lastAn.obs, K = o.kmaxAll;
+    var maxAbs = 0.02;
+    for (var k = 1; k <= K; k++) maxAbs = Math.max(maxAbs, Math.abs(o.D[k]));
+    for (var e = 0; e < lastAn.far.envelopeHi.length; e++) maxAbs = Math.max(maxAbs, Math.abs(lastAn.far.envelopeHi[e]));
+    var pad = 8, H = lag.height - 2 * pad;
+    function X(k) { return pad + (k - 1) / Math.max(1, K - 1) * (lag.width - 2 * pad); }
+    function Y(v) { return pad + (1 - (v / maxAbs + 1) / 2) * H; }
+    // 帰無包絡線（遠窓と近窓）
+    function band(t) {
+      lx.fillStyle = 'rgba(190,200,215,.16)';
+      lx.beginPath();
+      for (var i = 0; i < t.envelopeHi.length; i++) { var k = t.lo + i; if (i === 0) lx.moveTo(X(k), Y(t.envelopeHi[i])); else lx.lineTo(X(k), Y(t.envelopeHi[i])); }
+      for (var j = t.envelopeLo.length - 1; j >= 0; j--) { var k2 = t.lo + j; lx.lineTo(X(k2), Y(t.envelopeLo[j])); }
+      lx.closePath(); lx.fill();
+    }
+    band(lastAn.near); band(lastAn.far);
+    lx.strokeStyle = 'rgba(255,255,255,.3)'; lx.beginPath(); lx.moveTo(pad, Y(0)); lx.lineTo(lag.width - pad, Y(0)); lx.stroke();
+    lx.strokeStyle = '#4ade80'; lx.lineWidth = 1.6; lx.beginPath();
+    for (var k3 = 1; k3 <= K; k3++) { if (k3 === 1) lx.moveTo(X(k3), Y(o.D[k3])); else lx.lineTo(X(k3), Y(o.D[k3])); }
+    lx.stroke();
+    lx.fillStyle = 'rgba(215,220,229,.75)'; lx.font = '10px ui-monospace,Menlo,monospace';
+    lx.fillText('遅れ k →', lag.width - 62, lag.height - 2);
+    lx.fillText('+' + maxAbs.toFixed(2), 2, pad + 8);
+    lx.fillText('-' + maxAbs.toFixed(2), 2, lag.height - pad);
+    lx.fillStyle = 'rgba(74,163,255,.85)';
+    lx.fillText('近 ' + NEAR[0] + '-' + NEAR[1], X(NEAR[0]), 10);
+    lx.fillText('遠 ' + FAR[0] + '-' + FAR[1], X(Math.min(FAR[0], K)), 10);
+  }
+
+  function analyse() {
+    if (G < 20) { lastAn = null; lastDec = null; return; }
+    var kmaxAll = Math.min(80, G - 1);
+    var far = [Math.min(FAR[0], kmaxAll), Math.min(FAR[1], kmaxAll)];
+    var o = { near: NEAR, far: far, kmaxAll: kmaxAll, agg: 'mean' };
+    lastAn = S17S.analyse(M, G, o, 99, S17.makeRng(4242));
+    var turn = S17S.turnover(freq, W.L, every);
+    lastDec = S17S.decide(lastAn, turn, { globalP: 0.05, hMin: 0.03, turnoverFloor: 0.008 });
+  }
+
+  function render() {
+    drawCiao(); drawContemp(); drawLag();
+    el('gen').textContent = W ? W.gen : 0;
+    el('gcount').textContent = G;
+    if (lastAn) {
+      var o = lastAn.obs, d = lastDec;
+      el('c0').textContent = o.diagonalMean.toFixed(4);
+      el('hn').textContent = o.Hnear.toFixed(4);
+      el('hf').textContent = o.Hfar.toFixed(4);
+      el('pers').textContent = o.persistence.toFixed(2);
+      el('kmax').textContent = o.kAtMaxAbsD + ' / ' + o.kmaxAll;
+      el('turn').textContent = d.turnover.toFixed(4);
+      var b = el('verdict');
+      if (d.lastingGain) { b.className = 'banner gain'; b.textContent = 'lastingGain — 遠い過去の相手にも勝ち越している（H_far = ' + o.Hfar.toFixed(3) + '）'; }
+      else if (d.trackingOnly) { b.className = 'banner track'; b.textContent = 'trackingOnly — 近い過去には勝ち越すが、遠い過去には五分（H_near = ' + o.Hnear.toFixed(3) + ' / H_far = ' + o.Hfar.toFixed(3) + '）'; }
+      else if (d.notMoving) { b.className = 'banner still'; b.textContent = 'notMoving — 形質がほとんど動いていない。どちらの札も意味を持たない'; }
+      else { b.className = 'banner'; b.textContent = 'どの札も立っていない（H_near = ' + o.Hnear.toFixed(3) + ' / H_far = ' + o.Hfar.toFixed(3) + '）'; }
+    } else {
+      el('c0').textContent = el('hn').textContent = el('hf').textContent = '—';
+      el('pers').textContent = el('kmax').textContent = el('turn').textContent = '—';
+      var b2 = el('verdict'); b2.className = 'banner';
+      b2.textContent = '控えが 20 枚たまると判定を出す（あと ' + Math.max(0, 20 - G) + ' 枚）';
+    }
+  }
+
+  var sinceAnalyse = 0;
+  function frame() {
+    if (playing) {
+      for (var n = 0; n < 2; n++) {
+        if (!advance()) { playing = false; el('play').textContent = '再生'; break; }
+      }
+      sinceAnalyse++;
+      if (sinceAnalyse >= 5) { analyse(); sinceAnalyse = 0; }
+      render();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------------- つまみ ---------------- */
+  ['w', 'mu', 'cost'].forEach(function (id) {
+    el(id).addEventListener('input', function () {
+      el(id + 'v').textContent = parseFloat(el(id).value).toFixed(id === 'mu' ? 3 : 2);
+      reset();
+    });
+  });
+  ['sel', 'mode', 'freeze', 'seed', 'every'].forEach(function (id) {
+    el(id).addEventListener('change', reset);
+  });
+  el('play').addEventListener('click', function () {
+    playing = !playing; this.textContent = playing ? '止める' : '再生';
+  });
+  el('step').addEventListener('click', function () { advance(); analyse(); render(); });
+  el('reset').addEventListener('click', reset);
+  el('preset0').addEventListener('click', function () {
+    el('w').value = 0; el('wv').textContent = '0.00';
+    el('mu').value = 0.01; el('muv').textContent = '0.010';
+    el('cost').value = 0; el('costv').textContent = '0.00';
+    el('sel').value = 'tournament'; el('mode').value = 'encounter'; el('freeze').checked = false;
+    reset(); playing = true; el('play').textContent = '止める';
+  });
+  el('preset1').addEventListener('click', function () {
+    el('w').value = 1; el('wv').textContent = '1.00';
+    el('mu').value = 0.01; el('muv').textContent = '0.010';
+    el('cost').value = 0; el('costv').textContent = '0.00';
+    el('sel').value = 'tournament'; el('mode').value = 'encounter'; el('freeze').checked = false;
+    reset(); playing = true; el('play').textContent = '止める';
+  });
+
+  el('capn').textContent = CAP;
+  reset();
+  frame();
+
+  // --- 共通の実行UI（撮る / 広さ / 設定の保存と復元）を載せる ---
+  Harness.mount({
+    // 添付パラメータのロード時に自動で止まる口（harness.js の pause 契約・2026-09-15 ユーザ指定）
+    pause: function () { if (playing) document.getElementById('play').click(); },
+    id: 'S-17',
+    version: '1.0.0',
+    inputs: ['w', 'mu', 'cost', 'sel', 'mode', 'freeze', 'seed', 'every'],
+    paramNames: {
+      w: { category: 'p', code: 'w', full: 'w' },
+      mu: { category: 'p', code: 'mu', full: 'mu' },
+      cost: { category: 'p', code: 'cost', full: 'cost' },
+      sel: { category: 'p', code: 'sel', full: 'selection_rule' },
+      mode: { category: 'p', code: 'mode', full: 'opponent_mode' },
+      freeze: { category: 'p', code: 'freeze', full: 'freeze_side1' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      every: { category: 's', code: 'every', full: 'snapshot_interval' },
+    },
+    canvases: ['ciao', 'lag', 'waves', 'contemp'],
+    // この系に空間は無い。相手のいる系なので「広さ」は**片側の集団の大きさ**にあたる。
+    // 形質の長さ L は 32bit の語に収める都合で 31 が上限なので、こちらは動かさない。
+    // 対戦は全ペアなので手間は N^2 で増える——2 倍は目に見えて重くなる。
+    resize: function (scale) {
+      popScale = scale;
+      reset();
+      Harness.say('片側 ' + W.N + ' 個体にした（対戦は全ペアなので手間は 2 乗で増える）');
+    },
+  });
+})();
+</script>
+</body>
+</html>

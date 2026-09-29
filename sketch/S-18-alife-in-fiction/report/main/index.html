@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SF に現れる人工生命の系譜（文献・考察のスケッチ） — 人工生命スケッチ</title><link rel="stylesheet" href="../../../../assets/style.css"></head><body class="sketchpage"><nav class="crumbs"><a href="../../../../index.html">人工生命スケッチ</a><span class="sep">›</span><span aria-current="page">S-18 SF に現れる人工生命の系譜（文献・考察のスケッチ）</span></nav><header class="shead"><div class="sline"><span class="cid">S-18</span><h1>SF に現れる人工生命の系譜（文献・考察のスケッチ）</h1><span class="ver">v1.0.0</span><span class="kind">文献・考察</span></div><div class="tags"><span class="tag">フィクション</span><span class="tag">文献</span><span class="tag">引用検証</span><span class="tag">横断考察</span></div><div class="sacts"><button class="btn ovopen" data-go="r-main">📄 SF に現れる人工生命の系譜（文献・考察のスケッチ）</button><button class="btn ovopen" data-go="comments">💬 コメント（0）</button></div></header><div class="stagewrap"><div class="nostage">このスケッチは可視化を持たない（文献・考察）。上のレポートを開く。</div><div class="overlay" id="overlay" data-open="r-main"><div class="ovbar"><span class="ovwho" title="SF に現れる人工生命の系譜（文献・考察のスケッチ）">S-18</span><div class="ovtabs"><button class="ovtab" data-go="r-main">SF に現れる人工生命の系譜（文献・考察のスケッチ）</button><button class="ovtab" data-go="comments">💬 コメント（0）</button></div><button class="ovclose" id="ovclose" title="閉じて実行に戻る">✕</button></div><div class="ovbody"><section class="pane" data-pane="r-main" hidden><div class="rmeta"><span class="angle">主レポート（最初の切り口）</span></div><details class="rtoc"><summary>目次</summary><a href="#一行で言うと">一行で言うと</a><a href="#1-なぜフィクションを見るか-13本との接続">1. なぜフィクションを見るか（13本との接続）</a><a href="#2-系譜-時系列-網羅は目指さない">2. 系譜（時系列。網羅は目指さない）</a><a href="#3-それが生きていると誰が決めるのか-を扱った作品">3. 「それが生きていると誰が決めるのか」を扱った作品</a><a href="#4-フィクションが先取りし-本サブプロジェクトがまだ実装していない問い-本稿の中心">4. フィクションが先取りし、本サブプロジェクトがまだ実装していない問い（<strong>本稿の中心</strong>）</a><a href="#5-本サブプロジェクトへの含意-候補として挙げるだけ-要件化しない">5. 本サブプロジェクトへの含意（候補として挙げるだけ。要件化しない）</a><a href="#6-限界-この考察が言えないこと">6. 限界（この考察が言えないこと）</a></details><article class="md"><h1 id="s-18-sf-に現れる人工生命の系譜-文献-考察のスケッチ">S-18: SF に現れる人工生命の系譜（文献・考察のスケッチ）</h1>
+<ul><li><strong>実施日</strong>: 2026-09-11</li><li><strong>種別</strong>: <strong>文献・考察のスケッチ</strong>（<span class="deadlink">overview</span> の「文献・考察系も可・全体の1〜2割」に当たる2本目）。<strong>アプリは作っていない</strong></li><li><strong>材料</strong>: 一次資料に到達できた7作の本文と、二次情報にとどまる14作。一覧と到達状況は <span class="deadlink">raw/sources.md</span></li><li><strong>引用の検証</strong>: 本文が引用符に入れた 25 件は <span class="deadlink">raw/quotes.json</span> に登録してあり、<code>python3 raw/verify.py</code> が</li></ul>
+<p>出典を再取得して<strong>空白を全て除去した全文に部分文字列として実在するか</strong>を検査する。 結果は <span class="deadlink">raw/verify-output.txt</span> — <strong>25/25 OK・0 problem</strong>。 これは本サブプロジェクトが文献調査で踏んだ教訓（要約ツールが引用符の中で言い換えを生成した事例。<span class="deadlink">S-10 文献地図</span>）への対処である。 <strong>▲（二次情報のみ）の作品については引用符を使わず、要約でのみ書いた。</strong></p>
+<ul><li><strong>所要</strong>: 調査・検証・執筆で約1時間（単一セッション）</li></ul>
+<hr>
+<h2 id="一行で言うと">一行で言うと</h2>
+<p><strong>「機械は繁殖するか」という問いは von Neumann の85年前に立っており、しかもそれを立てた同じ文章の中で、 すでに「では誰が複製子なのか」という帰属の問題へ解体されていた。</strong> Butler は 1863 年に 「機械の生殖器官が発達するまで、機械は種の存続そのものを人間に依存している」と書き、1872 年には 「<strong>マルハナバチはクローバーの生殖系の一部である</strong>」という反論を自分で用意して、 「ならば我々も機械の生殖系の一部ではないのか」と返している。 <strong>本サブプロジェクトは S-05 でこの量をすでに測っている</strong>——「自分のブロックの外から取得された複写命令の割合」—— のに、<strong>帰属の規則そのものを振ったことは一度もない</strong>。これは <span class="deadlink">S-10</span> の言う 「作り直しのノブ」の未検査の一次元である。 そして観測の側では、<strong>海野十三が 1931 年に、会話では見破られなかった偽ロボットが「疲れた」という 資源の側路で露見した実例</strong>を書き残している——<strong>判定を決めたのは、その系が芸を見せるために設計されたチャネルではなかった。</strong></p>
+<hr>
+<h2 id="1-なぜフィクションを見るか-13本との接続">1. なぜフィクションを見るか（13本との接続）</h2>
+<p>本サブプロジェクトの 13 本は題材が毎回違うのに、繰り返し同じところで詰まった。 <span class="deadlink">status</span> の言葉では「<strong>繰り返し出てくるのは観測器の設計の問題</strong>」である。 S-10 はそれを4分野の既存の名前（MAUP・multiverse analysis・neutral shadow・construct validity）に対応づけた。</p>
+<p><strong>それでも埋まっていない穴が2つある</strong>:</p>
+<ol><li><strong>既存の名前はどれも「測り方の恣意性」の側にある。</strong> 「何を生命と呼ぶか」という</li></ol>
+<p><strong>語彙そのものの選択</strong>には、学術側の文献地図は名前を与えていない（S-10 の「本稿が文献の中に見つけられなかったもの」）</p>
+<ol><li><strong>本サブプロジェクトの検出器は、すべて機能に鍵をかけている。</strong> 自己維持・伝播・複製・恒常性——</li></ol>
+<p>どれも「何かをしている」ことを測る。<strong>機能を持たない性質は、この設計では原理的に見えない</strong></p>
+<p>フィクションはこの2つに正面から触れる。<strong>作品は観測器を書くことができないので、代わりに 「誰が判定するのか」を書く</strong>。判定者・判定の根拠・判定の帰結が物語になる。 これは観測器の設計を<strong>外側から</strong>照らす——本サブプロジェクトが自分の検出器の中を見ているのに対し、 フィクションは検出器を持つ人間の立場を見ている。</p>
+<p><strong>ただし本稿は作品紹介にしない。</strong> 13 本が到達した論点に接続できるものだけを拾い、 <strong>接続できないものは網羅性を捨てて落とした</strong>。落としたものの一部は最後の「限界」に書いた。</p>
+<hr>
+<h2 id="2-系譜-時系列-網羅は目指さない">2. 系譜（時系列。網羅は目指さない）</h2>
+<h3 id="1863-1872-samuel-butler-判定基準を立てた同じ文で-それを帰属の問題へ解体した">1863 / 1872 — Samuel Butler: 判定基準を立てた同じ文で、それを帰属の問題へ解体した</h3>
+<p>Butler は 1863 年 6 月 13 日、ニュージーランドの新聞 *Press* への投書（署名 Cellarius）で、 機械が独立した「界」であり進化しつつあると論じた。ここに3つの主張が同時に入っている。</p>
+<p><strong>(a) 判定基準は繁殖である</strong>:</p>
+<blockquote>until the reproductive organs of the machines have been developed in a manner which we are hardly yet able to conceive, they are entirely dependent upon man for even the continuance of their species</blockquote>
+<p><strong>(b) しかし機械はすでに機械を作っている</strong>——つまり基準は最初から満たされかけている:</p>
+<blockquote>machinery is even at this present time employed in begetting machinery, in becoming the parent of machines often after its own kind</blockquote>
+<p><strong>(c) 進化の向きは小型化である</strong>:</p>
+<blockquote>a diminution in the size of machines has often attended their development and progress</blockquote>
+<p>そして、しばしば引かれる一文:</p>
+<blockquote>we are ourselves creating our own successors</blockquote>
+<p>**1872 年の *Erewhon* 第 XXIII〜XXV 章「機械の書」で、(a) と (b) の緊張が正面から扱われる。** 反論——「機械には生殖系が無い」——に対する Butler の応答が、本サブプロジェクトに直接効く:</p>
+<blockquote>The humble bee is a part of the reproductive system of the clover.</blockquote>
+<blockquote>These little creatures are part of our own reproductive system; then why not we part of that of the machines?</blockquote>
+<p><strong>さらに「機械は同種を再生産しない（指ぬきは指ぬきを作らない）」という反論に対して</strong>:</p>
+<blockquote>Very few creatures reproduce after their own kind; they reproduce something which has the potentiality of becoming that which their parents were.</blockquote>
+<p>そして個体化そのものへ:</p>
+<blockquote>We are misled by considering any complicated machine as a single thing; in truth it is a city or society, each member of which was bred truly after its kind.</blockquote>
+<blockquote>the bare fact that no vapour-engine was ever made entirely by another, or two others, of its own kind, is not sufficient to warrant us in saying that vapour-engines have no reproductive system</blockquote>
+<p><strong>von Neumann が自己複製オートマトンを論じた Hixon Symposium の講演は 1948 年 9 月 20 日</strong> （公刊 1951、*Theory of Self-Reproducing Automata* は Burks 編で 1966）。 <strong>Butler の投書はその 85 年前</strong>である。</p>
+<p>先取りされていたのは「自己複製する機械がありうる」という発想ではない——それは von Neumann の功績が <strong>構成可能性の証明</strong>にあるので、比べる対象が違う。先取りされていたのは<strong>観測の側</strong>である:</p>
+<div class="tw"><table><thead><tr><th>Butler が 1863/1872 に立てた問い</th><th>本サブプロジェクトでの現れ</th></tr></thead><tbody><tr><td>複製の担い手が実体の外にあるとき、複製子はどれか</td><td><strong>S-05</strong>: 複写命令を自分の外から取ってくる借用体。祖先の1点変異 1829 通りのうち 291 通りが借用体になった</td></tr><tr><td>情報が保たれていることと、自分を作る機構を持つことは同じか</td><td><strong>S-04</strong>: 槽を占めていた最頻配列は<strong>自分では自分を複製できず</strong>、変異複製子に写してもらっていた</td></tr><tr><td>複雑な機械を「1つのもの」と見るのは誤りではないか</td><td><strong>S-10</strong>: 「記述の層」が作り直しのノブであること。S-05 の個体化が基層から与えられていたこと</td></tr></tbody></table></div>
+<p><strong>S-05 と S-04 は Butler の反論が指す事実をすでに観測している。</strong> 測っていないのは「では誰が複製子か」を決める<strong>規則のほう</strong>である（第6節の候補1）。</p>
+<h3 id="1920-karel-apek-r-u-r-機構が失われた後-判定が行動へ移る">1920 — Karel Čapek, *R.U.R.*: 機構が失われた後、判定が行動へ移る</h3>
+<p>*R.U.R.* の最終幕で、ロボットは人類を滅ぼした後に自分たちが増えられないことに直面する:</p>
+<blockquote>Teach us to multiply or we perish.</blockquote>
+<blockquote>You made us sterile. We cannot beget children. Therefore, teach us how to make Robots.</blockquote>
+<p>製法（Rossum の手記）は焼かれており、最後の人間 Alquist は化学の側から生命を作れない。 <strong>そこで作品は判定の根拠を機構から行動へ移す。</strong> Alquist は2体のロボットの一方を解剖すると宣言する:</p>
+<blockquote>I wish to experiment on her.</blockquote>
+<p>もう一方が自分を差し出し、両者が互いに譲らない。Alquist の得た答えは:</p>
+<blockquote>We--we--belong to each other.</blockquote>
+<p>そして彼は二人を「Adam--Eve」と呼んで幕になる。</p>
+<p><strong>本サブプロジェクトの語彙で言うと、これは次の性質を持つ判定である</strong>:</p>
+<ul><li><strong>秩序変数</strong>: 一方を脅かしたときのもう一方の応答</li><li><strong>レプリケート数</strong>: 1</li><li><strong>負コントロール</strong>: <strong>無い</strong>。Alquist はこの刺激を、生きていないと考えるロボットに当てていない</li><li><strong>事前登録</strong>: 無い。刺激は、答えが出そうにないと分かった後に考案されている</li></ul>
+<p><strong>これは欠点の指摘ではなく、構造の一致である。</strong> 機構レベルの秩序変数が使えないとき、 観測者は行動レベルへ落ちる。本サブプロジェクトも同じ手を打っている——そして <strong>S-09 が、その手が外れうることを実測した</strong>: 整列度 1.00（古典的な尺度では完璧な群れ）でありながら、 1個体の擾乱が誰にも伝わらない系を作れる。<strong>見た目の群れらしさと、群れの中を情報が伝わることは別だった。</strong> Alquist の N=1 の行動テストは、S-09 が壊した種類のテストである。</p>
+<h3 id="1931-1949-海野十三-行動チャネルは通過し-資源の側路が落とした">1931 / 1949 — 海野十三: 行動チャネルは通過し、資源の側路が落とした</h3>
+<p>海野十三は 1931 年、雑誌「新青年」に「人造物語」というエッセイを書いている。 <strong>本稿が見つけた最も価値のある一次資料はこれである。</strong> 2つの場面が入っている。</p>
+<p><strong>場面1: 案山子と雀。</strong></p>
+<blockquote>早くも、それが人造人間であることを看破し、その後は案山子の上に糞をしかけるという仇討まで、やらかした。</blockquote>
+<p>案山子は「おれはお人間さまだぞ」と威張り、雀は鳴子（海野は「トーキー式演出」と書く）に2、3度は驚くが、 やがて見破って、以後は報復する。<strong>判定者が人間ではない</strong>——雀が判定し、雀の判定が繰り返しによって更新される。</p>
+<p><strong>場面2: 松坂屋の 1999 年展のロボット。</strong> 海野はそれが何を聞かれても即座に答えたと書いたうえで、種明かしをする:</p>
+<blockquote>カーテンのうしろに若い男が居て、有線電話式にロボットの代りにきいたり、喋ったりしていたのである。</blockquote>
+<p><strong>では海野はどこで気付いたのか。会話の中身ではなかった</strong>:</p>
+<blockquote>ロボット先生は一日喋りつづけたので、すっかりへたばってしまったのだそうで、無限精力のはずのロボットが、へたばるなんて、面白いなと大笑いをしたことであった。</blockquote>
+<p><strong>これは本サブプロジェクトが繰り返し踏んできた問題の、1931 年の実例である。</strong> 会話という「その系が芸を見せるために設計されたチャネル」では偽物が通り、 <strong>保存されるべき量</strong>——機械なら尽きないはずの稼働——の側路で落ちた。</p>
+<p>対応するのは <span class="deadlink">K-14</span>（負コントロールは複数用意する）と <span class="deadlink">K-27</span>（検出器を特異にするとノブ依存も同時に消えた）である。 S-14 では反復（A）と並進（B）の連言が帰無過程を 144 通り中 66〜89 通りで通し、 「A が W 歩にわたって途切れず成立し続ける」という<strong>第三の項</strong>を足して初めて 1,440 組すべてが落ちた。 <strong>海野の「へたばった」は、まさにこの第三の項に当たる。</strong></p>
+<p>そして本サブプロジェクトの手順書では、<strong>保存則は selftest の項目として書かれている</strong>（<span class="deadlink">briefing §4</span>）—— 実装が正しいかを確かめる道具としてであって、<strong>現象を判定する検出器としてではない</strong>。 海野の逸話は、この位置づけが一段低すぎる可能性を示す（第7節）。</p>
+<p>エッセイの結びは、人類が絶滅した後の世界を描く:</p>
+<blockquote>その後に来るものは、無魂の機械ばかりが、活動を続けてゆく。</blockquote>
+<p><strong>判定者がいなくなった後も動き続ける機械</strong>という像は、本サブプロジェクトの核が 「上位概念の語彙を持たない」（briefing §3）という規約と裏表である——語彙は観測器の側にしかない。</p>
+<p>1949 年の掌編「最小人間の怪 ――人類のあとを継ぐもの――」では、人間に会った微小人間が言う:</p>
+<blockquote>自分たちは、やがて君たち現代の人類が滅亡したあとにおいて、人類に替って地球上の最高智能生物となり、地球を支配するのだと大真面目でいった。</blockquote>
+<p><strong>「人類のあとを継ぐもの」という副題は、Butler 1863 の we are ourselves creating our own successors と 同じ場所を指している</strong>（海野が Butler を読んでいたという証拠は本稿には無い）。 そして結末は観測の問題で閉じる。語り手は博物館に3つ並んでいたはずの首が2つになっていたと言い、</p>
+<blockquote>館員は、その首ははじめから二つしかなく、三つはなかったことに間違いはないと言い張るのだった。</blockquote>
+<p><strong>記録と観測者が食い違い、決着する手段が無いまま終わる。</strong></p>
+<h3 id="1961-1971-stanis-aw-lem-観測できないことのほうが結論である-二次情報">1961–1971 — Stanisław Lem: 観測できないことのほうが結論である（▲二次情報）</h3>
+<p>以下は<strong>あらすじ・解説の二次情報に基づく</strong>（<span class="deadlink">raw/sources.md</span>）。引用符は使わない。</p>
+<ul><li>***Solaris*（1961）**: 惑星を覆う海が何をしているのかを、学問（ソラリス学）が積み上げても決定できない。</li></ul>
+<p><strong>観測器が足りないのではなく、記述の語彙が無い</strong>という形の行き詰まりが主題になっている</p>
+<ul><li>***The Invincible*（1964）**: 微小な自己複製機械が群れをなす。Lem はこの過程に necroevolution</li></ul>
+<p>（非生物的な物質の進化）という語を当てたとされる。個々は知性も自己認識も持たず、 群れたときに初めて新しい振る舞いが出る。<strong>そして淘汰は複雑で意識的なものではなく、単純で頑健なものを残した</strong>とされる</p>
+<ul><li>**"Non Serviam"（1971、*A Perfect Vacuum* 所収）**: 存在しない本の書評という体裁で、</li></ul>
+<p>ソフトウェアとして実行される知性体（personoid）を作る学問 personetics を描く。 <strong>創造主は彼らの内部を完全に読めるのに、彼らが本当に感じているのかを決められない。</strong> ALife の分野が成立する 16 年前（Langton の Los Alamos workshop は 1987）に、 <strong>計算機の中の生命に対する観測者の立場</strong>が主題として書かれている</p>
+<p>Lem の(1964)の「単純なものが残る」は、<strong>測れる主張</strong>である。Butler 1863 の小型化（Q2）と同じ向きであり、 Tierra 系で複雑さが減ることは実装側でも知られている（第6節の候補4）。</p>
+<h3 id="1989-以降-判定が職務になる-二次情報">1989 以降 — 判定が職務になる（▲二次情報）</h3>
+<p>現代の作品では、「生きているか」の判定が<strong>誰かの仕事</strong>になる。これが本サブプロジェクトに最も近い形である。</p>
+<ul><li><strong>士郎正宗『攻殻機動隊』（1989–91）／押井守の劇場版（1995）</strong>: 外務省が作ったプログラムが</li></ul>
+<p>自らを生命体と称し、亡命を求める。<strong>判定は技術的な検査ではなく、制度（亡命を認めるか）として現れる</strong></p>
+<ul><li><strong>Greg Egan "Wang's Carpets"（1995）</strong>: 海の巨大な生物の表面の模様が Wang タイルの敷き詰めになっており、</li></ul>
+<p>それが計算として 16 次元の宇宙とその中の知性を走らせている。<strong>同じ物体が、どの記述の層で見るかによって 「単純な生物」にも「宇宙を走らせている計算機」にもなる</strong></p>
+<ul><li>**Peter Watts *Blindsight*（2006）**（✅一次資料）: 次節で扱う</li><li><strong>円城塔「バナナ剥きには最適の日々」（2012）</strong>: 宇宙人か否かを判別することだけが職務の無人探査機が、</li></ul>
+<p>判別が可能か、自分の観測は妄想ではないかと考えるに至る。<strong>検出器が自分の特異性を疑う話</strong>である</p>
+<ul><li><strong>森博嗣 Wシリーズ（2015–）</strong>: 人工細胞の生命体ウォーカロンと人間を識別する研究が物語の発端になる。</li></ul>
+<p><strong>識別法そのものが利害の対象になる</strong>——検出器を持つことが力である</p>
+<ul><li>**Charles Stross *Accelerando*（2005）**（✅一次資料）: 次節で扱う</li></ul>
+<hr>
+<h2 id="3-それが生きていると誰が決めるのか-を扱った作品">3. 「それが生きていると誰が決めるのか」を扱った作品</h2>
+<p>問いを3つに割ると、作品の並びが本サブプロジェクトの構造に対応する。</p>
+<div class="tw"><table><thead><tr><th></th><th>誰が判定するか</th><th>何に鍵をかけるか</th><th>負コントロールはあるか</th></tr></thead><tbody><tr><td>*R.U.R.*（1920）</td><td>最後の人間 Alquist</td><td>脅威への行動応答</td><td><strong>無い</strong>（N=1）</td></tr><tr><td>「人造物語」案山子（1931）</td><td><strong>雀</strong></td><td>反復経験（鳴子が続かない）</td><td><strong>ある</strong>（本物の人間と比べている）</td></tr><tr><td>「人造物語」松坂屋（1931）</td><td>エッセイの書き手</td><td><strong>会話ではなく稼働の持続</strong></td><td>暗黙にある（機械は疲れないはず）</td></tr><tr><td>*Solaris*（1961）▲</td><td>学問共同体</td><td>決まらない</td><td>—</td></tr><tr><td>"Non Serviam"（1971）▲</td><td><strong>創造主</strong>（内部を全部読める）</td><td>決まらない</td><td>—</td></tr><tr><td>『攻殻機動隊』（1989–）▲</td><td>制度（亡命の可否）</td><td>自称と交渉能力</td><td>無い</td></tr><tr><td>"Wang's Carpets"（1995）▲</td><td>探査者</td><td><strong>記述の層</strong></td><td>—</td></tr><tr><td>*Blindsight*（2006）</td><td>乗員／読者</td><td>行動と内部機構の乖離</td><td><strong>作品自体が負コントロール</strong>（後述）</td></tr><tr><td>「バナナ剥きには最適の日々」（2012）▲</td><td><strong>検出器自身</strong></td><td>決まらない</td><td>—</td></tr><tr><td>Wシリーズ（2015–）▲</td><td>研究者（狙われる）</td><td>識別法（作中の中心的な秘密）</td><td>—</td></tr></tbody></table></div>
+<p><strong>3つの型に分かれる。</strong></p>
+<p><strong>型1: 判定者が外にいて、行動に鍵をかける</strong>（*R.U.R.*・『攻殻機動隊』）。 これは本サブプロジェクトが最もよく使う形であり、S-09 がその脆さを実測した形でもある。</p>
+<p><strong>型2: 判定者が内部を全部読めてもなお決まらない</strong>（"Non Serviam"）。 <strong>本サブプロジェクトはこの状況に常にいる</strong>——<code>core.js</code> の状態は全部読める。それでも S-03 では「自己維持」の二通りの定義が <strong>13 件と 131 件、重なり 0 件</strong>という互いに素な答えを返した（<span class="deadlink">K-15</span>）。 <strong>内部を全部読めることは、定義を1つに決めることの役に立たない。</strong></p>
+<p><strong>型3: 判定者が自分の特異性を疑う</strong>（「バナナ剥きには最適の日々」）。 これは S-14 で実際に起きたことである——「判定の側が系より難しかった」。</p>
+<h3 id="blindsight-が言っていること-一次資料">*Blindsight* が言っていること（✅一次資料）</h3>
+<p>Watts は Chinese Room を作中で明示的に持ち出し、登場人物にこう説明させる:</p>
+<blockquote>you can use basic pattern-matching algorithms to participate in a conversation without having any idea what you're saying</blockquote>
+<p>そして異星の構造物 Rorschach に「お前たちは我々をただの Chinese Room だと思っているな」と言わせる。 <strong>作品全体が、行動と内部機構が乖離しうるという前提の上に組まれている</strong>—— 知的だが意識を持たない存在がありうる、という仮定である。Watts は巻末の Notes and References で、 本作が思考実験であることを明記している （原文は *Blindsight* を主語に置いた一文で、以下はその述部にあたる）:</p>
+<blockquote>is a thought experiment, a game of Just suppose and What if</blockquote>
+<p><strong>ここが本サブプロジェクトの方法の境界に触れる。</strong> Watts の議論の芯は「意識には<strong>代謝的な費用</strong>があるのに、機能上の見返りが無いのではないか」である。 反転させると: <strong>機能を持たない性質は、機能に鍵をかけた検出器では原理的に検出できない。</strong> 本サブプロジェクトの検出器はすべて機能に鍵をかけている——自己維持（S-03）・伝播（S-09）・ 複製（S-04/S-05）・恒常性（S-07）・秩序の出現（S-14）。 <strong>したがって本サブプロジェクトには、原理的に見えない性質の類がある。</strong> これは欠陥ではなく、 <strong>方法の適用範囲</strong>である（第8節）。</p>
+<p>なお Watts は観測者の側についても一文を置いている:</p>
+<blockquote>Every tool in the shed goes dull and rusty the moment you get entangled with the system you're observing.</blockquote>
+<h3 id="accelerando-が言っていること-一次資料">*Accelerando* が言っていること（✅一次資料）</h3>
+<p>Stross の描く銀河のネットワークは、到着してみると文明ではない。</p>
+<blockquote>The main life-form is an incredibly ornate corporate ecosphere, legal instruments breeding and replicating. They mug passing sapients and use them as currency.</blockquote>
+<blockquote>there ain't nobody home anymore except the self-propelled corporations and hitchhikers like the Wunch</blockquote>
+<p>冒頭でも、分割されたソフトウェア企業が法務手続きを自動化して子会社を産み続ける様子を、こう書いている:</p>
+<blockquote>exchanging title in a bizarre parody of bacterial plasmid exchange</blockquote>
+<p><strong>ここで先取りされているのは、基層の選び方である。</strong> 複製子は生物でも機械でもなく<strong>契約</strong>であり、外から見ると文明の信号と区別がつかない。 本サブプロジェクトの規約は「核は上位概念の語彙を持たない」（cell / organism / fitness を識別子に使わない）だが、 <strong>Accelerando が突いているのは観測器の側の語彙</strong>である——観測器が「契約」という基層を知らなければ、 そこで起きている複製は数えられない。S-10 の「記述の層」の、<strong>層の候補集合そのものが有限である</strong>という制約に当たる。</p>
+<hr>
+<h2 id="4-フィクションが先取りし-本サブプロジェクトがまだ実装していない問い-本稿の中心">4. フィクションが先取りし、本サブプロジェクトがまだ実装していない問い（<strong>本稿の中心</strong>）</h2>
+<p><strong>backlog へそのまま足せる粒度</strong>で書く。各候補に<strong>秩序変数・そのスケール・閾値</strong>の3つ組（<span class="deadlink">K-9</span>）の たたき台と、<strong>正/負コントロール</strong>を付けた。<strong>採否は親またはユーザが決める</strong>（本稿は backlog.md を編集していない）。</p>
+<h3 id="候補1-最推奨-複製の帰属-誰が複製子か-を決める規則を掃引する">候補1（最推奨）: 複製の帰属 — 「誰が複製子か」を決める規則を掃引する</h3>
+<p><strong>出典</strong>: Samuel Butler, "Darwin among the Machines"（1863）と *Erewhon* Ch. XXIII–XXV（1872）。 マルハナバチはクローバーの生殖系の一部か、という Butler 自身の反論。</p>
+<p><strong>題材</strong>: 実体（entity）が<strong>自分を写す機構を持たない</strong>系を作る。写しは別の集団（媒介者）が行い、 媒介者もまた実体が無ければ増えない。<strong>どちらも単独では増えず、対としては増える。</strong></p>
+<p><strong>問い</strong>: 「自己複製子はどれか」を決める<strong>帰属規則</strong>を<strong>事前に複数登録</strong>し、同じ1本の生ログに対して それぞれが返す複製子の集合がどれだけ食い違うかを測る。候補となる規則:</p>
+<div class="tw"><table><thead><tr><th>規則</th><th>定義</th></tr></thead><tbody><tr><td><strong>R1 実行者</strong></td><td>複写という操作を実際に実行した主体</td></tr><tr><td><strong>R2 保持者</strong></td><td>写された情報を保持している主体</td></tr><tr><td><strong>R3 介入</strong></td><td>取り除くと複製が止まる主体（ノックアウト基準）</td></tr><tr><td><strong>R4 閉包</strong></td><td>系を分割したとき、増殖が閉じる<strong>最小</strong>の部分集合</td></tr></tbody></table></div>
+<p><strong>秩序変数</strong>: 4規則が返す複製子集合どうしの Jaccard 一致度（<strong>帰無値 1.0 を持つ</strong>—— 規則の選択が効かないなら全ペアで 1.0）。<strong>スケール</strong>: 世代窓（10/50/200 世代）と、 集合を取る粒度（個体／型）。<strong>閾値</strong>: 事前登録した最小一致度。</p>
+<p><strong>正コントロール</strong>: 媒介者を必要としない古典的な自己複製子。ここでは<strong>4規則が一致するはず</strong> （<span class="deadlink">K-18</span> の言う、実装の外から来る恒等式に近い）。 <strong>負コントロール2種</strong>: ①写しが一切起きない系 ②<strong>写しは起きるが情報が保存されない系</strong>（写しがノイズ）。</p>
+<p><strong>なぜこれか</strong>: <strong>未検査の次元</strong>である。S-05 は「自分のブロックの外から取得された複写命令の割合」を測り、 S-04 は「情報は集団に保たれているが自分を作る機構は無い」配列を観測した。 <strong>両方とも帰属の問題に触れていながら、帰属規則を1つしか使っていない。</strong> そして S-10 の分類では、帰属規則は「切り方」ではなく「作り直し」のノブ—— <strong>分布の隙間では守れない側</strong>にある。Butler の反論が正しければ、R1/R4 は媒介者を複製系に含め、 R2 は含めない。<strong>「複製が起きたか」ではなく「誰が複製したか」でだけ答えが割れるはずで、それが予測になる。</strong></p>
+<p><strong>実装の見通し</strong>: 実体＝ビット列、媒介者＝写し手の2集団を持つ素の JS。空間も化学も要らない。 可視化は2集団の系譜を色分けして流すだけで進行が見える。</p>
+<h3 id="候補2-記述の層を先に作る-生命が1つの層にしか見えない基層">候補2: 記述の層を先に作る — 生命が1つの層にしか見えない基層</h3>
+<p><strong>出典</strong>: Greg Egan "Wang's Carpets"（1995）▲二次情報。Lem *Solaris*（1961）▲二次情報。</p>
+<p><strong>題材</strong>: <strong>層0の局所規則だけを書き</strong>、その上で層1の力学が走るように<strong>設計してから</strong>、 既作スケッチの検出器群を層0・層1・層2（粗視化の粗視化）に当てる。 層0では統計的にただの一様な模様に見え、層1で初めて自己維持するパターンが現れる基層を作る。</p>
+<p><strong>問い</strong>: <strong>同じ1本の生ログに対して、判定が層でどう動くか。</strong> S-04 は事後に記述の層を振ったが（S-10 が走らせた）、<strong>層を作る側から事前登録した例は無い。</strong></p>
+<p><strong>秩序変数</strong>: 各層での「自己維持パターンの個数」と、層間での判定の一致。 <strong>スケール</strong>: 粗視化のブロックサイズ（2×2/4×4/8×8）と時間の間引き（1/4/16 ステップ）。 <strong>閾値</strong>: 事前登録。<strong>「層1でのみ発火し、層0と層2では発火しない」を事前に宣言してから走らせる。</strong></p>
+<p><strong>正コントロール</strong>: 層1に手で置いた既知の自己維持パターン。 <strong>負コントロール2種</strong>: ①上位層に何も埋め込んでいない基層で、<strong>層0の統計を本物と揃えたもの</strong> （<span class="deadlink">K-17</span> が警告する「壊したつもりで壊れていない対照」を避けるため、統計を揃えることが要点） ②層1に構造はあるが自己維持しないもの。</p>
+<p><strong>なぜこれか</strong>: S-10 の中心の主張——<strong>作り直しのノブは分布の隙間では守れない</strong>——の、 <strong>設計側からの検証</strong>になる。層を作った当人が「どの層で見えるか」を事前に宣言できるなら、 記述の層は恣意的ではなく<strong>系の性質</strong>である（<span class="deadlink">K-19</span> の論法）。宣言できないなら、恣意的である。 <strong>どちらに転んでも結論が出る。</strong></p>
+<h3 id="候補3-代理データを負コントロールの生成器にする">候補3: 代理データを負コントロールの生成器にする</h3>
+<p><strong>出典</strong>: 海野十三「人造物語」（1931、✅一次資料）の松坂屋のロボット。 Peter Watts *Blindsight*（2006、✅一次資料）の Chinese Room。森博嗣 Wシリーズ（2015–）▲二次情報。</p>
+<p><strong>題材</strong>: 既作スケッチの生ログから、<strong>出力の時系列だけを再現して機構を持たない代理</strong>を機械的に作る （位相のランダム化、マルコフ表、順序の入れ替え）。<strong>本物と代理を、既作の検出器群に同じ手続きで当てる。</strong></p>
+<p><strong>問い</strong>: <strong>どの検出器が、機構を持つ本物と、出力だけ同じ偽物を分けるか。</strong> これは「負コントロールを複数用意せよ」（<span class="deadlink">K-14</span>）の先にある、 <strong>負コントロールの一般的な生成器</strong>である。K-17（対照そのものが対照になっていない）への構造的な答えでもある。</p>
+<p><strong>秩序変数</strong>: 検出器ごとの、本物と代理の分離（分布の重なり／AUC 相当）。 <strong>帰無値を持つ</strong>——分離しない検出器は 0.5 を返す。<strong>スケール</strong>: 代理の作り方3種 × 時系列の長さ。 <strong>閾値</strong>: 事前登録した最小分離。</p>
+<p><strong>正コントロール</strong>: 明らかに機構に依存する量（例: S-05 の「外部から取得された複写命令の割合」—— 誤り率 0 の系では<strong>定義から厳密に 0</strong> になる）。 <strong>負コントロール</strong>: 代理を代理と比べる（0.5 が出るはず）。</p>
+<p><strong>なぜこれか</strong>: 海野の逸話が示すのは、<strong>判定を決めたのは会話ではなく「疲れた」という資源の側路</strong>だった、ということである。 本サブプロジェクトの手順では<strong>保存則は selftest の項目</strong>であって検出器ではない（<span class="deadlink">briefing §4</span>）。 この候補は<strong>保存量を検出器の側へ昇格させたらどうなるか</strong>を実測する。 S-06・S-09・S-13・S-14 がそろって「特異なのは連言だけ」と報告しているので、 <strong>連言の第三項を保存量から取れるかどうか</strong>が具体的な問いになる。</p>
+<p><strong>実装の見通し</strong>: 位相ランダム化には FFT が要るが、radix-2 の自前実装は依存ゼロで 100 行に収まる。 既作の生ログを読むだけなので新しいシミュレータは不要。<strong>ただし他のスケッチのファイルは読むだけにすること</strong>（S-10 の先例）。</p>
+<h3 id="候補4-小さめ-進化は小型化-単純化へ向かうか">候補4（小さめ）: 進化は小型化・単純化へ向かうか</h3>
+<p><strong>出典</strong>: Butler 1863（✅一次資料。Q2）と Lem *The Invincible*（1964）▲二次情報の necroevolution。</p>
+<p><strong>題材</strong>: S-05（Tierra 風）に、複雑さの秩序変数（実効命令長・分岐数・借用度）を足して、 <strong>時間に対して単調に減るか、どこで止まるか</strong>を測る。Butler は 1863 年に小型化を、 Lem は 1964 年に単純で頑健なものが残ることを書いており、<strong>Tierra 系で祖先より短い個体が優勢になることは実装側でも知られている</strong>。</p>
+<p><strong>秩序変数</strong>: 実効命令長の中央値ではなく<strong>分布</strong>（<span class="deadlink">K-3</span>）。 <strong>スケール</strong>: 走行長（S-12 が扱っている次元なので、<strong>S-12 の結果を見てから決める</strong>）。 <strong>閾値</strong>: 単調減少が止まる点の事前登録。</p>
+<p><strong>なぜ小さめか</strong>: S-05 の再訪であり系統が近い。候補1〜3 を先に置く。</p>
+<h3 id="backlog-へ貼れる形">backlog へ貼れる形</h3>
+<div class="tw"><table><thead><tr><th>#</th><th>題材</th><th>種別</th><th>なぜこれか</th><th>状態</th></tr></thead><tbody><tr><td>20</td><td><strong>複製の帰属</strong>（誰が複製子かを決める規則を掃引する）</td><td>実装</td><td><strong>未検査の次元</strong>。Butler 1863/1872 が von Neumann の85年前に立てた問い。S-05・S-04 が事実は観測しているのに帰属規則を1つしか使っていない。4規則の一致度は帰無値 1.0 を持つ</td><td>未着手</td></tr><tr><td>21</td><td><strong>記述の層を先に作る</strong>（生命が1つの層にしか見えない基層）</td><td>実装</td><td>S-10 の「作り直しのノブ」を設計側から検証する。層を作った当人が発火する層を事前宣言できるかで、恣意性か構造かが決まる（K-19 の論法）</td><td>未着手</td></tr><tr><td>22</td><td><strong>代理データを負コントロールの生成器にする</strong></td><td>実装</td><td>K-14/K-17 の先にある一般的な対照の作り方。<strong>保存量を検出器へ昇格させる</strong>と連言の第三項になるか。海野十三 1931 の実例が原型</td><td>未着手</td></tr><tr><td>23</td><td><strong>進化は小型化・単純化へ向かうか</strong>（S-05 の再訪）</td><td>実装</td><td>Butler 1863 と Lem 1964 が同じ向きを予言している。複雑さを分布で報告する</td><td>未着手</td></tr></tbody></table></div>
+<hr>
+<h2 id="5-本サブプロジェクトへの含意-候補として挙げるだけ-要件化しない">5. 本サブプロジェクトへの含意（候補として挙げるだけ。要件化しない）</h2>
+<ol><li><strong>保存量は selftest の項目であると同時に、検出器の候補でもある</strong>（海野 1931）。</li></ol>
+<p>briefing §4 では「保存則」は実装の検算に置かれている。海野の逸話は、<strong>偽物を落としたのが まさにその保存量だった</strong>ことを示す。S-14 の「第三の項」を保存量から取れるかは実測できる</p>
+<ol><li><strong>本サブプロジェクトの検出器はすべて機能に鍵をかけている</strong>（*Blindsight*）。</li></ol>
+<p>これは方法の適用範囲の宣言であって、直すべき欠陥ではない。<strong>method.md の弱点の節に一行置く価値がある</strong></p>
+<ol><li><strong>観測器の語彙の有限性</strong>（*Accelerando*）。核から上位概念の語彙を追放する規約はあるが、</li></ol>
+<p><strong>観測器がどの基層を知っているかには規約が無い</strong>。層の候補集合を <code>criteria.json</code> に書けるか</p>
+<ol><li><strong>内部を全部読めることは、定義を1つに決めることの役に立たない</strong>（"Non Serviam"／S-03 の K-15 と同型）</li></ol>
+<p><strong>本家 <span class="deadlink">artificial-life</span> への含意</strong>: 候補1（複製の帰属）は 本家の「どの自由度がどの生命的性質を初めて可能にするか」という問いの<strong>直前</strong>にある問題に当たる—— <strong>性質が「誰に」帰属するかが決まらなければ、可能にしたかどうかも決まらない</strong>。 ただし<strong>候補として挙げるだけで、要件化はしない</strong>（overview の知見の扱いに従う）。</p>
+<hr>
+<h2 id="6-限界-この考察が言えないこと">6. 限界（この考察が言えないこと）</h2>
+<h3 id="材料の限界">材料の限界</h3>
+<ul><li><strong>一次資料に到達できたのは7作だけ</strong>である。うち日本語は<strong>海野十三の2編のみ</strong>——</li></ul>
+<p>青空文庫の範囲（パブリックドメイン）に収まるものしか本文を読めなかった。 <strong>現代の日本語作品（円城塔・伊藤計劃・森博嗣・長谷敏司・攻殻機動隊）はすべて二次情報に基づく。</strong> これらについて本稿が書いたことは、<strong>あらすじ・解説・出版社の紹介から再構成した要約</strong>であり、 作中の実際の扱いとずれている可能性がある。引用符は一切使っていない</p>
+<ul><li><strong>Lem は一次資料にまったく到達できなかった。</strong> necroevolution も personoid も二次情報である。</li></ul>
+<p>特に「淘汰が単純なものを残した」という記述は解説記事に依存しており、<strong>Lem 自身の言葉ではない</strong></p>
+<ul><li><strong>時代・言語の偏り</strong>。英語圏とパブリックドメインの日本語に寄っている。</li></ul>
+<p>ポーランド語・チェコ語（*R.U.R.* は英訳経由）・中国語圏・韓国語圏は見ていない</p>
+<h3 id="主張の限界">主張の限界</h3>
+<ul><li><strong>「先取り」の強さを測っていない。</strong> Butler 1863 が von Neumann 1948 の 85 年前であることは</li></ul>
+<p>日付として確かだが、<strong>Butler の議論が von Neumann の問題設定に影響したという証拠は本稿に無い</strong>。 示せたのは<strong>同じ問いが立っていた</strong>ことだけで、影響関係ではない</p>
+<ul><li><strong>海野十三が Butler を読んでいたという証拠は無い。</strong> 「人類のあとを継ぐもの」と</li></ul>
+<p>we are ourselves creating our own successors の一致は、本稿では<strong>並置</strong>であって系譜ではない</p>
+<ul><li><strong>第3節の表は本稿の読み方である。</strong> 「負コントロールの有無」のような列は本サブプロジェクトの語彙を</li></ul>
+<p>作品に当てたものであり、<strong>作品がその枠組みで書かれているわけではない</strong>。 特に *R.U.R.* の Alquist を「N=1・対照なしの検出器」と読むのは、 <strong>作品を実験として読むという本稿の選択</strong>に依存する</p>
+<ul><li><strong>候補1〜4 はどれも走らせていない。</strong> 予測（「R1/R4 は媒介者を含め R2 は含めない」など）は</li></ul>
+<p><strong>紙の上の見通し</strong>であって実測ではない。実装してみて前提が成り立たないことは十分ありうる</p>
+<ul><li><strong>接続できるものだけを拾った結果、系譜としては穴だらけである。</strong> Frankenstein・</li></ul>
+<p>Forster "The Machine Stops"・Saberhagen の Berserker・Rucker の boppers・Hogan *Code of the Lifemaker*・ Bear *Blood Music*・Chiang "The Lifecycle of Software Objects"・弐瓶勉・長谷敏司・飛浩隆などは、 接続点を1つに絞れなかったため落とした。<strong>網羅性は主張しない</strong></p>
+<h3 id="種別そのものの限界">種別そのものの限界</h3>
+<ul><li><strong>本稿は動くものを作っていない。</strong> 第4節の候補はすべて<strong>他の担当者が実装するための材料</strong>であり、</li></ul>
+<p>この形の成果は「動かして確認する」という本サブプロジェクトの主軸には乗っていない。 <span class="deadlink">overview</span> の「文献・考察系は全体の1〜2割」という比の中で読まれるべきものである</p>
+<ul><li><strong>引用の検証はネットワークに依存する。</strong> <code>verify.py</code> は実行のたびに出典を取得し直す。</li></ul>
+<p>将来、出典の URL が失われれば検証は通らなくなる（Butler 1863 の nzetc 版は本稿の調査中にすでに到達できなくなっていた）</p></article><p class="src">原典: <code>docs/subprojects/alife-sketches/sketches/S-18-alife-in-fiction/reports/main.md</code></p></section><section class="pane" data-pane="comments" hidden><div class="comments" data-slug="S-18-alife-in-fiction" data-run="" data-readonly><div id="clist" class="clist">読み込み中…</div><script type="application/json" id="cdata">{"version":1,"sketch":"S-18-alife-in-fiction","comments":[]}</script></div></section></div></div></div><button class="fab" id="fab" title="メニュー" aria-label="メニュー">☰</button><div class="menu" id="menu" hidden><div class="menuhead">人工生命スケッチ</div><a href="../../../../index.html">🏠 ホーム（スケッチ一覧）</a><a href="../../../../reports/index.html">📄 レポート一覧</a></div><script src="../../../../assets/menu.js"></script><script src="../../../../assets/overlay.js"></script><script src="../../../../assets/comments-ui.js"></script></body></html>
