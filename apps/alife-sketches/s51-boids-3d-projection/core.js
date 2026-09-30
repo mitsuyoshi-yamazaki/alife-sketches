@@ -366,7 +366,14 @@
   // ================================================================== 5通りの写し方（A0〜A4）
 
   var ENC = {
-    A1_H: 6.0, A2_ZREF: 20, A2_RMIN: 1.5, A2_RMAX: 7.0, A2_BASE: 60, A2_SCALE: 195, R_BASIC: 4.0
+    A1_H: 6.0, A2_ZREF: 20, A2_RMIN: 1.5, A2_RMAX: 7.0, A2_BASE: 60, A2_SCALE: 195, R_BASIC: 4.0,
+    // A5（表示用。criteria.json の測定の腕ではない）: 透視投影の定数
+    A5_D: 90,          // 視点から重心面までの距離（world 単位）。小さいほど遠近が強い
+    A5_ZCLAMP: 45,     // |z − z̄| の頭打ち。s の特異点（z − z̄ → D）を避ける。A2 の |ζ|=1 飽和に相当する
+    // 安全柵。**当たると「大きさ:間隔」の不変が壊れる**ので、D の可動域 [60,240] 全域で当たらない幅を取る
+    // （最も強い D=60 でも s≤4.0 → r≤16）。柵は d を極端な値で直接呼ばれたときのためだけにある
+    A5_RMIN: 0.5, A5_RMAX: 40.0,
+    A5_FAR: [45, 55, 90], A5_NEAR: [255, 255, 255] // 奥＝暗い青、手前＝白（空気遠近）
   };
 
   /** 画家順（z 昇順=遠い順）に個体indexを並べる。 */
@@ -446,6 +453,53 @@
         var sh = shadeSizeOf(state.z[i], zbar, zRef);
         fillDisc(buf, CANVAS, CANVAS, uv[0], uv[1], sh.r, sh.rgb);
       }
+    }
+    return { buf: buf, w: CANVAS, h: CANVAS };
+  }
+
+  // ---------------------------------------------------------------- A5（表示用の腕）
+  // これは criteria.json に登録された測定の腕ではない。viewer.html だけが呼ぶ「見るための腕」であり、
+  // run.js の ARMS には入らない（judgement は A0〜A4 と NEG1〜3 のまま一切変わらない）。
+
+  /** 透視の縮尺 s。凡例と同じ向きで +z が手前・−z が奥。s>1 なら手前、s<1 なら奥。 */
+  function perspScaleOf(z, zbar, d) {
+    d = d == null ? ENC.A5_D : d;
+    // d <= A5_ZCLAMP だと d − dz が 0 を跨いで s が発散する。頭打ちは d にも従わせる
+    var zc = Math.min(ENC.A5_ZCLAMP, 0.75 * d);
+    var dz = Math.max(-zc, Math.min(zc, z - zbar));
+    return d / (d - dz);
+  }
+
+  /** 透視の写し。画面中心を消失点として、world 座標の**ずれ**を s 倍する。 */
+  function projectPersp(x, y, s) {
+    var c = CANVAS / 2;
+    return [c + x * PX_PER_WORLD * s, c - y * PX_PER_WORLD * s];
+  }
+
+  /** A5: 透視（遠近＋空間の縮尺）。全個体を描く。
+   *  A2 は r = r_max − (r_max − r_min)·|ζ| と **|ζ| の偶関数**なので、z̄ から等距離の手前と奥が
+   *  同じ大きさになり、色相（赤／青）でしか区別できなかった。ここでは r を z の**単調増加**にする。
+   *  ただしマークだけを縮めると、同じ3次元距離で離れた2体の「マークの大きさ : 画面上の間隔」が
+   *  奥行きによって変わってしまう。そこで**空間そのものをマークと同じ s で縮める**——
+   *  すなわち r = R_basic·s と同時に、画面座標も中心から s 倍する。これで比が奥行きによらなくなる。 */
+  function encodeA5(state, d, zRef) {
+    d = d == null ? ENC.A5_D : d;
+    zRef = zRef == null ? ENC.A2_ZREF : zRef;
+    var zbar = zbarOf(state);
+    var buf = newCanvasBuf(CANVAS, CANVAS);
+    var order = paintOrder(state); // z 昇順 = 奥から手前へ。手前が後に描かれ、奥を隠す
+    for (var k = 0; k < order.length; k++) {
+      var i = order[k];
+      var s = perspScaleOf(state.z[i], zbar, d);
+      var uv = projectPersp(state.x[i], state.y[i], s);
+      var r = Math.max(ENC.A5_RMIN, Math.min(ENC.A5_RMAX, ENC.R_BASIC * s));
+      var u01 = (Math.max(-1, Math.min(1, (state.z[i] - zbar) / zRef)) + 1) / 2; // 0=奥, 1=手前
+      var rgb = [
+        ENC.A5_FAR[0] + (ENC.A5_NEAR[0] - ENC.A5_FAR[0]) * u01,
+        ENC.A5_FAR[1] + (ENC.A5_NEAR[1] - ENC.A5_FAR[1]) * u01,
+        ENC.A5_FAR[2] + (ENC.A5_NEAR[2] - ENC.A5_FAR[2]) * u01
+      ];
+      fillDisc(buf, CANVAS, CANVAS, uv[0], uv[1], r, rgb);
     }
     return { buf: buf, w: CANVAS, h: CANVAS };
   }
@@ -550,6 +604,7 @@
     newCanvasBuf: newCanvasBuf, fillDisc: fillDisc, bufToRGBA: bufToRGBA,
     ENC: ENC, paintOrder: paintOrder, zbarOf: zbarOf, shadeSizeOf: shadeSizeOf,
     encodeA0: encodeA0, encodeA1: encodeA1, encodeA2: encodeA2, encodeA3: encodeA3, encodeA4: encodeA4,
+    encodeA5: encodeA5, perspScaleOf: perspScaleOf, projectPersp: projectPersp,
     encodeA1RandomPlane: encodeA1RandomPlane, encodeDegenerateGreen: encodeDegenerateGreen,
     makeSparseGrid3D: makeSparseGrid3D, makeSparseLine: makeSparseLine, minScreenPairDist: minScreenPairDist
   };

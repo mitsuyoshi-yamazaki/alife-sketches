@@ -1,0 +1,516 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-46 階数 ― K×K の関係表を、何次元の性質ベクトルまで削れるか</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--hot:#fbbf24;--ok:#4ade80}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0;max-width:980px}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  select{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  label b{color:var(--fg);font-variant-numeric:tabular-nums;min-width:2.6em}
+  input[type=range]{width:110px}
+  input[type=checkbox]{accent-color:var(--acc);width:15px;height:15px}
+  label.sw2{color:var(--fg);cursor:pointer}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px}
+  table{border-collapse:collapse;font-size:12px;width:100%}
+  th,td{padding:4px 9px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  td{font-variant-numeric:tabular-nums}
+  tr.cur td{background:rgba(96,165,250,.16);color:var(--fg)}
+  tr.cur td:first-child{color:var(--acc);font-weight:600}
+  .stages{display:flex;gap:14px;flex-wrap:wrap}
+  .stage{display:flex;flex-direction:column;gap:6px}
+  .stage .cap{font-size:12px;color:var(--dim)}
+  .stage .cap b{color:var(--fg)}
+  .legend{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.9}
+  .sw{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:5px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:980px}
+  footer b{color:var(--fg)}
+  .col{display:flex;flex-direction:column;gap:14px;flex:1;min-width:280px}
+  #t{display:inline-block;min-width:6ch;text-align:right;font-variant-numeric:tabular-nums}
+  .keep{color:var(--ok)}
+  .lost{color:var(--hot)}
+  @media(max-width:760px){.wrap{flex-direction:column}}
+  @media(max-width:820px){.col,.panel{min-width:0}.bar label{flex-wrap:wrap;max-width:100%}select{max-width:100%}}
+</style>
+
+<header>
+  <h1>S-46 階数 — K×K の関係表を、何次元の性質ベクトルまで削れるか</h1>
+  <p class="sub">本編（run <code>main</code>）と<b>力学はまったく同じ</b>。違うのは、同じ初期条件の世界を2つ並べ、
+    片方には<b>元の行列 G</b>を、もう片方には<b>階数 m まで落とした G<sub>m</sub></b> を渡すことだけである。
+    階数 m の行列とは「<b>各型が m 次元の性質ベクトルを持ち、力がその内積で決まる世界</b>」と同じものなので
+    （G<sub>m</sub>[a][b] = <b>a</b><sub>a</sub>·<b>b</b><sub>b</sub>）、
+    <b>どの m まで落としてもパターンが壊れないか</b>が、型ペアの関係表を性質ベクトルへ書き換えられるかの目安になる。
+    <b style="color:var(--hot)">ここで見たものは判定に使わない</b>——探索の窓であり、主張をしない実行ページである。</p>
+</header>
+
+<div class="bar">
+  <button id="run">停止</button>
+  <label title="1フレームに何歩進めるかを変える。系の時間刻み dt は変えないので、同じ step まで進めれば軌道は同じ">
+    速さ <input type="range" id="speed" min="0" max="6" step="1" value="3"><b id="speedV">×1</b>
+  </label>
+  <label title="右の世界へ渡す行列の階数。m = K なら元の行列そのもので、左右は完全に一致する">
+    階数 m <input type="range" id="m" min="1" max="6" step="1" value="2"><b id="mV">2</b>
+  </label>
+  <label class="sw2" title="階数を落とすと必ず行列のノルムが下がる。これを元の大きさへ戻すと、「階数のせい」と「力が弱くなったせい」を分けられる">
+    <input type="checkbox" id="renorm"> 強さを元に戻す
+  </label>
+  <button id="reset" title="今の設定で行列を引き直す。左右の初期条件も引き直る">行列を引き直す</button>
+  <button id="scatter" title="行列はそのまま。速度を0にして、位置だけランダムに置き直す（左右は同じ配置）">粒子を撒き直す</button>
+  <label>行列シード <b id="seedV">20260915</b></label>
+  <label>型の数K
+    <select id="k">
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="6" selected>6</option>
+      <option value="12">12</option>
+    </select>
+  </label>
+  <label>プリセット
+    <select id="preset">
+      <option value="random">乱数行列</option>
+      <option value="full">全ペア最大引力</option>
+      <option value="ionic">自己反発・他者引力</option>
+      <option value="sym">対称化</option>
+      <option value="symrand">ほぼ対称化＋数マスだけ乱数</option>
+      <option value="sparse">乱数だが 0 付近が多い（疎）</option>
+      <option value="inert">乱数＋相互作用しない型が一定数</option>
+    </select>
+  </label>
+  <label>粒子数
+    <select id="n">
+      <option value="120">120</option>
+      <option value="240" selected>240</option>
+      <option value="480">480</option>
+    </select>
+  </label>
+  <label>壁の反発
+    <select id="wall">
+      <option value="0">なし</option>
+      <option value="2" selected>2</option>
+      <option value="6">6</option>
+    </select>
+  </label>
+  <label class="sw2"><input type="checkbox" id="excl"> 体積排除</label>
+  <label>step <b id="t">0</b></label>
+  <label>歩/秒 <b id="rate">–</b></label>
+</div>
+
+<div class="wrap">
+  <div class="col" style="flex:2 1 560px">
+    <div class="panel">
+      <h2>同じ初期条件・同じ乱数・違う行列</h2>
+      <div class="stages">
+        <div class="stage">
+          <canvas id="cA" width="380" height="380"></canvas>
+          <div class="cap">左: <b>元の行列 G</b>（階数 <b id="capRank">–</b>）</div>
+        </div>
+        <div class="stage">
+          <canvas id="cB" width="380" height="380"></canvas>
+          <div class="cap">右: <b>階数 <span id="capM">2</span> の近似 G<sub>m</sub></b>
+            — 強さの保存率 <b id="capEnergy" class="keep">–</b></div>
+        </div>
+      </div>
+      <div class="legend" id="typeLegend"></div>
+    </div>
+
+    <div class="panel">
+      <h2>いま両側で測っている値（本編の観測器と同じ定義。ここでの値は判定に使わない）</h2>
+      <table>
+        <tr><th>観測量</th><th>左（元の G）</th><th>右（G<sub>m</sub>）</th></tr>
+        <tr><td>最大クラスタの粒子数</td><td id="szA">–</td><td id="szB">–</td></tr>
+        <tr><td>clusterCohesion</td><td id="ccA">–</td><td id="ccB">–</td></tr>
+        <tr><td>membraneShellIndex</td><td id="msA">–</td><td id="msB">–</td></tr>
+        <tr><td>クラスタの本数</td><td id="ncA">–</td><td id="ncB">–</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="panel">
+      <h2>階数を落としたときに何が残るか</h2>
+      <table id="steps"></table>
+      <div class="legend">
+        <b>保存率</b> = Σ<sub>k&lt;m</sub>σ<sub>k</sub>² / Σσ<sub>k</sub>²（1 に近いほど、K×K の自由度が実は m 本で足りていた）。
+        <b>非対称比</b> = ‖(G−Gᵀ)/2‖ / ‖G‖（0 なら完全に相反＝ポテンシャルが存在し、必ず不動点へ落ちる）。
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>取り出された性質ベクトル（m 次元）</h2>
+      <table id="props"></table>
+      <div class="legend">
+        <b>a</b> がその型の<b>発信する</b>もの、<b>b</b> が<b>受信する</b>もの。
+        定義から <b>G<sub>m</sub>[a][b] = a<sub>a</sub>·b<sub>b</sub></b> が厳密に成り立つ。
+        <b>a と b が違うことが非相反性</b>にあたり、a = b なら G は対称になる。
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p><b>この画面が答えようとしている一問</b>: S-46 の力は型ペアごとの独立な定数 G[a][b] で決まるので、
+    新しい型を1つ足すには既存 K 種すべてとの関係を決め直さねばならない。これを
+    「各粒子が m 次元の性質ベクトル q を持ち、世界は固定の法則 M を1枚だけ持つ」
+    （Φ(q<sub>a</sub>, q<sub>b</sub>) = q<sub>a</sub>ᵀ M q<sub>b</sub>）という形へ書き換えると、
+    粒子の追加は「q を1つ選ぶ」だけになる。ただしこの形は <b>rank(G) ≤ m</b> を課す。
+    <b>面白いと思った G が階数 2〜3 でも壊れないなら、書き換えは何も失わない。</b></p>
+  <p><b>見るときの注意</b>: この系は初期条件に敏感なので、左右の粒子が1個ずつ同じ場所に居続けることは期待できない。
+    見るべきは<b>「同じ種類の構造が出るか」</b>であって軌道の一致ではない。
+    m = K に合わせると左右は厳密に同じ行列になるので、<b>そのとき左右がどれだけ違って見えるかが「ずれの下限」</b>——
+    それより小さいずれは階数のせいではない。</p>
+  <p><b>本編で保存したパラメータを持ち込める</b>（<code>accepts: ["main@1.3", "main@1.2", "explore@1.0"]</code>）。
+    逆にこの画面の設定を本編へ入れることはできない。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="explore.js"></script>
+<script src="rank.js"></script>
+<script>
+(function () {
+  'use strict';
+  function $(id) { return document.getElementById(id); }
+
+  var cvA = $('cA'), cxA = cvA.getContext('2d');
+  var cvB = $('cB'), cxB = cvB.getContext('2d');
+
+  var K = 6, N = 240, L = 100, seed = 20260915, preset = 'random';
+  var wallStrength = 2, wallMargin = 10, excludeOverlap = false, particleRadius = 0.5;
+  var m = 2, renorm = false;
+  var G = null, analysis = null;
+  var worldA = null, worldB = null;
+  var running = true;
+  var speedIdx = S46X.DEFAULT_SPEED_INDEX, baseSteps = 8, stepCarry = 0, msPerStep = 0;
+  var BUDGET_MS = 13, rateAt = 0, rateSteps = 0, statAt = 0;
+
+  var TYPE_COLORS = ['#60a5fa', '#f87171', '#4ade80', '#fbbf24', '#c084fc', '#22d3ee',
+    '#fb923c', '#a3e635', '#f472b6', '#38bdf8', '#e879f9', '#facc15'];
+  function colorOf(t) { return TYPE_COLORS[t % TYPE_COLORS.length]; }
+
+  // ------------------------------------------------------------- 行列と世界
+
+  function buildMatrix() {
+    if (preset === 'full') return S46.buildConstantMatrix(K, 1, 1);
+    if (preset === 'ionic') return S46.buildConstantMatrix(K, -1, 1);
+    if (preset === 'sym') return S46.symmetrizeMatrix(S46.buildUniformMatrix(seed, K, -1, 1));
+    if (preset === 'symrand') return S46.buildSymmetrizedWithRandom(seed, K, -1, 1, K);
+    if (preset === 'sparse') return S46.buildSparseMatrix(seed, K, -1, 1, 3);
+    if (preset === 'inert') return S46.buildInertTypesMatrix(seed, K, -1, 1, Math.max(1, Math.floor(K / 3)));
+    return S46.buildUniformMatrix(seed, K, -1, 1);
+  }
+
+  function worldOpts(n, speedStd) {
+    var o = {
+      N: n, L: L, wallMargin: wallMargin, wallStrength: wallStrength,
+      excludeOverlap: excludeOverlap, particleRadius: particleRadius,
+    };
+    if (speedStd != null) o.initialSpeedStd = speedStd;
+    return o;
+  }
+
+  /**
+   * 左右の世界を作る。**同じ `icSeed` を渡すのが要点**——初期条件（位置・速度・型の割当）は
+   * 行列とは別の部分ストリームから引かれる（`core.js` の `subSeed`）ので、行列だけが違い
+   * 初期条件は1ビットも違わない2つの世界になる。違いは規則だけである。
+   */
+  function rebuildWorlds(icSeed, speedStd) {
+    var padded = S46X.padTotal(N, K);
+    var Gm = S46R.approximate(analysis.decomposition, m, renorm, analysis.norm);
+    worldA = S46.createWorldFromMatrix(worldOpts(padded, speedStd), G, icSeed);
+    worldB = S46.createWorldFromMatrix(worldOpts(padded, speedStd), Gm, icSeed);
+    stepCarry = 0;
+    $('t').textContent = worldA.step;
+  }
+
+  /** 行列が変わったとき（プリセット・K・シード）。分解し直して世界も作り直す。 */
+  function rebuildAll(nextG) {
+    G = nextG;
+    analysis = S46R.analyze(G);
+    clampM();
+    rebuildWorlds(Date.now() & 0x7fffffff);
+    drawSteps();
+    drawProps();
+    drawTypeLegend();
+    drawCaps();
+    draw();
+  }
+
+  /**
+   * 行列はそのまま、階数だけを変えたとき。**左右そろって出し直す**——
+   * 右だけを作り直すと、左は走り込んだ状態・右は初期状態という不公平な比較になるため。
+   */
+  function rebuildApprox() {
+    rebuildWorlds(Date.now() & 0x7fffffff);
+    drawSteps();
+    drawProps();
+    drawCaps();
+    draw();
+  }
+
+  function clampM() {
+    var mm = $('m');
+    mm.max = String(K);
+    if (m > K) m = K;
+    mm.value = String(m);
+    $('mV').textContent = m;
+  }
+
+  function reset() { rebuildAll(buildMatrix()); }
+
+  /** 行列も階数もそのまま、速度0で位置だけ引き直す（左右は同じ配置から）。 */
+  function scatter() {
+    rebuildWorlds(Date.now() & 0x7fffffff, 0);
+    draw();
+  }
+
+  // ------------------------------------------------------------- 描画
+
+  function drawWorld(cv, cx, w) {
+    var s = cv.width / L;
+    var rPix = Math.max(2, particleRadius * s);
+    cx.fillStyle = '#0b0d13';
+    cx.fillRect(0, 0, cv.width, cv.height);
+    if (!w) return;
+    for (var i = 0; i < w.N; i++) {
+      cx.fillStyle = colorOf(w.types[i]);
+      cx.beginPath();
+      cx.arc(w.x[i] * s, w.y[i] * s, rPix, 0, Math.PI * 2);
+      cx.fill();
+    }
+  }
+
+  function draw() {
+    drawWorld(cvA, cxA, worldA);
+    drawWorld(cvB, cxB, worldB);
+  }
+
+  function drawTypeLegend() {
+    var html = '';
+    for (var i = 0; i < K; i++) html += '<span class="sw" style="background:' + colorOf(i) + '"></span>型' + i + ' ';
+    $('typeLegend').innerHTML = html;
+  }
+
+  function drawCaps() {
+    $('capRank').textContent = analysis.effectiveRank;
+    $('capM').textContent = m;
+    var e = analysis.steps[m - 1].energy;
+    var el = $('capEnergy');
+    el.textContent = renorm ? '元の大きさへ戻した（素の保存率 ' + (e * 100).toFixed(1) + '%）'
+      : (e * 100).toFixed(1) + '%';
+    el.className = renorm ? 'keep' : (e >= 0.9 ? 'keep' : 'lost');
+  }
+
+  function drawSteps() {
+    var html = '<tr><th>m</th><th>σ<sub>m</sub></th><th>保存率</th><th>相対誤差</th><th>非対称比</th></tr>';
+    analysis.steps.forEach(function (st, i) {
+      html += '<tr class="' + (st.m === m ? 'cur' : '') + '">'
+        + '<td>' + st.m + '</td>'
+        + '<td>' + analysis.singular[i].toFixed(3) + '</td>'
+        + '<td>' + (st.energy * 100).toFixed(1) + '%</td>'
+        + '<td>' + st.error.toFixed(3) + '</td>'
+        + '<td>' + st.asymmetry.toFixed(3) + '</td>'
+        + '</tr>';
+    });
+    $('steps').innerHTML = html;
+  }
+
+  function drawProps() {
+    var p = S46R.properties(analysis.decomposition, m);
+    var html = '<tr><th>型</th><th>a（発信）</th><th>b（受信）</th></tr>';
+    for (var t = 0; t < p.a.length; t++) {
+      html += '<tr><td><span class="sw" style="background:' + colorOf(t) + '"></span>' + t + '</td>'
+        + '<td>' + p.a[t].map(function (v) { return v.toFixed(2); }).join(', ') + '</td>'
+        + '<td>' + p.b[t].map(function (v) { return v.toFixed(2); }).join(', ') + '</td></tr>';
+    }
+    $('props').innerHTML = html;
+  }
+
+  // ------------------------------------------------------------- 観測（表示のみ）
+
+  var MD = S46.MEASURE_DEFAULTS;
+
+  function statsOf(w) {
+    var cc = S46.connectedComponents(w, MD.connectivityRadius);
+    var shell = S46.membraneShellFromCC(w, cc, MD.minClusterSize, MD.rBin, MD.maxBins);
+    var n = 0;
+    cc.roots.forEach(function (r) { if (cc.sizeOf(r) >= MD.minClusterSize) n++; });
+    return {
+      size: shell.clusterSize,
+      cohesion: S46.clusterCohesionFromCC(w, cc, MD.minClusterSize),
+      shell: shell.densityRatio,
+      clusters: n,
+    };
+  }
+
+  function fmt(v) { return v == null || !isFinite(v) ? '–' : v.toFixed(3); }
+
+  function drawStats() {
+    var a = statsOf(worldA), b = statsOf(worldB);
+    $('szA').textContent = a.size; $('szB').textContent = b.size;
+    $('ccA').textContent = fmt(a.cohesion); $('ccB').textContent = fmt(b.cohesion);
+    $('msA').textContent = fmt(a.shell); $('msB').textContent = fmt(b.shell);
+    $('ncA').textContent = a.clusters; $('ncB').textContent = b.clusters;
+  }
+
+  // ------------------------------------------------------------- 時間発展
+
+  function advance(now) {
+    var speed = S46X.SPEEDS[speedIdx];
+    var plan = S46X.planSteps(baseSteps, speed, stepCarry);
+    stepCarry = plan.carry;
+    var deadline = now + BUDGET_MS * Math.max(1, speed);
+    var taken = 0;
+    // **左右を1歩ずつ交互に進める**。途中で予算が切れても step がずれないようにするため
+    while (taken < plan.steps && performance.now() < deadline) {
+      S46.stepWorld(worldA);
+      S46.stepWorld(worldB);
+      taken++;
+    }
+    if (taken > 0) {
+      var per = (performance.now() - now) / taken;
+      msPerStep = msPerStep ? msPerStep * 0.8 + per * 0.2 : per;
+      baseSteps = S46X.baseStepsFor(msPerStep, BUDGET_MS);
+    }
+    rateSteps += taken;
+    if (now - rateAt >= 500) {
+      $('rate').textContent = Math.round((rateSteps * 1000) / (now - rateAt));
+      rateAt = now;
+      rateSteps = 0;
+    }
+  }
+
+  function loop() {
+    var now = performance.now();
+    if (running) {
+      advance(now);
+      draw();
+      $('t').textContent = worldA.step;
+    }
+    // 観測は重いので 700ms に1回でよい（画面の数値であって、判定には使わない）
+    if (now - statAt >= 700) { statAt = now; if (worldA && worldB) drawStats(); }
+    requestAnimationFrame(loop);
+  }
+
+  function setRunning(v) {
+    running = v;
+    $('run').textContent = v ? '停止' : '再開';
+  }
+
+  // ------------------------------------------------------------- 操作
+
+  $('run').onclick = function () { setRunning(!running); };
+  $('reset').onclick = function () { seed = (Date.now() & 0x7fffffff); $('seedV').textContent = seed; reset(); };
+  $('scatter').onclick = scatter;
+  $('speed').oninput = function () {
+    speedIdx = +this.value;
+    $('speedV').textContent = S46X.SPEED_LABELS[speedIdx];
+    stepCarry = 0;
+  };
+  $('m').oninput = function () {
+    m = +this.value;
+    $('mV').textContent = m;
+    rebuildApprox();
+  };
+  $('renorm').onchange = function () { renorm = this.checked; rebuildApprox(); };
+  $('k').onchange = function () { K = +this.value; reset(); };
+  $('n').onchange = function () { N = +this.value; reset(); };
+  $('preset').onchange = function () { preset = this.value; reset(); };
+  $('wall').onchange = function () { wallStrength = +this.value; reset(); };
+  $('excl').onchange = function () { excludeOverlap = this.checked; reset(); };
+
+  // ------------------------------------------------------------- ハーネス
+
+  function getParams() {
+    return {
+      K: K, N: N, L: L, G: S46R.cloneMatrix(G), m: m, renorm: renorm,
+      wallStrength: wallStrength, wallMargin: wallMargin,
+      excludeOverlap: excludeOverlap, particleRadius: particleRadius,
+    };
+  }
+
+  function setSelectValue(id, value, label) {
+    var sel = $(id), v = String(value);
+    if (!Array.prototype.some.call(sel.options, function (o) { return o.value === v; })) {
+      var opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = label || v;
+      sel.appendChild(opt);
+    }
+    sel.value = v;
+  }
+
+  /**
+   * 他の実行ページで保存したパラメータを流し込む。`m` を持たない封筒
+   * （本編・探索から来たもの）は **m = K**、つまり「まだ何も落としていない」状態で読む。
+   */
+  function setParams(v) {
+    if (!v || !v.G) return;
+    K = v.G.length;
+    if (v.N != null) N = +v.N;
+    else if (v.counts) N = S46X.sum(v.counts);
+    if (v.L != null) L = +v.L;
+    if (v.wallStrength != null) wallStrength = +v.wallStrength;
+    if (v.wallMargin != null) wallMargin = +v.wallMargin;
+    if (v.excludeOverlap != null) excludeOverlap = !!v.excludeOverlap;
+    if (v.particleRadius != null) particleRadius = +v.particleRadius;
+    m = v.m != null ? Math.max(1, Math.min(K, +v.m)) : K;
+    renorm = v.renorm != null ? !!v.renorm : false;
+    $('excl').checked = excludeOverlap;
+    $('renorm').checked = renorm;
+    setSelectValue('k', K, K + '（復元した型数）');
+    setSelectValue('n', N, N + '（復元した粒子数）');
+    setSelectValue('wall', wallStrength, wallStrength + '（復元した値）');
+    $('seedV').textContent = '(復元した行列)';
+    rebuildAll(S46R.cloneMatrix(v.G));
+  }
+
+  reset();
+
+  Harness.mount({
+    id: 'S-46',
+    run: 'rank',
+    // 台帳 runs.json の runs[].version と一致していること（gate.js の S2 が照合する）
+    version: '1.1.0',
+    // 本編の保存（1.2 の頃のものも含む）と、探索で抜き出した部分行列を、ここへ持ち込める
+    accepts: ['main@1.3', 'main@1.2', 'explore@1.0'],
+    getParams: getParams,
+    setParams: setParams,
+    paramNames: {
+      G: { category: 'p', code: 'g', full: 'interaction_matrix' },
+      m: { category: 'p', code: 'rk', full: 'matrix_rank' },
+      renorm: { category: 'p', code: 'rn', full: 'renormalize_strength' },
+      wallStrength: { category: 'p', code: 'wr', full: 'wall_repulsion' },
+      wallMargin: { category: 'p', code: 'wm', full: 'wall_margin' },
+      excludeOverlap: { category: 'p', code: 'ex', full: 'exclude_overlap' },
+      particleRadius: { category: 'p', code: 'pr', full: 'particle_radius' },
+      K: { category: 's', code: 'k', full: 'type_count' },
+      N: { category: 's', code: 'n', full: 'particle_count' },
+      L: { category: 's', code: 'l', full: 'world_size' },
+    },
+    canvases: ['cA', 'cB'],
+    pause: function () { setRunning(false); },
+    resize: function (scale) {
+      L = Math.max(20, Math.round(100 * scale));
+      rebuildWorlds(Date.now() & 0x7fffffff);
+      draw();
+      Harness.say('領域を ' + L + '×' + L + ' にした');
+    },
+  });
+
+  rateAt = performance.now();
+  statAt = performance.now();
+  requestAnimationFrame(loop);
+})();
+</script>

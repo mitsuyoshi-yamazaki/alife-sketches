@@ -1,0 +1,623 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-46 探索 ― 画面で見つけたパターンから、その粒子たちの関係を抜き出す</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa;--hot:#fbbf24}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  select{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:inherit}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  label b{color:var(--fg);font-variant-numeric:tabular-nums;min-width:2.6em}
+  input[type=range]{width:110px}
+  input[type=checkbox]{accent-color:var(--acc);width:15px;height:15px}
+  label.sw2{color:var(--fg);cursor:pointer}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px}
+  .stagebox{position:relative}
+  canvas#c{cursor:crosshair;touch-action:none}
+  table{border-collapse:collapse;font-size:12px;width:100%}
+  th,td{padding:4px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left;color:var(--dim)}
+  td{font-variant-numeric:tabular-nums}
+  .legend{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.9}
+  .sw{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:5px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:940px}
+  footer b{color:var(--fg)}
+  .col{display:flex;flex-direction:column;gap:14px;flex:1;min-width:280px}
+  #t{display:inline-block;min-width:6ch;text-align:right;font-variant-numeric:tabular-nums}
+  .panel table{table-layout:fixed}
+  .panel td:first-child{width:56%}
+  /* 選択 HUD: canvas の上に重ねる。ドラッグ中はリアルタイムに数が変わる */
+  .hud{position:absolute;top:10px;left:10px;z-index:5;min-width:170px;max-width:min(88%,280px);
+       background:rgba(14,16,22,.93);border:1px solid var(--acc);border-radius:8px;padding:8px 10px;
+       font-size:12px;line-height:1.7;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+  .hud[hidden]{display:none}
+  .hud h3{margin:0 0 4px;font-size:12px;color:var(--acc);font-weight:600}
+  .hud .rowlist{max-height:180px;overflow:auto}
+  .hud .row{display:flex;justify-content:space-between;gap:10px}
+  .hud .row b{font-variant-numeric:tabular-nums}
+  .hud .foot{margin-top:6px;color:var(--dim);font-size:11px}
+  .hud button{padding:4px 10px;font-size:12px;margin-top:6px}
+  .hud .done{color:#4ade80}
+  /* 自動探索で変わったマスを光らせる（ユーザ指定の「変化を視覚的に表す仕組み」） */
+  @keyframes cellflash{0%{box-shadow:inset 0 0 0 2px var(--hot);filter:brightness(2.2)}100%{box-shadow:inset 0 0 0 0 transparent;filter:none}}
+  td.flash{animation:cellflash 1.6s ease-out}
+  .autobadge{color:var(--hot)}
+  @media(max-width:760px){.wrap{flex-direction:column}}
+  @media(max-width:820px){.col,.panel{min-width:0}.bar label{flex-wrap:wrap;max-width:100%}select{max-width:100%}}
+</style>
+
+<header>
+  <h1>S-46 探索 — 見つけたパターンから、その粒子たちの関係を抜き出す</h1>
+  <p class="sub">本編（run <code>main</code>）と<b>力学はまったく同じ</b>で、違うのは
+    <b>型ごとの粒子数が不揃いでよい</b>ことと、<b>画面で囲った範囲を種として取り出せる</b>ことだけ。
+    停止してから canvas をドラッグすると、囲みの中に居る型と数がその場で出て、離すと
+    <b>その型どうしの関係（部分行列）＋型ごとの個数</b>がクリップボードに載る。
+    <b style="color:var(--hot)">ここで見たものは判定に使わない</b>——探索の窓であり、主張をしない実行ページである。</p>
+</header>
+
+<div class="bar">
+  <button id="run">停止</button>
+  <label title="1フレームに何歩進めるかを変える。系の時間刻み dt は変えないので、同じ step まで進めれば軌道は同じ">
+    速さ <input type="range" id="speed" min="0" max="6" step="1" value="3"><b id="speedV">×1</b>
+  </label>
+  <button id="reset" title="今の設定（プリセット・型の数・全体の粒子数）で行列を引き直す。型ごとの個数は今の設定のまま">行列を引き直す</button>
+  <button id="scatter" title="行列も型ごとの個数もそのまま。速度を0にして、位置だけランダムに置き直す">粒子を撒き直す</button>
+  <label>行列シード <b id="seedV">20260915</b></label>
+  <label>型の数K
+    <select id="k">
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="6" selected>6</option>
+      <option value="12">12</option>
+    </select>
+  </label>
+  <label>プリセット
+    <select id="preset">
+      <option value="random">乱数行列</option>
+      <option value="full">全ペア最大引力</option>
+      <option value="ionic">自己反発・他者引力</option>
+      <option value="zero">相互作用なし</option>
+      <option value="sym">対称化</option>
+      <option value="symrand">ほぼ対称化＋数マスだけ乱数</option>
+      <option value="sparse">乱数だが 0 付近が多い（疎）</option>
+      <option value="inert">乱数＋相互作用しない型が一定数</option>
+    </select>
+  </label>
+  <label title="インポートした個数をそのまま使うか、比として解釈して合計を合わせるか。この設定は export されない">
+    全体の粒子数
+    <select id="total">
+      <option value="asis" selected>インポートどおり</option>
+      <option value="100">100</option>
+      <option value="500">500</option>
+      <option value="1000">1000</option>
+    </select>
+  </label>
+  <label>外枠の反発
+    <select id="wall">
+      <option value="0">無し</option>
+      <option value="0.5">弱</option>
+      <option value="2" selected>標準</option>
+      <option value="6">強</option>
+    </select>
+  </label>
+  <label class="sw2" title="中心距離が直径（=2×半径）を下回った対に反発力が生まれる"><input type="checkbox" id="excl" checked> 体積排除</label>
+  <label class="sw2" title="一定時間ごとに行列の1マスだけを引き直し、続けて別の組み合わせを見る"><input type="checkbox" id="auto"> 自動探索</label>
+  <label>間隔 <input type="range" id="period" min="3" max="10" step="1" value="5"><b id="periodV">5</b>秒</label>
+  <span class="autobadge" id="autoNext"></span>
+  <span style="flex:1"></span>
+  <span style="color:var(--dim)">step <b id="t" style="color:var(--fg)">0</b>　<b id="rate" style="color:var(--fg)">—</b> 歩/秒</span>
+</div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>粒子（色 = 型）— 停止中にドラッグで囲む</h2>
+    <div class="stagebox">
+      <canvas id="c" width="600" height="600"></canvas>
+      <div class="hud" id="hud" hidden></div>
+    </div>
+    <div class="legend" id="typeLegend"></div>
+  </div>
+
+  <div class="col">
+    <div class="panel">
+      <h2>型ごとの粒子数（本編と違い、揃っていなくてよい）</h2>
+      <div id="countTable"></div>
+      <div class="legend">囲って取り出した組を読み込むと、ここがその個数になる。
+        「全体の粒子数」を 100/500/1000 にすると、この比を保ったまま合計だけが変わる。</div>
+    </div>
+    <div class="panel">
+      <h2>行列 G[a][b]（行=a：反応する側、列=b：相手の型）</h2>
+      <div id="matrixTable"></div>
+      <div class="legend"><span style="color:#60a5fa">青</span>＝引力（正）　<span style="color:#f87171">赤</span>＝斥力（負）
+        自動探索で引き直されたマスは<span class="autobadge">一瞬光る</span>。</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p><b>使い方</b>: ①「停止」を押す ②面白い形の周りを canvas 上でドラッグして囲む
+  （囲みの中の型と数が HUD にその場で出る）③指を離すと、<b>囲んだ型どうしの部分行列と型ごとの個数</b>が
+  クリップボードに載り、HUD の「⬇ JSON」でも落とせる ④その JSON をハーネスの「⬆ 復元」で読ませると、
+  <b>その関係と個数だけの世界</b>が立ち上がる。選ばれなかった型は無いものとして落とす。<br>
+  <b>HUD は離してから2秒で消える</b>が、<b>HUD の上にポインタを置いている間は消えない</b>——
+  消えるより先にダウンロードボタンへ手が届かないため、そこだけ指定から外した。<br>
+  <b>この実行ページのパラメータ形式は本編と互換が無い</b>（型ごとの個数を持つため）。
+  ただし<b>本編 v1.3 の設定はここへ読み込める</b>（<code>accepts: ["main@1.3"]</code>）——
+  本編で見つけた行列を持ち込んで、そこから囲んで削り出せる。逆向きには入らない。<br>
+  <b>2つのボタンの違い</b>: 「<b>行列を引き直す</b>」は<b>今の設定（プリセット・型の数・全体の粒子数）で行列だけを振り直す</b>——
+  <b>型ごとの個数は今のまま</b>なので、囲んで取り出した組（型0が3個・型1が5個、など）の上で規則だけを変えて試せる。
+  「<b>粒子を撒き直す</b>」は<b>行列も個数もそのままで、速度を0にして位置だけランダムに置き直す</b>——
+  同じ規則・同じ組が、置かれ方だけを変えて何へ落ち着くかを見る操作である
+  （インポートした組にも、引き直した行列にも、どちらにも使える）。<br>
+  <b>速さ</b>: ×⅛〜×8。変えているのは<b>1フレームに進める歩数</b>だけで、<b>系の時間刻み <code>dt</code> は変えない</b>——
+  同じ step まで進めれば軌道は1ビットも変わらない。よって<b>これは見る速さであり、export の対象に入れていない</b>
+  （「全体の粒子数」の設定と同じ扱い）。×1 の歩数は<b>1歩の実測時間から毎フレーム寄せる</b>ので、
+  粒子数や体積排除の有無で歩が重くなっても×1 の体感は変わらない。右上に実測の<b>歩/秒</b>が出る。<br>
+  <b>自動探索</b>: 3〜10秒ごとに行列の引力をひとつだけランダムに引き直す。世界は作り直さないので、
+  <b>今の配置のまま規則だけが1マス変わる</b>——何が効いているマスなのかが見分けやすい。<br>
+  <b>ここで見たものは判定に使わない。</b> 探索から仮説が出たなら、事前登録を持つ実行ページ（工場の実体）を
+  1本足して登録し直すことでしか主張にならない（<code>runs.json</code> の <code>origin: "screen"</code>）。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="core.js"></script>
+<script src="explore.js"></script>
+<script>
+(function () {
+  'use strict';
+  var RUN_VERSION = '1.0.0';   // 台帳 runs.json の runs[].version と一致していること
+  var L = 100, K = 6, seed = 20260915, preset = 'random';
+  var wallStrength = 2, wallMargin = 10;
+  var excludeOverlap = true, particleRadius = S46.DEFAULTS.particleRadius;
+  var totalMode = 'asis';       // 「全体の粒子数」。**export されない**（ユーザ指定）
+  var baseCounts = null;        // 比の出所。合計だけを変えるときはここから作り直す
+  var counts = null;
+  var cv = document.getElementById('c'), cx = cv.getContext('2d');
+  var world = null, running = true;
+  var drag = null, lastSel = null, hudTimer = null, hudHold = false;
+  var autoOn = false, autoPeriod = 5, autoAt = 0, lastMutation = null;
+  // 実行速度（2026-09-18 ユーザ指示）。baseSteps は「×1 のときの1フレームの歩数」で、
+  // 1歩の実測時間から毎フレーム寄せる——歩の重さは粒子数と体積排除で1桁変わるため
+  var speedIdx = S46X.DEFAULT_SPEED_INDEX, baseSteps = 8, stepCarry = 0, msPerStep = 0;
+  var BUDGET_MS = 13, rateAt = 0, rateSteps = 0;
+
+  var TYPE_COLORS = ['#60a5fa', '#f87171', '#4ade80', '#fbbf24', '#c084fc', '#22d3ee',
+                     '#fb923c', '#f472b6', '#a3e635', '#38bdf8', '#e879f9', '#facc15'];
+
+  function $(id) { return document.getElementById(id); }
+
+  /** 一覧に無い値（囲んで取り出した型数など）が来たら、選択肢のほうを足して見せる。 */
+  function setSelectValue(id, value, label) {
+    var sel = $(id);
+    sel.value = String(value);
+    if (sel.value === String(value)) return;
+    var opt = document.createElement('option');
+    opt.value = String(value);
+    opt.textContent = label;
+    sel.appendChild(opt);
+    sel.value = String(value);
+  }
+  function colorOf(t) { return TYPE_COLORS[t % TYPE_COLORS.length]; }
+
+  function buildMatrix() {
+    if (preset === 'full') return S46.buildConstantMatrix(K, 1, 1);
+    if (preset === 'ionic') return S46.buildConstantMatrix(K, -1, 1);
+    if (preset === 'zero') return S46.buildConstantMatrix(K, 0, 0);
+    if (preset === 'sym') return S46.symmetrizeMatrix(S46.buildUniformMatrix(seed, K, -1, 1));
+    if (preset === 'symrand') return S46.buildSymmetrizedWithRandom(seed, K, -1, 1, K);
+    if (preset === 'sparse') return S46.buildSparseMatrix(seed, K, -1, 1, 3);
+    if (preset === 'inert') return S46.buildInertTypesMatrix(seed, K, -1, 1, Math.max(1, Math.floor(K / 3)));
+    return S46.buildUniformMatrix(seed, K, -1, 1);
+  }
+
+  /** `speedStd` を 0 にすると、初速度が全粒子 0 の世界になる（「粒子を撒き直す」で使う）。 */
+  function worldOpts(N, speedStd) {
+    var o = {
+      N: N, L: L, wallMargin: wallMargin, wallStrength: wallStrength,
+      excludeOverlap: excludeOverlap, particleRadius: particleRadius,
+    };
+    if (speedStd != null) o.initialSpeedStd = speedStd;
+    return o;
+  }
+
+  /**
+   * 型ごとの個数を持つ世界を作る。核は N が K で割り切れることを要求するので、
+   * 切り上げた長さで作ってから N を実際の合計へ下げる（`S46X.withCounts`）。
+   */
+  function buildWorld(G, nextCounts, icSeed, speedStd) {
+    var padded = S46X.padTotal(S46X.sum(nextCounts), G.length);
+    var w = S46.createWorldFromMatrix(worldOpts(padded, speedStd), G, icSeed);
+    return S46X.withCounts(w, nextCounts);
+  }
+
+  function rebuild(G, nextCounts, speedStd) {
+    counts = nextCounts;
+    world = buildWorld(G, counts, (Date.now() & 0x7fffffff), speedStd);
+    lastMutation = null;
+    $('hud').hidden = true;   // 位置が変わったので、さっきの囲みはもう別の粒子を指している
+    drag = null;
+    $('t').textContent = world.step;
+    drawMatrix();
+    drawTypeLegend();
+    drawCounts();
+    draw();
+  }
+
+  /**
+   * **今の設定で行列を引き直す**（2026-09-18 ユーザ指示）。
+   * プリセット・型の数・全体の粒子数はいまの選択のまま使い、**型ごとの個数も今のもの**を保つ——
+   * インポートした組（型0が3個・型1が5個、など）の上で行列だけを振り直せるようにするため。
+   */
+  function redrawMatrix() {
+    rebuild(buildMatrix(), S46X.resolveCounts(baseCounts, totalMode));
+  }
+
+  /** 型の数が変わったときだけ、個数の割り振りごと作り直す（型が増減すれば比の意味が変わる）。 */
+  function reset() {
+    baseCounts = S46X.uniformCounts(240, K);
+    redrawMatrix();
+  }
+
+  /**
+   * **今の行列・型ごとの個数のまま、速度0・位置だけを引き直す**（2026-09-18 ユーザ指示）。
+   * 同じ規則と同じ組が、置かれ方だけを変えて何へ落ち着くかを見るための操作である。
+   */
+  function scatter() {
+    rebuild(world.G, counts, 0);
+    Harness.say('速度0で位置を撒き直した（行列と型ごとの個数はそのまま）');
+  }
+
+  function drawTypeLegend() {
+    var html = '';
+    for (var i = 0; i < world.K; i++) html += '<span class="sw" style="background:' + colorOf(i) + '"></span>型' + i + ' ';
+    $('typeLegend').innerHTML = html;
+  }
+
+  function drawCounts() {
+    var html = '<table><tr><td>型</td><th>個数</th><th>割合</th></tr>';
+    var total = S46X.sum(counts);
+    counts.forEach(function (n, t) {
+      html += '<tr><td><span class="sw" style="background:' + colorOf(t) + '"></span>型' + t + '</td>' +
+        '<td>' + n + '</td><td>' + (total ? (100 * n / total).toFixed(1) : '0.0') + '%</td></tr>';
+    });
+    html += '<tr><td>合計</td><td>' + total + '</td><td>100.0%</td></tr></table>';
+    $('countTable').innerHTML = html;
+  }
+
+  function drawMatrix() {
+    var G = world.G, html = '<table><tr><td></td>';
+    for (var b = 0; b < G.length; b++) html += '<th>' + b + '</th>';
+    html += '</tr>';
+    for (var a = 0; a < G.length; a++) {
+      html += '<tr><th>' + a + '</th>';
+      for (b = 0; b < G.length; b++) {
+        var g = G[a][b];
+        var col = g >= 0 ? 'rgba(96,165,250,' + Math.min(1, Math.abs(g)).toFixed(2) + ')' : 'rgba(248,113,113,' + Math.min(1, Math.abs(g)).toFixed(2) + ')';
+        var flash = lastMutation && lastMutation.a === a && lastMutation.b === b ? ' class="flash"' : '';
+        html += '<td' + flash + ' style="background:' + col + ';color:#e8ebf2">' + g.toFixed(2) + '</td>';
+      }
+      html += '</tr>';
+    }
+    $('matrixTable').innerHTML = html + '</table>';
+  }
+
+  function draw() {
+    var s = cv.width / L;
+    var rPix = Math.max(2, particleRadius * s);
+    cx.fillStyle = '#0b0d13';
+    cx.fillRect(0, 0, cv.width, cv.height);
+    for (var i = 0; i < world.N; i++) {
+      cx.fillStyle = colorOf(world.types[i]);
+      cx.beginPath();
+      cx.arc(world.x[i] * s, world.y[i] * s, rPix, 0, Math.PI * 2);
+      cx.fill();
+    }
+    if (drag) drawSelectionBox(s);
+  }
+
+  function drawSelectionBox(s) {
+    var q = S46X.normalizeRect(drag);
+    cx.save();
+    cx.strokeStyle = '#60a5fa';
+    cx.lineWidth = 1.5;
+    cx.setLineDash([5, 4]);
+    cx.fillStyle = 'rgba(96,165,250,.10)';
+    cx.fillRect(q.x0 * s, q.y0 * s, (q.x1 - q.x0) * s, (q.y1 - q.y0) * s);
+    cx.strokeRect(q.x0 * s, q.y0 * s, (q.x1 - q.x0) * s, (q.y1 - q.y0) * s);
+    cx.restore();
+  }
+
+  // ------------------------------------------------------------ 矩形選択（ユーザ指定の本体）
+
+  /** 画面座標 → 世界座標。canvas は CSS で縮むことがあるので実寸から換算する。 */
+  function toWorld(ev) {
+    var r = cv.getBoundingClientRect();
+    var px = (ev.clientX - r.left) * (cv.width / r.width);
+    var py = (ev.clientY - r.top) * (cv.height / r.height);
+    var s = cv.width / L;
+    return { x: Math.max(0, Math.min(L, px / s)), y: Math.max(0, Math.min(L, py / s)) };
+  }
+
+  function hudRows(sel) {
+    var rows = '';
+    S46X.presentTypes(sel.counts).forEach(function (t) {
+      rows += '<div class="row"><span><span class="sw" style="background:' + colorOf(t) + '"></span>型' + t + '</span><b>' + sel.counts[t] + '</b></div>';
+    });
+    return rows || '<div class="foot">この囲みには粒子が居ない</div>';
+  }
+
+  function showHudLive(sel) {
+    var hud = $('hud');
+    hud.hidden = false;
+    hud.innerHTML = '<h3>囲みの中</h3><div class="rowlist">' + hudRows(sel) + '</div>' +
+      '<div class="foot">計 ' + sel.total + ' 個／' + S46X.presentTypes(sel.counts).length + ' 型</div>';
+  }
+
+  /** 離した瞬間: クリップボードへ写し、ダウンロードの口を出し、2秒で消す（ポインタが乗っている間は消さない）。 */
+  function showHudDone(sel, copied) {
+    var hud = $('hud');
+    hud.hidden = false;
+    hud.innerHTML = '<h3>取り出した</h3><div class="rowlist">' + hudRows(sel) + '</div>' +
+      '<div class="foot ' + (copied ? 'done' : '') + '">' +
+      (copied ? 'クリップボードへコピーした' : 'コピーできなかった（⬇ JSON で保存せよ）') + '</div>';
+    var dl = document.createElement('button');
+    dl.type = 'button';
+    dl.textContent = '⬇ JSON';
+    dl.onclick = downloadSelection;
+    hud.appendChild(dl);
+    scheduleHudHide();
+  }
+
+  function scheduleHudHide() {
+    if (hudTimer) clearTimeout(hudTimer);
+    hudTimer = setTimeout(function () {
+      hudTimer = null;
+      if (!hudHold) $('hud').hidden = true;
+    }, 2000);
+  }
+
+  function selectionText() {
+    return JSON.stringify(lastSel.envelope, null, 2);
+  }
+
+  function downloadSelection() {
+    if (!lastSel) return;
+    var blob = new Blob([selectionText() + '\n'], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'S-46-explore-' + lastSel.envelope.params.K + '型-' + lastSel.sel.total + '個.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { a.remove(); URL.revokeObjectURL(a.href); }, 1000);
+    Harness.say('選択を JSON で保存した');
+  }
+
+  /**
+   * `navigator.clipboard` は http の LAN アクセスでは使えないことがあるので、
+   * ハーネスと同じく textarea + execCommand へ落とす経路を持つ。
+   */
+  function copyText(text, done) {
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(fallbackCopy(text)); });
+      return;
+    }
+    done(fallbackCopy(text));
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.style.cssText = 'position:fixed;opacity:0;left:-9999px';
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  function endDrag() {
+    if (!drag) return;
+    var rect = drag;
+    drag = null;
+    draw();
+    var sel = S46X.countsInRect(world, rect);
+    if (!sel.total) { $('hud').hidden = true; Harness.say('囲みの中に粒子が居ない', true); return; }
+    lastSel = {
+      sel: sel,
+      envelope: S46X.selectionEnvelope(world, rect, { sketch: 'S-46', version: RUN_VERSION }),
+    };
+    showHudDone(sel, false);
+    copyText(selectionText(), function (ok) { showHudDone(sel, ok); });
+  }
+
+  cv.addEventListener('pointerdown', function (ev) {
+    if (running) { Harness.say('停止してから囲むこと（動いている最中の囲みは意味を持たない）', true); return; }
+    var p = toWorld(ev);
+    drag = { x0: p.x, y0: p.y, x1: p.x, y1: p.y };
+    cv.setPointerCapture(ev.pointerId);
+    ev.preventDefault();
+  });
+  cv.addEventListener('pointermove', function (ev) {
+    if (!drag) return;
+    var p = toWorld(ev);
+    drag = { x0: drag.x0, y0: drag.y0, x1: p.x, y1: p.y };
+    draw();
+    showHudLive(S46X.countsInRect(world, drag)); // ドラッグ中もリアルタイムに更新する（ユーザ指定）
+  });
+  cv.addEventListener('pointerup', endDrag);
+  cv.addEventListener('pointercancel', endDrag);
+  $('hud').addEventListener('pointerenter', function () { hudHold = true; });
+  $('hud').addEventListener('pointerleave', function () { hudHold = false; scheduleHudHide(); });
+
+  // ------------------------------------------------------------ 自動探索
+
+  function tickAuto(now) {
+    if (!autoOn) { $('autoNext').textContent = ''; return; }
+    var left = Math.max(0, autoAt - now) / 1000;
+    $('autoNext').textContent = '次の変異まで ' + left.toFixed(1) + '秒';
+    if (now < autoAt) return;
+    autoAt = now + autoPeriod * 1000;
+    var m = S46X.mutateOneCell(world.G, Math.random, -1, 1);
+    world.G = m.G; // 世界は作り直さない——今の配置のまま規則だけが1マス変わる
+    lastMutation = { a: m.a, b: m.b };
+    drawMatrix();
+    Harness.say('G[' + m.a + '][' + m.b + '] を ' + m.from.toFixed(2) + ' → ' + m.to.toFixed(2) + ' に引き直した');
+  }
+
+  // ------------------------------------------------------------ 進行
+
+  /** このフレームぶん進める。使った時間から「×1 の歩数」を寄せ、歩/秒を表示する。 */
+  function advance(now) {
+    var speed = S46X.SPEEDS[speedIdx];
+    var plan = S46X.planSteps(baseSteps, speed, stepCarry);
+    stepCarry = plan.carry;
+    // 速い側でも1フレームの上限を持つ（重い設定で窓が固まらないように）
+    var deadline = now + BUDGET_MS * Math.max(1, speed);
+    var taken = 0;
+    while (taken < plan.steps && performance.now() < deadline) { S46.stepWorld(world); taken++; }
+    if (taken > 0) {
+      var per = (performance.now() - now) / taken;
+      msPerStep = msPerStep ? msPerStep * 0.8 + per * 0.2 : per;
+      baseSteps = S46X.baseStepsFor(msPerStep, BUDGET_MS);
+    }
+    rateSteps += taken;
+    if (now - rateAt >= 500) {
+      $('rate').textContent = Math.round((rateSteps * 1000) / (now - rateAt));
+      rateAt = now;
+      rateSteps = 0;
+    }
+  }
+
+  function loop() {
+    var now = performance.now();
+    if (running) {
+      advance(now);
+      draw();
+      $('t').textContent = world.step;
+    }
+    tickAuto(now);
+    requestAnimationFrame(loop);
+  }
+
+  function setRunning(on) {
+    running = on;
+    $('run').textContent = running ? '停止' : '再開';
+    if (running) { $('hud').hidden = true; drag = null; }
+  }
+
+  $('run').onclick = function () { setRunning(!running); };
+  $('wall').onchange = function () {
+    wallStrength = +this.value;
+    if (world) world.params.wallStrength = wallStrength;
+    Harness.say('外枠の反発を「' + this.options[this.selectedIndex].text + '」にした');
+  };
+  $('excl').onchange = function () {
+    excludeOverlap = this.checked;
+    if (world) world.params.excludeOverlap = excludeOverlap;
+    Harness.say(excludeOverlap ? '体積排除を有効にした' : '体積排除を無効にした');
+  };
+  $('reset').onclick = function () { seed = (Math.random() * 1e9) | 0; $('seedV').textContent = seed; redrawMatrix(); };
+  $('scatter').onclick = scatter;
+  $('k').onchange = function () { K = +this.value; reset(); };
+  $('preset').onchange = function () { preset = this.value; redrawMatrix(); };
+  $('total').onchange = function () {
+    totalMode = this.value === 'asis' ? 'asis' : +this.value;
+    rebuild(world.G, S46X.resolveCounts(baseCounts, totalMode));
+    Harness.say('全体の粒子数を「' + this.options[this.selectedIndex].text + '」にした（合計 ' + S46X.sum(counts) + ' 個）');
+  };
+  $('speed').oninput = function () {
+    speedIdx = +this.value;
+    stepCarry = 0;
+    rateAt = performance.now();
+    rateSteps = 0;
+    $('speedV').textContent = S46X.SPEED_LABELS[speedIdx];
+  };
+  $('auto').onchange = function () {
+    autoOn = this.checked;
+    autoAt = performance.now() + autoPeriod * 1000;
+    Harness.say(autoOn ? '自動探索を始めた（' + autoPeriod + '秒ごとに1マス引き直す）' : '自動探索を止めた');
+  };
+  $('period').oninput = function () {
+    autoPeriod = +this.value;
+    $('periodV').textContent = autoPeriod;
+    autoAt = performance.now() + autoPeriod * 1000;
+  };
+
+  /**
+   * この run のパラメータ形式。本編（`main`）と違い**型ごとの個数 `counts` を持つ**ので、
+   * 本編とは互いにロードできない（ユーザ指定「互いにロードできない形式になっても良い」）。
+   * 「全体の粒子数」の設定は**ここに入れない**——インポート側の設定であって、
+   * その組が何であったかではないため（ユーザ指定）。
+   */
+  function getParams() {
+    return {
+      K: world.K, L: L, G: world.G, counts: counts.slice(),
+      wallStrength: wallStrength, wallMargin: wallMargin,
+      excludeOverlap: excludeOverlap, particleRadius: particleRadius,
+    };
+  }
+
+  function setParams(v) {
+    if (!v || !v.G) { Harness.say('行列が無い保存データ', true); return; }
+    L = v.L != null ? v.L : L;
+    if (v.wallStrength != null) wallStrength = +v.wallStrength;
+    if (v.wallMargin != null) wallMargin = +v.wallMargin;
+    excludeOverlap = v.excludeOverlap == null ? false : !!v.excludeOverlap;
+    particleRadius = v.particleRadius == null ? S46.DEFAULTS.particleRadius : +v.particleRadius;
+    K = v.G.length;
+    // `counts` を持たないのは本編（main@1.3）から持ち込まれた設定。等分割として読む
+    baseCounts = v.counts ? v.counts.slice() : S46X.uniformCounts(v.N != null ? +v.N : 240, K);
+    $('excl').checked = excludeOverlap;
+    setSelectValue('k', K, K + '（復元した型数）');
+    setSelectValue('wall', wallStrength, wallStrength + '（復元した値）');
+    $('seedV').textContent = '(復元した行列)';
+    rebuild(v.G, S46X.resolveCounts(baseCounts, totalMode));
+  }
+
+  reset();
+
+  Harness.mount({
+    id: 'S-46',
+    run: 'explore',
+    // 台帳 runs.json の runs[].version と一致していること（gate.js の S2 が照合する）
+    version: '1.0.0',
+    // 本編で見つけた行列をここへ持ち込める。逆（個数つきの形式を本編へ）は通らない
+    accepts: ['main@1.3'],
+    getParams: getParams,
+    setParams: setParams,
+    paramNames: {
+      G: { category: 'p', code: 'g', full: 'interaction_matrix' },
+      wallStrength: { category: 'p', code: 'wr', full: 'wall_repulsion' },
+      wallMargin: { category: 'p', code: 'wm', full: 'wall_margin' },
+      excludeOverlap: { category: 'p', code: 'ex', full: 'exclude_overlap' },
+      particleRadius: { category: 'p', code: 'pr', full: 'particle_radius' },
+      K: { category: 's', code: 'k', full: 'type_count' },
+      counts: { category: 's', code: 'cnt', full: 'type_counts' },
+      L: { category: 's', code: 'l', full: 'world_size' },
+    },
+    canvases: ['c'],
+    pause: function () { setRunning(false); },
+    resize: function (scale) {
+      L = Math.max(20, Math.round(100 * scale));
+      rebuild(world.G, counts);
+      Harness.say('領域を ' + L + '×' + L + ' にした');
+    },
+  });
+
+  rateAt = performance.now();
+  requestAnimationFrame(loop);
+})();
+</script>

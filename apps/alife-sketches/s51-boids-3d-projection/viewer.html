@@ -47,6 +47,9 @@
      描画関数だけ。下の「検出マーク」は本番の復号器D1（画素だけが入力）が実際に何を見ているかを示す
      ——<b>この画面での見え方の判断は測定には一切入らない</b>（本サブプロジェクトは人間に見え方を訊く手段を
      持たない。判定は事前に固定した復号器と閾値だけで行う）。</p>
+  <p class="note"><b>A5 透視だけは測定の腕ではない</b>——criteria.json に登録された 5 通り（A0〜A4）と
+     負コントロールはそのままで、A5 は<b>人間が奥行きを見るために後から足した表示専用の腕</b>である。
+     走行にも判定にも入らないので、この腕を足しても S-51 の測定結果は 1 ビットも変わらない。</p>
 </header>
 
 <div class="wrap">
@@ -76,8 +79,16 @@
           <option value="A2" selected>A2 色濃度＋サイズ</option>
           <option value="A3">A3 合成（ユーザ例示どおり）</option>
           <option value="A4">A4 二面表示（xy と xz）</option>
+          <option value="A5">A5 透視（遠近＋空間の縮尺・表示専用）</option>
         </select>
       </label>
+      <label id="perspRow" style="display:none"><span class="k">遠近の強さ（視距離 D）</span>
+        <input type="range" id="perspD" min="60" max="240" step="5" value="90">
+        <output class="num" id="perspDOut" style="min-width:4ch">90</output></label>
+      <p class="note" id="perspNote" style="display:none">奥のマークは小さく暗く、手前は大きく明るい。
+        <b>マークだけでなく空間そのものを同じ倍率で縮める</b>ので、同じ3次元距離で離れた2体の
+        「マークの大きさ : 画面上の間隔」は奥行きによらず一定になる。D を小さくするほど遠近が強い。
+        手前の個体は画面外へ出ることがある（視錐台の外側）。|z − z̄| は 45 で頭打ち——A2 の |ζ|=1 飽和にあたる。</p>
       <label><input type="checkbox" id="showMarks" checked><span>D1（pixelLocal）が検出したマークに十字を重ねる</span></label>
       <label><input type="checkbox" id="showTrueZ"><span>色の凡例（真の高さ=赤・奥行き=青）を出す</span></label>
     </div>
@@ -109,6 +120,7 @@
 
   function els(ids) { var o = {}; ids.forEach(function (id) { o[id] = document.getElementById(id); }); return o; }
   var E = els(['seed', 'speed', 'speedOut', 'arm', 'showMarks', 'showTrueZ',
+    'perspRow', 'perspD', 'perspDOut', 'perspNote',
     'stT', 'stCount', 'stPhi', 'stMarks', 'phase']);
 
   var state = null, t = 0, running = false, timer = null;
@@ -120,6 +132,7 @@
     if (arm === 'A1') return S51.encodeA1(state);
     if (arm === 'A2') return S51.encodeA2(state);
     if (arm === 'A3') return S51.encodeA3(state);
+    if (arm === 'A5') return S51.encodeA5(state, parseFloat(E.perspD.value));
     return S51.encodeA4(state);
   }
 
@@ -143,10 +156,18 @@
 
     if (E.showTrueZ.checked) {
       ctx.fillStyle = 'rgba(10,13,19,0.85)'; ctx.fillRect(8, 8, 150, 40);
-      ctx.fillStyle = '#f87171'; ctx.fillRect(14, 16, 10, 10); ctx.fillStyle = '#d8dee9'; ctx.font = '11px sans-serif';
-      ctx.fillText('高さ(+z)が濃いほど赤', 28, 25);
-      ctx.fillStyle = '#60a5fa'; ctx.fillRect(14, 32, 10, 10); ctx.fillStyle = '#d8dee9';
-      ctx.fillText('奥行き(-z)が濃いほど青', 28, 41);
+      ctx.font = '11px sans-serif';
+      if (E.arm.value === 'A5') {
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(14, 16, 10, 10); ctx.fillStyle = '#d8dee9';
+        ctx.fillText('手前(+z)ほど大きく明るい', 28, 25);
+        ctx.fillStyle = '#2d375a'; ctx.fillRect(14, 32, 10, 10); ctx.fillStyle = '#d8dee9';
+        ctx.fillText('奥(-z)ほど小さく暗い', 28, 41);
+      } else {
+        ctx.fillStyle = '#f87171'; ctx.fillRect(14, 16, 10, 10); ctx.fillStyle = '#d8dee9';
+        ctx.fillText('高さ(+z)が濃いほど赤', 28, 25);
+        ctx.fillStyle = '#60a5fa'; ctx.fillRect(14, 32, 10, 10); ctx.fillStyle = '#d8dee9';
+        ctx.fillText('奥行き(-z)が濃いほど青', 28, 41);
+      }
     }
   }
 
@@ -186,7 +207,13 @@
     }, 60);
   });
   E.speed.addEventListener('input', function () { E.speedOut.textContent = E.speed.value; });
-  E.arm.addEventListener('change', drawFrame);
+  function syncPerspRow() {
+    var on = E.arm.value === 'A5' ? '' : 'none';
+    E.perspRow.style.display = on; E.perspNote.style.display = on;
+  }
+  E.arm.addEventListener('change', function () { syncPerspRow(); drawFrame(); });
+  E.perspD.addEventListener('input', function () { E.perspDOut.textContent = E.perspD.value; drawFrame(); });
+  syncPerspRow();
   E.showMarks.addEventListener('change', drawFrame);
   E.showTrueZ.addEventListener('change', drawFrame);
 

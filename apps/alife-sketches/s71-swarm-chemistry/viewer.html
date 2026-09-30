@@ -1,0 +1,229 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-71 Swarm Chemistry ― 非相反な追跡関係は出るか</title>
+<style>
+  :root{color-scheme:dark;--bg:#0e1016;--panel:#171a23;--line:#2a2f3d;--fg:#e8ebf2;--dim:#8b93a7;--acc:#60a5fa}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 18px;border-bottom:1px solid var(--line)}
+  h1{margin:0 0 4px;font-size:16px}
+  .sub{color:var(--dim);font-size:12px;margin:0;max-width:900px}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line)}
+  button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  label{color:var(--dim);display:flex;align-items:center;gap:6px}
+  label b{color:var(--fg);font-variant-numeric:tabular-nums;min-width:3.2em}
+  select,input[type=number]{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font:inherit}
+  input[type=range]{width:120px}
+  .wrap{display:flex;gap:14px;padding:14px 18px;flex-wrap:wrap;align-items:flex-start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600}
+  canvas{display:block;max-width:100%;height:auto;border-radius:6px;background:#0b0d13}
+  table{border-collapse:collapse;font-size:12px}
+  th,td{padding:4px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600}
+  td:first-child,th:first-child{text-align:left}
+  td{font-variant-numeric:tabular-nums;min-width:6ch}
+  .legend{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.8;max-width:320px}
+  footer{padding:0 18px 22px;color:var(--dim);font-size:12px;max-width:900px}
+  footer b{color:var(--fg)}
+  @media(max-width:700px){.wrap{flex-direction:column}}
+</style>
+
+<header>
+  <h1>S-71 — Swarm Chemistry ― 相手を名指しできない系に、非相反な追跡関係は出るか</h1>
+  <p class="sub">粒子は「型」を持たない。8つ組ゲノム（知覚半径R・通常速度Vn・最大速度Vm・凝集c1・整列c2・分離c3・
+    乱択操舵c4・速度維持c5）に従って近傍の<b>集約</b>（重心・平均速度・分離力の和）にだけ反応する。
+    型ペアの相互作用行列はどこにも無い。出典: Sayama (2009) Artificial Life 15(1); 運動規則は Sayama (2013) arXiv:1308.3400 の再掲；
+    19本のレシピはユーザ自身のSwift移植（読み取りのみ）から書き写した。</p>
+</header>
+
+<div class="bar">
+  <button id="run">停止</button>
+  <button id="reset">撒き直す</button>
+  <label>レシピ <select id="recipe"></select></label>
+  <label>腕 <select id="arm">
+    <option value="A1">A1 登録どおり（擬似周期境界）</option>
+    <option value="A2">A2 参照点1（Rを共通化）</option>
+    <option value="A3">A3 参照点2（c1c2c3を共通化）</option>
+    <option value="A4">A4 参照点4（壁反発。移植の境界条件）</option>
+    <option value="A5">A5 負コントロール1（力を切る）</option>
+    <option value="A6">A6 負コントロール2（単一ゲノム）</option>
+    <option value="A8">A8 正コントロール2（1点密集）</option>
+    <option value="A9">A9 正コントロール3（構成した追跡ペア）</option>
+  </select></label>
+  <label>シード <input type="number" id="seed" value="20260919" style="width:9ch"></label>
+  <label>速さ <input type="range" id="speed" min="-3" max="3" value="0"> <b id="speedV">×1</b></label>
+  <span style="flex:1"></span>
+  <span class="dim">t = <b id="t" style="color:var(--fg);min-width:6ch;display:inline-block">0</b></span>
+</div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>粒子の場（色 = ゲノム行）</h2>
+    <canvas id="c" width="600" height="600"></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="panel">
+    <h2>観測器（この瞬間の値）</h2>
+    <table>
+      <tbody>
+        <tr><td>excessNeighborRatio（OP1）</td><td id="op1">—</td><td class="dim">閾値1.5</td></tr>
+        <tr><td>genomeSegregationIndex（OP2）</td><td id="op2">—</td><td class="dim">閾値1.3</td></tr>
+        <tr><td>pursuitAsymmetryIndex（OP3・主判定量）</td><td id="op3">—</td><td class="dim">閾値0.25</td></tr>
+        <tr><td>spatialScaleCount（OP5）</td><td id="op5">—</td><td class="dim">閾値2</td></tr>
+      </tbody>
+    </table>
+    <div class="legend">OP2・OP3は199回のラベル入替え帰無を毎回引き直すため重く、既定で3秒ごとに更新する。
+      OP5（Ripley Kの大域包絡）はさらに重いため「今すぐ測る」ボタンでのみ計算する。</div>
+    <button id="measureOp5" style="margin-top:8px">OP5を今すぐ測る（数百ms）</button>
+    <div class="legend" id="op5note"></div>
+  </div>
+</div>
+
+<footer>
+  <p><b>見どころ</b>: 腕をA5（力を切る）に切り替えると群れが崩れ、OP1・OP2が1.0付近まで下がる。
+  A6（単一ゲノム）にするとOP2・OP3が定義できなくなる（表示は「NaN」）——ゲノムの多様性が無いと
+  「誰が誰を追うか」という問い自体が意味を失う。A9（構成した追跡ペア）はOP3を強制的に高くするために
+  手で作った系で、19本のレシピの外にある。</p>
+  <p>【注意】このビューアは主張をしない実行ページの本編（origin: factory）である——ここで良い数値が
+  出て見えても、それは S3 の本番走行（統計的な検定を伴う）を経ていない。判定は criteria.json の
+  decisionRule に従って summary.json から行う。</p>
+</footer>
+
+<script src="../dashboard/harness.js"></script>
+<script src="../s13-ripley-k/core.js"></script>
+<script src="../s13-ripley-k/stats.js"></script>
+<script src="core.js"></script>
+<script src="stats.js"></script>
+<script>
+(function () {
+  'use strict';
+  var cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  var world = null, running = true, speedExp = 0;
+  var recipeSel = document.getElementById('recipe'), armSel = document.getElementById('arm'), seedInp = document.getElementById('seed');
+  var colors = ['#60a5fa', '#f778ba', '#2ea043', '#d29922', '#a78bfa', '#f87171', '#34d399', '#fbbf24'];
+
+  S54.RECIPES.forEach(function (r, i) {
+    var o = document.createElement('option'); o.value = i; o.textContent = r.name; recipeSel.appendChild(o);
+  });
+  var pursuitOpt = document.createElement('option'); pursuitOpt.value = 'pursuit'; pursuitOpt.textContent = '（A9専用）構成した追跡ペア';
+  recipeSel.appendChild(pursuitOpt);
+
+  var PURSUIT_PAIR_ROWS = [
+    { count: 100, sourceIndex: 0, genome: S54.genome(300, 8, 20, 1.0, 0.2, 0.0, 0.0, 0.5) },
+    { count: 100, sourceIndex: 1, genome: S54.genome(20, 16, 40, 0.0, 0.2, 100.0, 0.0, 0.9) },
+  ];
+
+  function rowsFor() {
+    var arm = armSel.value;
+    if (arm === 'A9') return PURSUIT_PAIR_ROWS;
+    var ri = recipeSel.value === 'pursuit' ? 0 : parseInt(recipeSel.value, 10);
+    var base = S54.rescaleRecipe(S54.RECIPES[ri], 200).rows;
+    if (arm === 'A2') return S54.unifyR(base);
+    if (arm === 'A3') return S54.unifyForces(base);
+    if (arm === 'A5') return S54.zeroForces(base);
+    if (arm === 'A6') return S54.singleGenome(base);
+    return base; // A1, A4, A8
+  }
+
+  function reset() {
+    var arm = armSel.value;
+    var rows = rowsFor();
+    var placement = arm === 'A8' ? 'clump' : 'uniform';
+    var wallRepulsion = arm === 'A4';
+    var seed = parseInt(seedInp.value, 10) || 1;
+    world = S54.createWorld(rows, { placement: placement, wallRepulsion: wallRepulsion }, seed);
+    document.getElementById('legend').innerHTML = world.genomes.map(function (g, i) {
+      return '<span style="display:inline-block;width:10px;height:10px;background:' + colors[i % colors.length] + ';border-radius:2px;margin-right:4px"></span>' +
+        'R=' + g.R.toFixed(0) + ' Vn=' + g.Vn.toFixed(1) + '&nbsp;&nbsp;';
+    }).join(' ');
+    document.getElementById('op5note').textContent = '';
+    document.getElementById('op5').textContent = '—';
+  }
+
+  function draw() {
+    var s = cv.width / world.L;
+    ctx.fillStyle = '#0b0d13'; ctx.fillRect(0, 0, cv.width, cv.height);
+    for (var i = 0; i < world.n; i++) {
+      ctx.fillStyle = colors[world.genomeIndex[i] % colors.length];
+      ctx.fillRect(world.x[i] * s - 1.3, world.y[i] * s - 1.3, 2.6, 2.6);
+    }
+  }
+
+  var lastHeavy = 0;
+  function refreshLight() {
+    var op1 = S54S.excessNeighborRatio(world, 150).value;
+    document.getElementById('op1').textContent = isNaN(op1) ? 'NaN' : op1.toFixed(3);
+  }
+  function refreshHeavy() {
+    var op2 = S54S.genomeSegregationIndex(world, 50, S54.makeRng((Date.now() & 0x7fffffff)), 199).value;
+    document.getElementById('op2').textContent = isNaN(op2) ? 'NaN' : op2.toFixed(3);
+    var op3 = S54S.pursuitAsymmetryAtInstant(world).value;
+    document.getElementById('op3').textContent = isNaN(op3) ? 'NaN' : op3.toFixed(3);
+  }
+
+  function loop() {
+    if (running && world) {
+      var stepsPerFrame = speedExp >= 0 ? Math.pow(2, speedExp) : 1;
+      var skip = speedExp < 0 ? Math.round(1 / Math.pow(2, speedExp)) : 1;
+      if (skip <= 1) {
+        for (var k = 0; k < stepsPerFrame; k++) S54.stepWorld(world);
+      } else if (world.step % skip === 0) {
+        S54.stepWorld(world);
+      }
+      draw();
+      document.getElementById('t').textContent = world.step;
+      refreshLight();
+      var now = performance.now();
+      if (now - lastHeavy > 3000) { lastHeavy = now; refreshHeavy(); }
+    }
+    requestAnimationFrame(loop);
+  }
+
+  document.getElementById('run').onclick = function () {
+    running = !running;
+    this.textContent = running ? '停止' : '再開';
+  };
+  document.getElementById('reset').onclick = reset;
+  recipeSel.onchange = reset;
+  armSel.onchange = reset;
+  seedInp.onchange = reset;
+  document.getElementById('speed').oninput = function () {
+    speedExp = parseInt(this.value, 10);
+    var mult = Math.pow(2, speedExp);
+    document.getElementById('speedV').textContent = mult >= 1 ? ('×' + mult) : ('×1/' + Math.round(1 / mult));
+  };
+  document.getElementById('measureOp5').onclick = function () {
+    document.getElementById('op5note').textContent = '計測中…';
+    setTimeout(function () {
+      var pts = { x: world.x, y: world.y, n: world.n, size: world.L };
+      var t0 = performance.now();
+      var r = S54S.spatialScaleCount(pts, S54.makeRng((Date.now() & 0x7fffffff)), {});
+      document.getElementById('op5').textContent = r.count;
+      document.getElementById('op5note').textContent = (performance.now() - t0).toFixed(0) + 'ms（99本のCSR帰無との比較）';
+    }, 10);
+  };
+
+  reset();
+  requestAnimationFrame(loop);
+
+  Harness.mount({
+    pause: function () { if (running) document.getElementById('run').click(); },
+    id: 'S-71',
+    version: '1.0.0',
+    inputs: ['recipe', 'arm', 'seed', 'speed'],
+    paramNames: {
+      recipe: { category: 's', code: 'recipe', full: 'recipe' },
+      arm: { category: 's', code: 'arm', full: 'arm' },
+      seed: { category: 's', code: 'seed', full: 'seed' },
+      speed: { category: 's', code: 'speed', full: 'speed' },
+    },
+    canvases: ['c'],
+    // 「広さ」は本スケッチでは意味を成さない: N=200・場500×500はceilingsで固定された実験設計の一部
+    // であり、可視化のための自由なノブではない（README参照）。したがって resize は省略する。
+  });
+})();
+</script>
