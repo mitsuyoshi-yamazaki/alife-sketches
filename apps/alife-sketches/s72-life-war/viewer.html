@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-72 ライフゲーム戦争</title>
+<style>
+  :root{ --bg:#0c0f14; --panel:#151a22; --line:#262d39; --fg:#d8dee9; --dim:#8892a8; --good:#4ade80; --warn:#fbbf24; --bad:#ff6b6b;
+         --c1:#5b9bff; --c2:#ff6b6b; --c3:#4ade80; --c4:#fbbf24; --c5:#9aa4b8; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1000px}
+  header p.measured{color:var(--warn);border-left:3px solid #6b5a1b;padding-left:8px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:10px;min-width:0;flex:1 1 560px;max-width:100%}
+  aside{width:340px;min-width:280px;max-width:100%;flex:0 1 340px}
+  canvas{display:block;background:#05070b;border:1px solid var(--line);border-radius:4px;max-width:100%;height:auto;image-rendering:pixelated}
+  canvas#board{width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:11px 12px;margin-bottom:11px}
+  .box h2{margin:0 0 8px;font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.07em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:104px;color:var(--dim);flex:none}
+  select,input[type=number]{background:#0a0d13;color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:4px 6px;
+      font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  input[type=range]{flex:1;min-width:0}
+  button{background:#1d2430;color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover:not(:disabled){background:#27303e}
+  button:disabled{opacity:.45;cursor:default}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  button.sel{outline:2px solid var(--c1)}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .shelf{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+  .shelf button{padding:3px 2px;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:10px;line-height:1.2;min-width:0}
+  .shelf button canvas{width:44px;height:30px;border:0;background:transparent}
+  .shelf button.dim{opacity:.4}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td,table.stat th{padding:3px 2px;vertical-align:top;border-bottom:1px solid #1d2430;text-align:right;font-weight:400}
+  table.stat th{color:var(--dim);font-size:11px}
+  table.stat td:first-child,table.stat th:first-child{text-align:left}
+  table#players td:first-child,table#players th:first-child{width:42%}
+  table#players tr.bk td{border-bottom:1px solid #262d39;padding:0 2px 6px;text-align:left}
+  .gauge{position:relative;height:9px;background:#0a0d13;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .gauge i{display:block;height:100%}
+  .gauge2{height:3px;background:#0a0d13;margin-top:2px}
+  .gauge2 i{display:block;height:100%;background:var(--dim)}
+  .gtxt{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:2px}
+  .num{display:inline-block;text-align:right;font-variant-numeric:tabular-nums}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+  .banner{padding:8px 10px;border-radius:4px;font-size:12px;border:1px solid var(--line);background:#10141b;color:var(--dim);min-height:2.9em}
+  .banner.turn{color:var(--fg);border-color:#2b5ee8}
+  .banner.over{color:var(--warn);border-color:#6b5a1b}
+  .note{color:var(--dim);font-size:11px;margin-top:7px}
+  .msg{min-height:1.6em;font-size:12px;color:var(--warn);margin-top:6px}
+  .log{background:#05070b;border:1px solid var(--line);border-radius:4px;padding:6px 8px;font:11px ui-monospace,SFMono-Regular,Menlo,monospace;max-height:150px;overflow-y:auto;white-space:pre-wrap}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--dim)}
+  .hide{display:none}
+  .opbar{flex:1 1 100%;margin:0;border-color:#2b5ee8;background:#121a2a}
+  .opbar .opttl{font-size:13px;font-weight:600;margin-bottom:6px}
+  .opbar .opctl{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+  .opbar .opset{margin-top:8px}
+  .opbar .opnow{font-weight:600}
+  .opbar .opk{color:var(--dim);font-size:11px}
+  .opbar label{margin:0;min-width:0;max-width:100%}
+  .opbar span.k{width:auto}
+  .opbar select{flex:0 1 auto;min-width:0;max-width:100%}
+  .opbar .note{margin-top:6px}
+  @media(max-width:860px){aside{width:auto;flex:1 1 100%}.wrap{padding:12px}.col{flex-basis:100%}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-72 ライフゲーム戦争 — 人間 または bot の自陣 対 bot</h1>
+  <p>Conway のライフゲーム（B3/S23）に、セルごとの所属（生き残りは保ち、誕生は 3 つの親の多数）と、予算つきの種の投入を足した対戦。
+     <strong>リアルタイム制（v1.1.0・既定）</strong>では、最初の配置のときだけ盤が止まり、あとは止まらない——銀行（置けるセルの数）は 10 ティックごとに 1 回復し、
+     いつでも自陣へ置ける（置いた分は次のティックの境目に適用される）。bot は 30 ティックごとに判断する。
+     <strong>ラウンド制（v1.0.0）</strong>は旧版の規則（ラウンドの頭で盤が止まり、置き終えて「次のラウンドへ」を押すと相手の手が公開されて R ティック走る）。
+     所属セルが 0 になるか、直近の窓で全セルが周期に落ちると敗退。
+     自陣（左／左上）は<strong>人間が操作するか、bot に任せるか</strong>を選べる（リアルタイム制では対戦の途中でも「bot に任せる／取り戻す」を切り替えられる）。
+     v1.1.1 で bot を B8〜B11 の 4 種類足した（規則は v1.1.0 のまま）。</p>
+  <p class="measured">事前登録した実験で測ったのはラウンド制（v1.0.0）。この画面の既定はリアルタイム制（v1.1.0）で、まだ測っていない。
+     <strong>この画面の対戦は標本にしない</strong>——事前登録した判定は bot 対 bot の走行（run.js）の生ログだけで行う。</p>
+</header>
+
+<div class="wrap">
+  <div class="box opbar" id="opBox">
+    <div class="opttl">自陣（<span id="opSeat">左</span>）を操作する</div>
+    <div class="opctl">
+      <span id="opNow" class="opnow">いま: -</span>
+      <button class="primary" id="handover" title="対戦の途中でも、自陣を bot に任せる／取り戻せる（リアルタイム制。走っている対戦を変えるのはこのボタンだけ）">bot に任せる</button>
+    </div>
+    <div class="opctl opset">
+      <span class="opk">次の対戦の設定</span>
+      <label><span class="k">操作者</span><select id="seat"><option value="human">人間</option><option value="spectate">bot</option></select></label>
+      <label><span class="k">bot の種類</span><select id="bot0"></select></label>
+    </div>
+    <div class="note" id="opNote"></div>
+  </div>
+  <div class="col">
+    <canvas id="board" width="800" height="480"></canvas>
+    <div class="legend" id="legend"></div>
+    <div class="banner" id="banner">「新しい対戦」で始まる</div>
+    <div class="box"><h2>公開された手と出来事</h2><div class="log" id="log"></div></div>
+  </div>
+
+  <aside>
+    <div class="box" id="turnBox">
+      <h2 id="turnTitle">あなたの配置</h2>
+      <table class="stat">
+        <tr><td>銀行（残高）</td><td><span class="num" id="bank" style="min-width:4ch">-</span></td></tr>
+        <tr><td id="lblCost">今回の配置（コスト）</td><td><span class="num" id="cost" style="min-width:4ch">-</span></td></tr>
+        <tr><td>置いた後の残り</td><td><span class="num" id="left" style="min-width:4ch">-</span></td></tr>
+        <tr><td>選んだ形のコスト</td><td><span class="num" id="patCost" style="min-width:4ch">-</span></td></tr>
+      </table>
+      <div class="row">
+        <button id="modePat" class="sel" title="棚の形をクリックで置く">パターン</button>
+        <button id="modeDraw" title="1 セルずつクリック（ドラッグ可）で置く・もう一度で外す">自由描画</button>
+        <button id="rot" title="90 度回す（キー r）">⟳ 回転</button>
+        <button id="flip" title="左右反転（キー f）">⇋ 反転</button>
+      </div>
+      <div class="shelf" id="shelf" style="margin-top:8px"></div>
+      <div class="row">
+        <button id="undo" title="積んだ最後のセルを戻す（まだ適用されていない分だけ）">1 つ戻す</button>
+        <button id="clear">全部消す</button>
+        <button class="primary" id="go">次のラウンドへ（置き終えた）</button>
+      </div>
+      <div class="msg" id="msg"></div>
+      <label><span class="k">速さ（ティック/秒）</span><input type="range" id="speed" min="1" max="60" value="10"><output class="num" id="speedOut" style="min-width:3ch">10</output></label>
+      <div class="row"><button id="pause">一時停止</button><button id="step" class="hide" title="一時停止中に 1 ティックだけ進める">1 ティック進める</button>
+        <button id="skip" title="このラウンドの残りを一気に進める">ラウンド末まで</button>
+        <label style="margin:0"><input type="checkbox" id="auto"> 自陣が bot のときは自動で進める</label></div>
+    </div>
+
+    <div class="box">
+      <h2>状態</h2>
+      <table class="stat" id="players"></table>
+      <table class="stat" style="margin-top:6px">
+        <tr><td id="lblA">ラウンド / 上限</td><td><span class="num" id="stRound" style="min-width:9ch">-</span></td></tr>
+        <tr><td id="lblB">ティック（ラウンド内 / 通算）</td><td><span class="num" id="stTick" style="min-width:9ch">-</span></td></tr>
+        <tr id="rowBot"><td>bot の次の判断まで</td><td><span class="num" id="stBot" style="min-width:9ch">-</span></td></tr>
+        <tr><td>初接触のティック</td><td><span class="num" id="stContact" style="min-width:7ch">-</span></td></tr>
+        <tr><td>中立のセル（4 人戦）</td><td><span class="num" id="stNeutral" style="min-width:5ch">-</span></td></tr>
+      </table>
+      <p class="note" id="winNote"></p>
+    </div>
+
+    <div class="box">
+      <h2>対戦の設定（変えたら「新しい対戦」）</h2>
+      <label><span class="k">規則</span><select id="rules"><option value="rt">リアルタイム（v1.1.0・既定。未測定）</option><option value="round">ラウンド制（v1.0.0・実験で測った版）</option></select></label>
+      <label><span class="k">人数</span><select id="mode"><option value="2p">2 人戦（左右）</option><option value="4p">4 人戦（四隅）</option></select></label>
+      <label><span class="k" id="lblBot1">相手 bot</span><select id="bot1"></select></label>
+      <label id="rowBot2"><span class="k">左下の bot</span><select id="bot2"></select></label>
+      <label id="rowBot3"><span class="k">右下の bot</span><select id="bot3"></select></label>
+      <label><span class="k">bot のシード</span><input type="number" id="seed" value="720101" min="0" step="1"></label>
+      <label><span class="k">盤の幅 × 高さ</span><input type="number" id="bw" min="40" max="400" step="4"><input type="number" id="bh" min="24" max="300" step="3"></label>
+      <label class="rtOnly"><span class="k">D（bot の判断の間隔）</span><input type="number" id="pD" min="1" max="600" step="1"></label>
+      <label class="rtOnly"><span class="k">回復の間隔（ティック）</span><input type="number" id="pRec" min="1" max="600" step="1"></label>
+      <label class="rtOnly"><span class="k">銀行の上限</span><input type="number" id="pBM" min="1" max="500" step="1"></label>
+      <label class="rtOnly"><span class="k">初期の銀行</span><input type="number" id="pBI" min="0" max="500" step="1"></label>
+      <label class="rtOnly"><span class="k">K（判定の間隔）</span><input type="number" id="pK" min="1" max="600" step="1"></label>
+      <label class="rtOnly"><span class="k">時間上限（ティック）</span><input type="number" id="pT" min="60" max="100000" step="60"></label>
+      <label class="roundOnly"><span class="k">R（ラウンドの tick）</span><input type="number" id="pR" min="10" max="600" step="1"></label>
+      <label class="roundOnly"><span class="k">B（毎ラウンドの予算）</span><input type="number" id="pB" min="1" max="200" step="1"></label>
+      <label class="roundOnly"><span class="k">C（繰り越しの上限）</span><input type="number" id="pC" min="1" max="500" step="1"></label>
+      <label><span class="k">W（窓の長さ）</span><input type="number" id="pW" min="2" max="600" step="1"></label>
+      <label><span class="k">P_max（周期の上限）</span><input type="number" id="pP" min="1" max="300" step="1"></label>
+      <label class="roundOnly"><span class="k">ラウンド上限</span><input type="number" id="pMax" min="1" max="200" step="1"></label>
+      <div class="row"><button class="primary" id="newgame">新しい対戦</button><button id="seedUp" title="シードを 1 増やす">シード +1</button><button id="reset">規則を既定値へ戻す</button></div>
+      <p class="note" id="rulesNote"></p>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="patterns.js"></script>
+<script src="core.js"></script>
+<script src="game.js"></script>
+<script src="bots.js"></script>
+<script src="bots-extra.js"></script>
+<script src="session.js"></script>
+<script src="realtime.js"></script>
+<script src="rtsession.js"></script>
+<script>
+(function () {
+  'use strict';
+  var P = window.S72Patterns, S = window.S72, Bots = window.S72Bots, Extra = window.S72BotsExtra, Sess = window.S72Session, RT = window.S72RT, RTSess = window.S72RTSession;
+  var COLORS = ['#000', '#5b9bff', '#ff6b6b', '#4ade80', '#fbbf24', '#9aa4b8'];
+  var SEAT_NAMES2 = ['左', '右'], SEAT_NAMES4 = ['左上', '右上', '左下', '右下'];
+  var DEFAULT_ROUND = { R: 120, B: 12, C: 60, maxRounds: 30 };                       // criteria.json system の値（ラウンド制 v1.0.0）
+  var DEFAULT_COMMON = { w: RT.DEFAULTS.w, h: RT.DEFAULTS.h, W: RT.DEFAULTS.W, Pmax: RT.DEFAULTS.Pmax };
+  var CLS_TEXT = { E: '最後の 1 人（相手の全滅）', P: '最後の 1 人（相手の周期化）', S: '同時敗退（セル数で決着）', C: 'ラウンド上限（セル数で決着）', D: '引き分け' };
+  var WHY = { 'delegated': '自陣は bot に任せている（「取り戻す」で置ける）', 'eliminated': 'あなたは敗退した', 'outside-zone': '自陣の外には置けない', 'on-live-cell': '生きたセルの上には置けない', 'already-pending': '既に置いてある', 'not-your-turn': '今は置けない', 'over-bank': '残高を超える', 'unknown-pattern': '不明な形' };
+  var NOTE_RT = '非周期 = 直近 W ティックの窓の間に所属したセルのうち、周期 P_max 以下で繰り返さないセルの数／所属したセルの数。K ティックごとに判定し、0 になると敗退' +
+    '（赤 = 0、黄 = 少ない）。窓が満ちる第 W ティックまでは、これまでの分での試算。置いた瞬間のセルの状態はワイルドカード（数えない）——孤立した 1 セルを時々置くだけでは延命できない。規則に従って動き続ける形（グライダーなど）は延命になる。';
+  var NOTE_ROUND = '非周期 = 窓（直近 W ティック）の間に所属したセルのうち、周期 P_max 以下で繰り返さないセルの数／所属したセルの数。ラウンド末に 0 だと敗退。';
+
+  function $(id) { return document.getElementById(id); }
+  var cv = $('board'), ctx = cv.getContext('2d');
+  var E = {};
+  ['rules', 'mode', 'seat', 'bot0', 'bot1', 'bot2', 'bot3', 'seed', 'bw', 'bh', 'pD', 'pRec', 'pBM', 'pBI', 'pK', 'pT', 'pR', 'pB', 'pC', 'pW', 'pP', 'pMax'].forEach(function (id) { E[id] = $(id); });
+
+  var st = { session: null, selId: 'glider', cur: [], drawMode: false, hover: null, paintOp: null, running: false, paused: false, marks: [],
+    cellPx: 5, log: [], logged: {}, rafId: 0, autoTimer: 0, settings: null, acc: 0, last: 0, live: null, liveGt: -1, liveAt: 0, nElims: 0 };
+
+  function isRT() { return !!st.settings && st.settings.rt; }
+
+  // ------------------------------------------------------------------ 設定
+  function fillBotSelects() {
+    ['bot0', 'bot1', 'bot2', 'bot3'].forEach(function (id, i) {
+      Extra.ALL_IDS.forEach(function (b) {
+        var o = document.createElement('option'); o.value = b; o.textContent = b + ' ' + Extra.ALL_NAMES[b]; E[id].appendChild(o);
+      });
+      E[id].value = ['B6', 'B7', 'B3', 'B5'][i];
+    });
+  }
+
+  function intOf(el, lo, hi, name) {
+    var v = Number(el.value);
+    if (el.value === '' || !isFinite(v) || Math.floor(v) !== v || v < lo || v > hi) return { error: name + ' は ' + lo + '〜' + hi + ' の整数' };
+    return { value: v };
+  }
+
+  /** 画面の入力 → 規則と対戦の設定。不正なら error を返す（システム境界での検証）。有効な規則の欄だけを検証する。 */
+  function parseSettings() {
+    var rt = E.rules.value !== 'round';
+    var fields = [['w', E.bw, 40, 400, '盤の幅'], ['h', E.bh, 24, 300, '盤の高さ'], ['W', E.pW, 2, 600, 'W'], ['Pmax', E.pP, 1, 300, 'P_max']];
+    fields = fields.concat(rt
+      ? [['D', E.pD, 1, 600, 'D'], ['recoverEvery', E.pRec, 1, 600, '回復の間隔'], ['bankMax', E.pBM, 1, 500, '銀行の上限'], ['bankInit', E.pBI, 0, 500, '初期の銀行'],
+        ['K', E.pK, 1, 600, 'K'], ['maxTicks', E.pT, 60, 100000, '時間上限']]
+      : [['R', E.pR, 10, 600, 'R'], ['B', E.pB, 1, 200, 'B'], ['C', E.pC, 1, 500, 'C'], ['maxRounds', E.pMax, 1, 200, 'ラウンド上限']]);
+    var rules = {}, err = null;
+    fields.forEach(function (f) { var r = intOf(f[1], f[2], f[3], f[4]); if (r.error) err = err || r.error; else rules[f[0]] = r.value; });
+    var seed = intOf(E.seed, 0, 4294967295, 'シード');
+    if (seed.error) err = err || seed.error;
+    if (err) return { error: err };
+    if (rules.W < 2 * rules.Pmax) return { error: 'W ≥ 2·P_max でなければならない（窓の中で 1 回だけ生きたセルを非周期にするため）' };
+    if (!rt && rules.W > rules.R) return { error: 'W は R 以下でなければならない' };
+    if (rt && rules.bankInit > rules.bankMax) return { error: '初期の銀行は銀行の上限以下でなければならない' };
+    var mode = E.mode.value === '4p' ? '4p' : '2p', byBot = E.seat.value === 'spectate';
+    var bots = mode === '4p' ? [E.bot0.value, E.bot1.value, E.bot2.value, E.bot3.value] : [E.bot0.value, E.bot1.value];
+    // リアルタイム制: 人間の席（左／左上）はいつも在り、bot に任せて始めるなら delegate（途中で取り戻せる）。ラウンド制: 開始時の選択だけ（bot なら席 0 も bot）
+    return { value: { rt: rt, mode: mode, human: (rt || !byBot) ? 0 : null, delegate: rt && byBot, bots: bots, seed: seed.value, rules: rules } };
+  }
+
+  /** 設定欄の見せ方（規則の選択に従う。走っている対戦とは別）。 */
+  function syncSettingsUI() {
+    var four = E.mode.value === '4p', rt = E.rules.value !== 'round';
+    $('rowBot2').classList.toggle('hide', !four);
+    $('rowBot3').classList.toggle('hide', !four);
+    $('lblBot1').textContent = four ? '右上の bot' : '相手 bot';
+    $('opSeat').textContent = four ? '左上' : '左';
+    [].forEach.call(document.querySelectorAll('.rtOnly'), function (e) { e.classList.toggle('hide', !rt); });
+    [].forEach.call(document.querySelectorAll('.roundOnly'), function (e) { e.classList.toggle('hide', rt); });
+    $('rulesNote').textContent = rt
+      ? '既定値: 盤 160×96・D=30・回復 10 ティックごとに 1・銀行の上限 60・初期の銀行 12・K=10・W=60・P_max=30・時間上限 3,600。W は 2·P_max 以上。'
+        + '最初の周期化の判定は窓が満ちる W ティック目。4 人戦は 1-1-1 の誕生が中立になり、敗退した席のセルは中立へ変わる。bot は盤と自分の残高だけを見る（あなたの待ち行列は見えない）。'
+      : '既定値は criteria.json の system（盤 160×96・R=120・B=12・C=60・W=60・P_max=30・ラウンド上限 30）。W は R 以下で W ≥ 2·P_max。'
+        + '4 人戦は 1-1-1 の誕生が中立になり、敗退した席のセルは中立へ変わる。相手の手はラウンドの頭の盤面だけを見て決まる（あなたの今回の手は見えない）。';
+  }
+
+  /** 走っている対戦の見せ方（ボタンの札・表の行）。 */
+  function syncGameUI() {
+    var rt = isRT();
+    $('turnTitle').textContent = rt ? 'あなたの配置（リアルタイム）' : 'あなたの手番';
+    $('lblCost').textContent = rt ? '待ち行列（次の境目に適用）' : '今回の配置（コスト）';
+    $('go').title = rt ? '最初の配置を置き終えた。相手の手が公開されて時間が動き出す' : '置き終えた。相手の手が公開されて R ティック走る';
+    $('skip').classList.toggle('hide', rt); $('step').classList.toggle('hide', !rt); $('rowBot').classList.toggle('hide', !rt);
+    $('lblA').textContent = rt ? '経過ティック / 上限' : 'ラウンド / 上限';
+    $('lblB').textContent = rt ? '次の周期化の判定まで' : 'ティック（ラウンド内 / 通算）';
+    $('winNote').textContent = rt ? NOTE_RT : NOTE_ROUND;
+    refreshOperator();
+  }
+
+  function seatName(p) { return (st.session.game.np === 4 ? SEAT_NAMES4 : SEAT_NAMES2)[p]; }
+
+  /** 自陣（席 0）を今、bot が操作しているか。リアルタイム制は任せている間、ラウンド制は開始時に bot を選んだとき。 */
+  function botSeat() { var s = st.session; return !!s && (isRT() ? s.delegated() : s.human === null); }
+
+  /**
+   * 自陣の操作者の表示（「いま」の行・ボタン・注記）を、走っている対戦に合わせる。
+   * 選択欄（seat・bot0）は**次の対戦の設定だけ**で、ここから書き戻さない（走行中の切り替えが次の対戦・Harness の封筒・ラウンド制へ漏れないように）。
+   * 走っている対戦を切り替える入口は「bot に任せる／取り戻す」のボタンだけ（リアルタイム制）。
+   */
+  function refreshOperator() {
+    var s = st.session, bar = $('handover'), now = $('opNow'), note = $('opNote');
+    if (!s) { bar.classList.add('hide'); now.textContent = 'いま: -'; note.textContent = ''; return; }
+    var name = Extra.displayName(s.labels[0].label), rt = isRT(), tail = ' 下の「次の対戦の設定」は「新しい対戦」から反映され、走っている対戦は変えない。';
+    bar.classList.toggle('hide', !rt);
+    if (rt) {
+      now.textContent = 'いま: ' + (!s.humanActive() ? '自陣は敗退した' : s.delegated() ? 'bot（' + name + '）が操作している' : '人間が操作している');
+      bar.textContent = s.delegated() ? '取り戻す' : 'bot に任せる';
+      bar.disabled = !(s.canDelegate() || s.canReclaim());
+      note.textContent = (s.delegated() ? 'bot が ' + s.game.cfg.D + ' ティックごとに判断する。人間は置けない。「取り戻す」で自分で置ける。'
+        : s.humanActive() ? 'いつでも「bot に任せる」でこの対戦の bot（' + name + '）に渡せる（予約中の配置は捨てる）。' : '') + tail;
+    } else {
+      now.textContent = 'いま: ' + (s.human === null ? 'bot（' + name + '）が操作している' : '人間が操作している');
+      note.textContent = 'ラウンド制では開始時の選択だけ（途中の切り替えは無い）。' + tail;
+    }
+    $('turnTitle').textContent = rt ? (s.delegated() ? '自陣は bot に任せ中（置けない）' : 'あなたの配置（リアルタイム）') : 'あなたの手番';
+  }
+
+  /** 自陣を bot に任せる／取り戻す（リアルタイム制の走行中・開始前）。入口は「bot に任せる／取り戻す」のボタンだけ。 */
+  function applyOperator(toBot) {
+    var s = st.session;
+    if (!s || !isRT() || s.human === null) return;
+    clearTimeout(st.autoTimer); // 前の自動開始の予約は、操作者が変わったら取り消す（発火時の操作者で開始してしまわないように）
+    var when = s.isOpening() ? '開始前' : 't=' + s.game.gt, r;
+    if (toBot) {
+      r = s.delegate();
+      if (!r.ok) { refresh(); return; }
+      logLine(when + ' 自陣を bot（' + Extra.displayName(s.seatBot()) + '）に任せた' + (r.dropped ? '。予約していた配置 ' + r.dropped + ' セルは捨てた' : ''));
+    } else {
+      r = s.reclaim();
+      if (!r.ok) { refresh(); return; }
+      logLine(when + ' 自陣を取り戻した（以後は人間が置ける）');
+    }
+    st.hover = null; say(''); buildLegend(); refresh();
+    if (toBot && s.isOpening() && $('auto').checked) scheduleAutoStart();
+  }
+
+  /** 自陣が bot のときの自動開始（開始前だけ）。発火時にもう一度、bot が操作していて一時停止でないことを確かめる。 */
+  function scheduleAutoStart() {
+    clearTimeout(st.autoTimer);
+    st.autoTimer = setTimeout(function () { if (botSeat() && !st.paused) startOpening(); }, 50);
+  }
+
+  // ------------------------------------------------------------------ 対戦の開始
+  function newGame() {
+    var parsed = parseSettings();
+    // 設定が不正なら、走っている対戦は止めずにそのまま残す
+    if (parsed.error) { Harness.say(parsed.error, true); $('banner').textContent = '設定が不正: ' + parsed.error; $('banner').className = 'banner over'; return; }
+    var session = (parsed.value.rt ? RTSess : Sess).create(parsed.value);
+    stopLoop();
+    st.settings = parsed.value;
+    st.session = session;
+    st.paused = false; $('pause').textContent = '一時停止';
+    st.marks = []; st.log = []; st.logged = {}; st.hover = null; st.live = null; st.liveGt = -1; st.nElims = 0;
+    st.cellPx = Math.max(2, Math.floor(1000 / st.session.game.cfg.w));
+    cv.width = st.session.game.cfg.w * st.cellPx; cv.height = st.session.game.cfg.h * st.cellPx;
+    logLine('対戦を始めた: ' + (st.settings.rt ? 'リアルタイム制 v1.1.0（まだ測っていない）' : 'ラウンド制 v1.0.0（実験で測った版）') + '・' + (st.settings.mode === '4p' ? '4 人戦' : '2 人戦') + '・' +
+      '自陣（' + seatName(0) + '）は' + (botSeat() ? 'bot（' + Extra.displayName(session.labels[0].label) + '）が操作' : '人間が操作') + '・シード ' + st.settings.seed + '・盤 ' + st.settings.rules.w + '×' + st.settings.rules.h);
+    buildLegend(); setPattern(st.selId); syncGameUI(); refresh();
+    // パラメータの読み込み後は Harness が一時停止にする（2026-09-15 ユーザ規則）。自動開始はその停止を上書きしない
+    if (st.settings.rt && botSeat() && $('auto').checked) scheduleAutoStart();
+  }
+
+  function buildLegend() {
+    var g = st.session.game, h = '';
+    for (var p = 0; p < g.np; p++) h += '<span><span class="sw" style="background:' + COLORS[p + 1] + '"></span>' + seatName(p) + '（' + who(p) + '）</span>';
+    h += '<span><span class="sw" style="background:' + COLORS[5] + '"></span>中立</span><span>薄い帯 = 自陣</span>';
+    $('legend').innerHTML = h;
+  }
+
+  /** 席の操作者の名前。人間が操作している自陣は「あなた」、bot は「B9 小さく頻繁」の形（bot に任せている自陣も bot の名前）。 */
+  function who(p) {
+    var s = st.session;
+    if (p === s.human && !(isRT() && s.delegated())) return 'あなた';
+    return Extra.displayName(s.labels[p].label);
+  }
+
+  // ------------------------------------------------------------------ 形の棚と向き
+  function norm(cells) {
+    var mx = Infinity, my = Infinity;
+    cells.forEach(function (c) { if (c[0] < mx) mx = c[0]; if (c[1] < my) my = c[1]; });
+    return cells.map(function (c) { return [c[0] - mx, c[1] - my]; });
+  }
+  function rot90(cells) { return norm(cells.map(function (c) { return [-c[1], c[0]]; })); }
+  function mirror(cells) { return norm(cells.map(function (c) { return [-c[0], c[1]]; })); }
+
+  function setPattern(id) {
+    st.selId = id; st.cur = P.orient(P.BY_ID[id].cells, 0);
+    [].forEach.call($('shelf').children, function (b) { b.classList.toggle('sel', b.getAttribute('data-id') === id); });
+    updateCosts();
+  }
+
+  function buildShelf() {
+    var shelf = $('shelf');
+    P.SHELF.forEach(function (p) {
+      var b = document.createElement('button'), c = document.createElement('canvas');
+      b.setAttribute('data-id', p.id); b.title = p.name + '（コスト ' + p.cost + '）';
+      var bb = P.bbox(p.cells), k = Math.max(1, Math.min(Math.floor(44 / bb.w), Math.floor(30 / bb.h), 6));
+      c.width = 44; c.height = 30;
+      var x = c.getContext('2d'); x.fillStyle = '#d8dee9';
+      p.cells.forEach(function (q) { x.fillRect(Math.floor((44 - bb.w * k) / 2) + (q[0] - bb.x0) * k, Math.floor((30 - bb.h * k) / 2) + (q[1] - bb.y0) * k, k, k); });
+      var t = document.createElement('span'); t.textContent = p.name.replace('Gosper glider gun', '銃') + ' ' + p.cost;
+      b.appendChild(c); b.appendChild(t);
+      b.onclick = function () { st.drawMode = false; setMode(); setPattern(p.id); };
+      shelf.appendChild(b);
+    });
+  }
+
+  function setMode() {
+    $('modePat').classList.toggle('sel', !st.drawMode); $('modeDraw').classList.toggle('sel', st.drawMode);
+    cv.style.touchAction = st.drawMode ? 'none' : 'manipulation';
+    updateCosts();
+  }
+
+  // ------------------------------------------------------------------ 置く
+  /** 今、人間が置けるか。リアルタイム制では開始時の配置・走行中・一時停止中のいつでも。ラウンド制ではラウンドの頭だけ。 */
+  function humanTurn() { return !!st.session && (isRT() ? st.session.canPlace() : (st.session.isHumanTurn() && !st.running)); }
+
+  function say(m, bad) { var e = $('msg'); e.textContent = m || ''; e.style.color = bad ? 'var(--bad)' : 'var(--warn)'; }
+
+  function report(r, okText) {
+    if (r.ok) { say(okText || ''); return; }
+    var why = WHY[r.reason] || r.reason;
+    say('置けない: ' + why + (r.reason === 'over-bank' ? '（' + r.cost + ' > ' + r.bank + '）' : ''), true);
+  }
+
+  function cellFromEvent(ev) {
+    var r = cv.getBoundingClientRect(), g = st.session.game.cfg;
+    var x = Math.floor((ev.clientX - r.left) * (cv.width / r.width) / st.cellPx), y = Math.floor((ev.clientY - r.top) * (cv.height / r.height) / st.cellPx);
+    return (x < 0 || y < 0 || x >= g.w || y >= g.h) ? null : [x, y];
+  }
+
+  function stampAt(h) {
+    var bb = P.bbox(st.cur), ox = h[0] - Math.floor(bb.w / 2), oy = h[1] - Math.floor(bb.h / 2);
+    return st.cur.map(function (c) { return [ox + c[0], oy + c[1]]; });
+  }
+
+  function onDown(ev) {
+    if (st.session && isRT() && st.session.delegated() && st.session.humanActive() && !st.session.isOver()) { say('自陣は bot に任せている。置くには「取り戻す」を押す', true); return; }
+    if (!st.session || !humanTurn()) return;
+    var h = cellFromEvent(ev); if (!h) return;
+    ev.preventDefault();
+    if (st.drawMode) {
+      var had = st.session.pending().some(function (c) { return c[0] === h[0] && c[1] === h[1]; });
+      st.paintOp = had ? 'erase' : 'add'; paint(h);
+      try { cv.setPointerCapture(ev.pointerId); } catch (e) { /* 捕捉できなくても描画は続けられる */ }
+    } else {
+      report(st.session.addCells(stampAt(h)), isRT() && !st.session.isOpening() ? '予約した（次のティックの境目に適用）' : '置いた');
+    }
+    updateCosts(); draw();
+  }
+
+  function paint(h) {
+    var pend = st.session.pending().some(function (c) { return c[0] === h[0] && c[1] === h[1]; });
+    if (st.paintOp === 'erase' && pend) st.session.toggle(h[0], h[1]);
+    else if (st.paintOp === 'add' && !pend) report(st.session.toggle(h[0], h[1]), '');
+  }
+
+  function onMove(ev) {
+    if (!st.session) return;
+    st.hover = cellFromEvent(ev);
+    if (st.paintOp && st.hover && humanTurn()) { paint(st.hover); updateCosts(); }
+    draw();
+  }
+
+  function onUp() { st.paintOp = null; }
+
+  // ------------------------------------------------------------------ 進行（共通）
+  function addMarks(placed, until) {
+    placed.forEach(function (cells, seat) { cells.forEach(function (c) { st.marks.push([c[0], c[1], seat, until]); }); });
+    st.marks = st.marks.filter(function (m) { return m[3] > st.session.game.gt; });
+  }
+
+  function logNewElims() {
+    var g = st.session.game;
+    for (; st.nElims < g.elims.length; st.nElims++) {
+      var e = g.elims[st.nElims];
+      logLine('敗退: ' + seatName(e.seat) + '（' + who(e.seat) + '）— ' + (e.cause === 'E' ? '全滅' : '周期化') + '（通算ティック ' + e.gt + '）');
+    }
+  }
+
+  function describe(reveal) {
+    return reveal.filter(function (r) { return r.who !== 'eliminated'; }).map(function (r) {
+      return seatName(r.seat) + '（' + (r.who === 'human' ? 'あなた' : Extra.displayName(r.who)) + '）: ' + (r.placed && r.placed.length ? r.names.join('+') + ' ' + r.placed.length + ' セル' : '置かなかった');
+    }).join(' ／ ');
+  }
+
+  function stopLoop() { st.running = false; cancelAnimationFrame(st.rafId); clearTimeout(st.autoTimer); }
+
+  // ------------------------------------------------------------------ 進行（ラウンド制 v1.0.0）
+  function startRound() {
+    if (!st.session || st.session.isOver() || st.running) return;
+    var s = st.session;
+    if (!s.canAdvance()) return;
+    var reveal = s.commit();
+    st.marks = []; reveal.forEach(function (r) { r.placed.forEach(function (c) { st.marks.push([c[0], c[1], r.seat, s.game.gt + 30]); }); });
+    logLine('ラウンド ' + s.game.round + ' の手 — ' + describe(reveal));
+    say(''); st.running = true; st.paused = false; $('pause').textContent = '一時停止';
+    loop(); refresh();
+  }
+
+  function stepFrame(n) {
+    var s = st.session, roundEnded = false, i;
+    for (i = 0; i < n && !roundEnded && s.isRunning(); i++) {
+      var r = s.tick(); roundEnded = r.roundEnded || s.isOver();
+      if (s.isOver()) break;
+    }
+    return roundEnded || s.isOver() || !s.isRunning();
+  }
+
+  /** 速さ（ティック/秒）で進める。一時停止中は進めない。 */
+  function loop() {
+    cancelAnimationFrame(st.rafId);
+    st.last = performance.now(); st.acc = 0;
+    st.rafId = requestAnimationFrame(function frame(now) {
+      if (!st.running) return;
+      var dt = Math.min(250, now - st.last); st.last = now;
+      if (!st.paused) {
+        st.acc += dt * Number($('speed').value) / 1000;
+        var n = Math.floor(st.acc); st.acc -= n;
+        if (n > 0) {
+          var done = isRT() ? stepRT(n) : stepFrame(n);
+          refresh();
+          if (done) { isRT() ? endGame() : endRound(); return; }
+        }
+      }
+      st.rafId = requestAnimationFrame(frame);
+    });
+  }
+
+  function endRound() {
+    var s = st.session, info = s.info();
+    st.running = false;
+    info.players.forEach(function (p) {
+      if (!p.active && p.elimGt !== null && !st.logged[p.seat]) {
+        st.logged[p.seat] = true;
+        logLine('敗退: ' + seatName(p.seat) + '（' + who(p.seat) + '）— ' + (p.elimCause === 'E' ? '全滅' : '周期化') + '（通算ティック ' + p.elimGt + '）');
+      }
+    });
+    if (s.isOver()) logLine('終局: ' + resultText(info.result));
+    refresh();
+    if (!s.isOver() && !s.humanActive() && $('auto').checked) st.autoTimer = setTimeout(startRound, 350);
+  }
+
+  function skipRound() {
+    if (!st.running || isRT()) return;
+    var guard = 100000; while (!stepFrame(500) && guard-- > 0);
+    endRound();
+  }
+
+  // ------------------------------------------------------------------ 進行（リアルタイム制 v1.1.0）
+  /** 開始時の配置を確定して時間を動かす。ここで初めて bot の手が公開される。 */
+  function startOpening() {
+    var s = st.session;
+    if (!s || !isRT() || st.running || !s.isOpening()) return;
+    // 人間が操作している席の開始時の配置が空なら開始しない（開始と同時に全滅する。ボタンの無効化だけに頼らず、どの経路でもここで止める）
+    if (s.canPlace() && s.cost() === 0) { say('最初の種を 1 セル以上置いてから開始する（置かないと開始と同時に全滅する）', true); return; }
+    var reveal = s.start();
+    addMarks(reveal.map(function (r) { return r.placed || []; }), s.game.gt + 20);
+    logLine('開始時の配置 — ' + describe(reveal));
+    logNewElims(); say('');
+    st.running = true;
+    if (s.isOver()) { endGame(); return; }
+    loop(); refresh();
+  }
+
+  /** n ティック進める。終局か、これ以上進められなければ true。 */
+  function stepRT(n) {
+    var s = st.session, g = s.game;
+    for (var i = 0; i < n; i++) {
+      var r = s.advance();
+      if (!r.ticked) return true;
+      if (r.placed) addMarks(r.placed, g.gt + 15);
+      if (r.reveal) {
+        var line = describe(r.reveal.filter(function (x) { return x.who !== 'human' && x.placed && x.placed.length; }));
+        if (line) logLine('t=' + g.gt + ' ' + line);
+      }
+      if (r.dropped) logLine('t=' + g.gt + ' 予約していた配置 ' + r.dropped + ' セルは、適用の前に敗退したため捨てた（敗退の判定は配置の適用より先）');
+      r.rejects.forEach(function (j) { if (j[1] === s.human && !s.delegated()) logLine('t=' + g.gt + ' あなたの配置を却下/一部無効: ' + (j[2] === 'over-bank' ? '残高超過' : '適用の時点で生きたセル・自陣の外のセルを除いた') + '（依頼 ' + j[3] + ' セル）'); });
+      logNewElims();
+      if (r.done) return true;
+    }
+    return false;
+  }
+
+  function endGame() {
+    var s = st.session;
+    st.running = false;
+    logNewElims();
+    logLine('終局: ' + resultText(s.info().result));
+    refresh();
+  }
+
+  // ------------------------------------------------------------------ 表示
+  function logLine(t) {
+    st.log.push(t); if (st.log.length > 60) st.log.shift();
+    var el = $('log'); el.textContent = st.log.join('\n'); el.scrollTop = el.scrollHeight;
+  }
+
+  function resultText(r) {
+    if (!r) return '';
+    var names = r.winners.map(function (w) { return seatName(w.seat) + '（' + who(w.seat) + '）' + (w.share < 1 ? ' ' + w.share.toFixed(2) + ' 勝' : ''); });
+    var how = (isRT() && r.cls === 'C') ? '時間上限（セル数で決着）' : CLS_TEXT[r.cls];
+    return (r.cls === 'D' ? '引き分け — ' : '勝者: ') + names.join('・') + ' — 決まり方: ' + how + '（通算 ' + r.gt + ' ティック' + (isRT() ? '' : '・ラウンド ' + r.rounds) + '）';
+  }
+
+  function updateCosts() {
+    var s = st.session; if (!s) return;
+    var bank = s.bank(), cost = s.cost();
+    var pc = st.drawMode ? 1 : st.cur.length;
+    Harness.num('bank', s.human === null ? '-' : bank, 4); Harness.num('cost', s.human === null ? '-' : cost, 4);
+    Harness.num('left', s.human === null ? '-' : bank - cost, 4); Harness.num('patCost', pc, 4);
+    [].forEach.call($('shelf').children, function (b) {
+      var pat = P.BY_ID[b.getAttribute('data-id')];
+      b.classList.toggle('dim', s.humanActive() && pat.cost > bank - cost);
+    });
+    updateGo(s);
+  }
+
+  /** 「開始」「次のラウンドへ」の札と押せるか。待ち行列の増減のたびに呼ぶ（リアルタイム制では最初の種が 1 セル以上要る）。 */
+  function updateGo(s) {
+    if (isRT()) {
+      var empty = s.canPlace() && s.cost() === 0;
+      $('go').textContent = s.delegated() ? '開始（自陣の最初の配置は bot が置く）' : '開始（最初の配置を置き終えた）';
+      $('go').disabled = !s.isOpening() || empty;
+      $('go').title = empty ? '最初の種を 1 セル以上置く（置かないと開始と同時に全滅する）' : '最初の配置を置き終えた。相手の手が公開されて時間が動き出す';
+    } else {
+      $('go').textContent = '次のラウンドへ（置き終えた）';
+      $('go').disabled = s.isOver() || st.running || !s.canAdvance();
+    }
+  }
+
+  /** リアルタイム制の窓の試算。走行中は 120ms に 1 回まで（判定そのものは K ティックごと）。 */
+  function liveRT() {
+    var g = st.session.game, now = performance.now();
+    if (st.live !== null && (st.liveGt === g.gt || (st.running && !st.paused && now - st.liveAt < 120))) return st.live;
+    st.live = st.session.liveWindow(); st.liveGt = g.gt; st.liveAt = now;
+    return st.live;
+  }
+
+  function npCell(np, ow, active) {
+    if (np === undefined) return '-';
+    var col = !active ? 'var(--dim)' : (np === 0 && ow > 0) ? 'var(--bad)' : np <= 8 ? 'var(--warn)' : 'var(--fg)';
+    return '<span style="color:' + col + (np === 0 && ow > 0 && active ? ';font-weight:700' : '') + '">' + np + '/' + ow + '</span>';
+  }
+
+  function playersRT(info) {
+    var g = st.session.game, live = liveRT(), h = '<tr><th>席</th><th>セル</th><th>非周期</th><th>状態</th></tr>';
+    for (var p = 0; p < g.np; p++) {
+      var pl = info.players[p], status = pl.active ? '参戦中' : '敗退 ' + (pl.elimCause === 'E' ? '全滅' : '周期化') + ' t=' + pl.elimGt;
+      h += '<tr><td><span class="sw" style="background:' + COLORS[p + 1] + '"></span>' + seatName(p) + '（' + who(p) + '）</td><td>' + info.counts[p] +
+        '</td><td>' + (live ? npCell(live.np[p], live.ow[p], pl.active) : '-') + '</td><td>' + status + '</td></tr>';
+      h += '<tr class="bk"><td colspan="4"><div class="gtxt"><span>銀行 ' + pl.bank + ' / ' + info.bankMax + '</span><span>' + (pl.active ? (pl.bank >= info.bankMax ? '上限（回復は捨てられる）' : '次の回復まで ' + info.nextRecoverIn) : '') + '</span></div>' +
+        '<div class="gauge"><i style="width:' + Math.round(100 * pl.bank / info.bankMax) + '%;background:' + COLORS[p + 1] + '"></i></div>' +
+        '<div class="gauge2"><i style="width:' + Math.round(100 * (info.recoverEvery - info.nextRecoverIn) / info.recoverEvery) + '%"></i></div></td></tr>';
+    }
+    return h;
+  }
+
+  function playersRound(info) {
+    var s = st.session, g = s.game, h = '<tr><th>席</th><th>セル</th><th>非周期</th><th>状態</th></tr>';
+    var live = g.k >= g.cfg.W && s.isRunning() ? s.liveWindow() : null;
+    for (var p = 0; p < g.np; p++) {
+      var pl = info.players[p], status = pl.active ? '参戦中' : '敗退 ' + (pl.elimCause === 'E' ? '全滅' : '周期化') + ' t=' + pl.elimGt;
+      var win = live ? live.np[p] + '/' + live.owned[p] : (info.lastWindow ? info.lastWindow.np[p] + '/' + info.lastWindow.owned[p] : '-');
+      h += '<tr><td><span class="sw" style="background:' + COLORS[p + 1] + '"></span>' + seatName(p) + '（' + who(p) + '）</td><td>' + info.counts[p] + '</td><td>' + win + '</td><td>' + status + '</td></tr>';
+    }
+    return h;
+  }
+
+  function bannerRT(info, s) {
+    var b = $('banner');
+    if (s.isOver()) { b.className = 'banner over'; b.textContent = '終局 — ' + resultText(info.result); }
+    else if (s.isOpening()) {
+      b.className = 'banner turn';
+      b.textContent = s.canPlace()
+        ? '開始時の配置: 盤は止まっている。自陣（薄い帯）の死んだセルへ、残高 ' + s.bank() + ' までで最初の種を置く（相手の手はまだ見えない）。' +
+          'ヒント: ' + info.W + ' ティック目に最初の周期化の判定があり、動き続ける形が無いと敗退する。置き終えたら「開始」。'
+        : '自陣は bot（' + who(0) + '）が操作する: 「開始」で全員の最初の配置が同時に公開されて時間が動き出す（「取り戻す」で自分で置ける）。';
+    } else if (st.paused) { b.className = 'banner turn'; b.textContent = '一時停止中（t = ' + info.gt + '）。' + (s.delegated() ? '自陣は bot に任せている。' : '置いた分は再開後の最初のティックの境目に適用される。'); }
+    else if (!s.humanActive()) { b.className = 'banner'; b.textContent = '自陣は敗退した（観戦を続ける）。t = ' + info.gt + ' / ' + info.maxTicks; }
+    else if (s.delegated()) { b.className = 'banner turn'; b.textContent = 'リアルタイム進行中（t = ' + info.gt + ' / ' + info.maxTicks + '）。自陣は bot（' + who(0) + '）に任せている。「取り戻す」で自分で置ける。'; }
+    else { b.className = 'banner turn'; b.textContent = 'リアルタイム進行中（t = ' + info.gt + ' / ' + info.maxTicks + '）。クリックで置いた分は次のティックの境目に適用される。'; }
+  }
+
+  function bannerRound(info, s) {
+    var b = $('banner');
+    if (s.isOver()) { b.className = 'banner over'; b.textContent = '終局 — ' + resultText(info.result); }
+    else if (st.running) { b.className = 'banner'; b.textContent = 'ラウンド ' + info.round + ' を実行中（' + info.k + ' / ' + info.R + ' ティック）'; }
+    else if (!s.humanActive()) { b.className = 'banner turn'; b.textContent = (s.human === null ? '自陣は bot が操作' : 'あなたは敗退した（観戦を続ける）') + ': ラウンド ' + info.round + ' の頭。「次のラウンドへ」で残りの bot が同時に置く（または自動で進める）'; }
+    else { b.className = 'banner turn'; b.textContent = 'あなたの手番: ラウンド ' + info.round + ' の頭（盤は止まっている）。自陣（薄い帯）の死んだセルへ、残高 ' + s.bank() + ' までで置く。相手の手はまだ見えない。'; }
+  }
+
+  function refresh() {
+    var s = st.session; if (!s) return;
+    var rt = isRT(), info = s.info(), g = s.game;
+    $('players').innerHTML = rt ? playersRT(info) : playersRound(info);
+    if (rt) {
+      $('stRound').textContent = info.gt + ' / ' + info.maxTicks;
+      $('stTick').textContent = info.phase === 'opening' ? '（開始前）' : s.isOver() ? '-' : info.nextJudgeIn + ' ティック（K=' + info.K + '）';
+      $('stBot').textContent = info.phase === 'opening' ? '（開始時に判断）' : s.isOver() ? '-' : info.nextBotIn + ' ティック（D=' + info.D + '）';
+    } else {
+      $('stRound').textContent = info.round + ' / ' + info.maxRounds;
+      $('stTick').textContent = info.k + ' / ' + info.gt;
+    }
+    $('stContact').textContent = info.firstContact === null ? 'まだ' : info.firstContact;
+    $('stNeutral').textContent = g.cfg.mode === '4p' ? g.sims[0].cur.counts[S.NEUTRAL] : '-';
+    if (rt) bannerRT(info, s); else bannerRound(info, s);
+    if (rt) $('step').disabled = !(st.running && st.paused && !s.isOver());
+    ['undo', 'clear', 'rot', 'flip'].forEach(function (id) { $(id).disabled = !humanTurn(); });
+    refreshOperator();
+    updateCosts(); draw();
+  }
+
+  function zoneBands() {
+    var g = st.session.game, cp = st.cellPx;
+    for (var p = 0; p < g.np; p++) {
+      var z = g.zones[p];
+      ctx.fillStyle = hexA(COLORS[p + 1], p === st.session.human ? 0.16 : 0.07);
+      ctx.fillRect(z.x0 * cp, z.y0 * cp, (z.x1 - z.x0 + 1) * cp, (z.y1 - z.y0 + 1) * cp);
+      if (p === st.session.human) { ctx.strokeStyle = hexA(COLORS[p + 1], 0.55); ctx.lineWidth = 1; ctx.strokeRect(z.x0 * cp + 0.5, z.y0 * cp + 0.5, (z.x1 - z.x0 + 1) * cp - 1, (z.y1 - z.y0 + 1) * cp - 1); }
+    }
+  }
+
+  function hexA(hex, a) {
+    var n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+
+  function draw() {
+    var s = st.session; if (!s) return;
+    var g = s.game, cp = st.cellPx, L = g.sims[0].cur, sw = g.sims[0].sw;
+    ctx.fillStyle = '#05070b'; ctx.fillRect(0, 0, cv.width, cv.height);
+    zoneBands();
+    for (var y = L.yMin; y <= L.yMax; y++) {
+      if (L.rowMax[y] < 0) continue;
+      var base = (y + 1) * sw + 1;
+      for (var x = L.rowMin[y]; x <= L.rowMax[y]; x++) {
+        var t = L.tag[base + x];
+        if (t) { ctx.fillStyle = COLORS[t]; ctx.fillRect(x * cp, y * cp, cp - (cp > 3 ? 1 : 0), cp - (cp > 3 ? 1 : 0)); }
+      }
+    }
+    ctx.lineWidth = 1; ctx.strokeStyle = '#ffffff';
+    st.marks.forEach(function (m) { if (m[3] > g.gt) ctx.strokeRect(m[0] * cp - 0.5, m[1] * cp - 0.5, cp + 1, cp + 1); });
+    drawPending(cp);
+  }
+
+  function drawPending(cp) {
+    var s = st.session; if (s.human === null || !humanTurn()) return;
+    ctx.fillStyle = hexA(COLORS[s.human + 1], 0.55);
+    s.pending().forEach(function (c) { ctx.fillRect(c[0] * cp, c[1] * cp, cp, cp); });
+    if (!st.hover) return;
+    var cells = st.drawMode ? [st.hover] : stampAt(st.hover), r = s.test(cells);
+    ctx.fillStyle = r.ok ? 'rgba(74,222,128,0.5)' : 'rgba(255,107,107,0.45)';
+    cells.forEach(function (c) { ctx.fillRect(c[0] * cp, c[1] * cp, cp, cp); });
+  }
+
+  // ------------------------------------------------------------------ 規則の既定値・広さ・パラメータ
+  function applyDefaults() {
+    E.bw.value = DEFAULT_COMMON.w; E.bh.value = DEFAULT_COMMON.h; E.pW.value = DEFAULT_COMMON.W; E.pP.value = DEFAULT_COMMON.Pmax;
+    E.pD.value = RT.DEFAULTS.D; E.pRec.value = RT.DEFAULTS.recoverEvery; E.pBM.value = RT.DEFAULTS.bankMax; E.pBI.value = RT.DEFAULTS.bankInit;
+    E.pK.value = RT.DEFAULTS.K; E.pT.value = RT.DEFAULTS.maxTicks;
+    E.pR.value = DEFAULT_ROUND.R; E.pB.value = DEFAULT_ROUND.B; E.pC.value = DEFAULT_ROUND.C; E.pMax.value = DEFAULT_ROUND.maxRounds;
+  }
+
+  function resize(scale) {
+    E.bw.value = Math.max(40, Math.round(DEFAULT_COMMON.w * scale / 4) * 4);
+    E.bh.value = Math.max(24, Math.round(DEFAULT_COMMON.h * scale / 3) * 3);
+    newGame();
+    Harness.say('盤を ' + E.bw.value + '×' + E.bh.value + ' にして新しい対戦を始めた');
+  }
+
+  // ------------------------------------------------------------------ 配線
+  applyDefaults(); fillBotSelects(); buildShelf(); syncSettingsUI();
+  cv.addEventListener('pointerdown', onDown); cv.addEventListener('pointermove', onMove);
+  cv.addEventListener('pointerup', onUp); cv.addEventListener('pointercancel', onUp);
+  cv.addEventListener('pointerleave', function () { st.hover = null; st.paintOp = null; draw(); });
+  $('modePat').onclick = function () { st.drawMode = false; setMode(); draw(); };
+  $('modeDraw').onclick = function () { st.drawMode = true; setMode(); draw(); };
+  $('rot').onclick = function () { st.cur = rot90(st.cur); draw(); };
+  $('flip').onclick = function () { st.cur = mirror(st.cur); draw(); };
+  $('undo').onclick = function () { if (st.session) { st.session.removeLast(); say(''); refresh(); } };
+  $('clear').onclick = function () { if (st.session) { st.session.clearPending(); say(''); refresh(); } };
+  $('go').onclick = function () {
+    if (!isRT()) { startRound(); return; }
+    st.paused = false; $('pause').textContent = '一時停止';
+    startOpening();
+  };
+  $('pause').onclick = function () {
+    st.paused = !st.paused; $('pause').textContent = st.paused ? '再開' : '一時停止';
+    // 観戦の開始時の配置で止まっていたなら、再開で走り出す
+    if (!st.paused && isRT() && !st.running && st.session && st.session.isOpening() && botSeat()) startOpening();
+    refresh();
+  };
+  $('step').onclick = function () { if (st.running && st.paused) { var done = stepRT(1); refresh(); if (done) endGame(); } };
+  $('skip').onclick = skipRound;
+  $('speed').oninput = function () { Harness.num('speedOut', $('speed').value, 3); };
+  $('newgame').onclick = newGame;
+  $('seedUp').onclick = function () { E.seed.value = Number(E.seed.value) + 1; newGame(); };
+  $('reset').onclick = function () { applyDefaults(); };
+  E.mode.onchange = syncSettingsUI; E.rules.onchange = syncSettingsUI;
+  // 選択欄（操作者・bot の種類）は次の対戦の設定だけ。走っている対戦には作用しない（Harness の復元が発火する合成の change も含む）。切り替えはボタンだけ
+  E.seat.onchange = function () { refreshOperator(); };
+  $('handover').onclick = function () { var s = st.session; if (s && isRT()) applyOperator(!s.delegated()); };
+  document.addEventListener('keydown', function (ev) {
+    if (/INPUT|SELECT|TEXTAREA/.test(ev.target.tagName)) return;
+    if (ev.key === 'r') { st.cur = rot90(st.cur); draw(); } else if (ev.key === 'f') { st.cur = mirror(st.cur); draw(); }
+    else if (ev.key === 'z' && st.session) { st.session.removeLast(); refresh(); }
+  });
+
+  Harness.mount({
+    id: 'S-72', version: '1.1.1',
+    inputs: ['rules', 'mode', 'seat', 'bot0', 'bot1', 'bot2', 'bot3', 'seed', 'bw', 'bh', 'pD', 'pRec', 'pBM', 'pBI', 'pK', 'pT', 'pR', 'pB', 'pC', 'pW', 'pP', 'pMax'],
+    canvases: ['board'],
+    resize: resize,
+    pause: function () { st.paused = true; $('pause').textContent = '再開'; },
+    onRestore: function () { syncSettingsUI(); newGame(); },
+    paramNames: {
+      rules: { category: 'p', code: 'rules', full: 'rule_set' },
+      mode: { category: 's', code: 'mode', full: 'mode' }, seat: { category: 's', code: 'seat', full: 'seat' },
+      bot0: { category: 's', code: 'b0', full: 'bot_left' }, bot1: { category: 's', code: 'b1', full: 'bot_1' },
+      bot2: { category: 's', code: 'b2', full: 'bot_2' }, bot3: { category: 's', code: 'b3', full: 'bot_3' },
+      seed: { category: 's', code: 'seed', full: 'seed' }, bw: { category: 's', code: 'w', full: 'board_w' }, bh: { category: 's', code: 'h', full: 'board_h' },
+      pD: { category: 'p', code: 'D', full: 'bot_interval' }, pRec: { category: 'p', code: 'rec', full: 'recover_every' }, pBM: { category: 'p', code: 'bmax', full: 'bank_max' },
+      pBI: { category: 'p', code: 'binit', full: 'bank_init' }, pK: { category: 'p', code: 'K', full: 'judge_every' }, pT: { category: 'p', code: 'ticks', full: 'max_ticks' },
+      pR: { category: 'p', code: 'R', full: 'round_ticks' }, pB: { category: 'p', code: 'B', full: 'budget' }, pC: { category: 'p', code: 'C', full: 'carry_cap' },
+      pW: { category: 'p', code: 'W', full: 'window' }, pP: { category: 'p', code: 'P', full: 'period_max' }, pMax: { category: 'p', code: 'rounds', full: 'max_rounds' },
+    },
+  });
+  if (!st.session) newGame();
+  setMode();
+})();
+</script>
+</body>
+</html>

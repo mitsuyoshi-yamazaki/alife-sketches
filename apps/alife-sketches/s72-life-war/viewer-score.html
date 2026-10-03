@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S-72 ライフゲーム戦争（得点制）</title>
+<style>
+  :root{ --bg:#0c0f14; --panel:#151a22; --line:#262d39; --fg:#d8dee9; --dim:#8892a8; --good:#4ade80; --warn:#fbbf24; --bad:#ff6b6b;
+         --c1:#5b9bff; --c2:#ff6b6b; --c5:#9aa4b8; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:13px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+  header{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:15px;letter-spacing:.02em}
+  header p{margin:5px 0 0;color:var(--dim);font-size:12px;max-width:1000px}
+  header p.caveat{color:var(--fg);border-left:3px solid #2b5ee8;padding-left:8px}
+  header p.measured{color:var(--warn);border-left:3px solid #6b5a1b;padding-left:8px}
+  .wrap{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:10px;min-width:0;flex:1 1 560px;max-width:100%}
+  aside{width:340px;min-width:280px;max-width:100%;flex:0 1 340px}
+  canvas{display:block;background:#05070b;border:1px solid var(--line);border-radius:4px;max-width:100%;height:auto;image-rendering:pixelated}
+  canvas#board{width:100%}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:11px 12px;margin-bottom:11px}
+  .box h2{margin:0 0 8px;font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.07em}
+  label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+  label span.k{width:104px;color:var(--dim);flex:none}
+  select,input[type=number]{background:#0a0d13;color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:4px 6px;
+      font:12px ui-monospace,SFMono-Regular,Menlo,monospace;flex:1;min-width:0}
+  input[type=range]{flex:1;min-width:0}
+  button{background:#1d2430;color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:6px 10px;font-size:12px;cursor:pointer}
+  button:hover:not(:disabled){background:#27303e}
+  button:disabled{opacity:.45;cursor:default}
+  button.primary{background:#1d4ed8;border-color:#2b5ee8}
+  button.sel{outline:2px solid var(--c1)}
+  .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .shelf{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+  .shelf button{padding:3px 2px;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:10px;line-height:1.2;min-width:0}
+  .shelf button canvas{width:44px;height:30px;border:0;background:transparent}
+  .shelf button.dim{opacity:.4}
+  table.stat{width:100%;border-collapse:collapse;table-layout:fixed;font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+  table.stat td{padding:3px 2px;vertical-align:top;border-bottom:1px solid #1d2430;text-align:right;font-weight:400}
+  table.stat td:first-child{text-align:left;width:62%}
+  .gauge{position:relative;height:9px;background:#0a0d13;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .gauge i{display:block;height:100%;width:0}
+  .gtxt{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--dim);margin-bottom:2px}
+  .num{display:inline-block;text-align:right;font-variant-numeric:tabular-nums}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+  .banner{padding:8px 10px;border-radius:4px;font-size:12px;border:1px solid var(--line);background:#10141b;color:var(--dim);min-height:2.9em}
+  .banner.turn{color:var(--fg);border-color:#2b5ee8}
+  .banner.over{color:var(--warn);border-color:#6b5a1b}
+  .note{color:var(--dim);font-size:11px;margin-top:7px}
+  .msg{min-height:1.6em;font-size:12px;color:var(--warn);margin-top:6px}
+  .log{background:#05070b;border:1px solid var(--line);border-radius:4px;padding:6px 8px;font:11px ui-monospace,SFMono-Regular,Menlo,monospace;max-height:150px;overflow-y:auto;white-space:pre-wrap}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;color:var(--dim)}
+  .hide{display:none}
+  .opbar{flex:1 1 100%;margin:0;border-color:#2b5ee8;background:#121a2a}
+  .opbar .opttl{font-size:13px;font-weight:600;margin-bottom:6px}
+  .opbar .opctl{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+  .opbar .opset{margin-top:8px}
+  .opbar .opnow{font-weight:600}
+  .opbar .opk{color:var(--dim);font-size:11px}
+  .opbar label{margin:0;min-width:0;max-width:100%}
+  .opbar span.k{width:auto}
+  .opbar select{flex:0 1 auto;min-width:0;max-width:100%}
+  .opbar .note{margin-top:6px}
+  /* 得点の表示（両者の得点を大きく） */
+  .scorebar{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .side{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--c);border-radius:6px;padding:8px 10px;min-width:0;overflow-wrap:anywhere}
+  .side.win{border-color:var(--good);border-top-color:var(--good);box-shadow:0 0 0 1px var(--good)}
+  .side .sname{font-size:12px;color:var(--dim)}
+  .side .srow{display:flex;align-items:baseline;gap:8px}
+  .big{font-size:44px;line-height:1.1;font-weight:700;font-variant-numeric:tabular-nums;min-width:3ch;color:var(--c)}
+  .gain{font-size:18px;font-weight:700;min-width:3ch;color:var(--c)}
+  .facts{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;font-size:12px;margin-top:4px}
+  .facts .k{color:var(--dim)}
+  .facts .v{text-align:right;font-variant-numeric:tabular-nums}
+  .mid{grid-column:1/-1;margin:0}
+  .result{margin-top:8px;font-size:13px;font-weight:600;color:var(--warn);min-height:1.6em}
+  @media(max-width:860px){aside{width:auto;flex:1 1 100%}.wrap{padding:12px}.col{flex-basis:100%}.big{font-size:36px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>S-72 ライフゲーム戦争（得点制）— 人間 または bot の自陣 対 bot</h1>
+  <p>Conway のライフゲーム（B3/S23）に、セルごとの所属（生き残りは保ち、誕生は 3 つの親の多数）を足した 2 人戦。設置は 1 本目のリアルタイム制と同じ——最初の配置のときだけ盤が止まり、あとは止まらない。
+     銀行（置けるセルの数）は <b data-def="recoverEvery"></b> ティックごとに 1 回復し、いつでも自陣へ置ける（置いた分は次のティックの境目に適用される）。bot は <b data-def="D"></b> ティックごとに判断する。
+     <strong>勝ち方が違う</strong>: 相手のセルを過密（近傍 4 以上）で死なせると、そのセルの周りにいた自分のセルの数が自分の得点になる（過疎の死・同じ所属だけの過密死は 0 点。得点は減らない）。
+     1 試合に置ける総量には上限 L（初期の銀行を含む）があり、使い切った側は「置けない」になる。
+     終了は (a) どちらかの総セル数が 0／(b) 両者とも置けなくなり、得点が n ティック動かない／(c) 時間上限。<strong>終わり方によらず、得点の多い方の勝ち・同点は引き分け</strong>（(a) で終わっても全滅した側が負けとは限らない）。
+     自陣（左）は<strong>人間が操作するか、bot に任せるか</strong>を選べ、対戦の途中でも「bot に任せる／取り戻す」を切り替えられる。</p>
+  <p class="caveat">遊ぶ人に効く、この規則の性質: <strong>得点は相手のセルを過密で殺したときだけ入る。セルを持たない側は失点しない</strong>（開始時に孤立した 1 セルだけ置けば、第 1 ティックの (a) で 0 対 0 の引き分けを取れる）。
+     既定の時間上限 <b data-def="maxTicks"></b> ティックは、得点が周期的に動き続けると (b) が来ないため、<strong>収束のために要件へ足した</strong>ものである。</p>
+  <p class="measured">この run の判定は、事前登録（criteria.score.json）した bot 対 bot の走行（run-score.js）の生ログだけで行う。
+     <strong>この画面の対戦（人間の対戦を含む）は標本にしない</strong>——生ログも書かない。</p>
+</header>
+
+<div class="wrap">
+  <div class="box opbar" id="opBox">
+    <div class="opttl">自陣（左）を操作する</div>
+    <div class="opctl">
+      <span id="opNow" class="opnow">いま: -</span>
+      <button class="primary" id="handover" title="対戦の途中でも、自陣を bot に任せる／取り戻せる。走っている対戦を変えるのはこのボタンだけ">bot に任せる</button>
+    </div>
+    <div class="opctl opset">
+      <span class="opk">次の対戦の設定</span>
+      <label><span class="k">操作者</span><select id="seat"><option value="human">人間</option><option value="spectate">bot</option></select></label>
+      <label><span class="k">自陣の bot</span><select id="bot0" title="自陣を bot に任せたときに動く bot の種類"></select></label>
+    </div>
+    <div class="note" id="opNote"></div>
+  </div>
+
+  <div class="col">
+    <div class="scorebar" id="scorebar">
+      <div class="side" id="side0" style="--c:#5b9bff">
+        <div class="sname"><span class="sw" style="background:#5b9bff"></span><span id="nm0">左</span></div>
+        <div class="srow"><span class="big" id="sc0">0</span><span class="gain num" id="gn0"></span></div>
+        <div class="facts">
+          <span class="k">総セル数</span><span class="v" id="ct0">-</span>
+          <span class="k">銀行</span><span class="v" id="bk0">-</span>
+          <span class="k" title="総量 L のうち、まだ銀行へ入っていない分">残りの総量</span><span class="v" id="rm0">-</span>
+          <span class="k">設置</span><span class="v" id="un0">-</span>
+        </div>
+      </div>
+      <div class="side" id="side1" style="--c:#ff6b6b">
+        <div class="sname"><span class="sw" style="background:#ff6b6b"></span><span id="nm1">右</span></div>
+        <div class="srow"><span class="big" id="sc1">0</span><span class="gain num" id="gn1"></span></div>
+        <div class="facts">
+          <span class="k">総セル数</span><span class="v" id="ct1">-</span>
+          <span class="k">銀行</span><span class="v" id="bk1">-</span>
+          <span class="k" title="総量 L のうち、まだ銀行へ入っていない分">残りの総量</span><span class="v" id="rm1">-</span>
+          <span class="k">設置</span><span class="v" id="un1">-</span>
+        </div>
+      </div>
+      <div class="box mid">
+        <div class="gtxt"><span>経過ティック / 上限</span><span class="num" id="tkTxt">-</span></div>
+        <div class="gauge"><i id="tkGauge" style="background:var(--dim)"></i></div>
+        <div class="gtxt" style="margin-top:8px"><span title="両者が「設置できない」になってから、得点が n ティック動かないと終わる">終了条件 (b)（両者が置けず、得点が静止）</span><span class="num" id="bTxt">-</span></div>
+        <div class="gauge"><i id="bGauge" style="background:var(--warn)"></i></div>
+        <div class="result" id="resultLine"></div>
+      </div>
+    </div>
+    <canvas id="board" width="800" height="480"></canvas>
+    <div class="legend" id="legend"></div>
+    <div class="banner" id="banner">「新しい対戦」で始まる</div>
+    <div class="box"><h2>公開された手と出来事</h2><div class="log" id="log"></div></div>
+  </div>
+
+  <aside>
+    <div class="box" id="turnBox">
+      <h2 id="turnTitle">あなたの配置</h2>
+      <table class="stat">
+        <tr><td>銀行（残高）</td><td><span class="num" id="bank" style="min-width:4ch">-</span></td></tr>
+        <tr><td>待ち行列（次の境目に適用）</td><td><span class="num" id="cost" style="min-width:4ch">-</span></td></tr>
+        <tr><td>置いた後の残り</td><td><span class="num" id="left" style="min-width:4ch">-</span></td></tr>
+        <tr><td>選んだ形のコスト</td><td><span class="num" id="patCost" style="min-width:4ch">-</span></td></tr>
+      </table>
+      <div class="row">
+        <button id="modePat" class="sel" title="棚の形をクリックで置く">パターン</button>
+        <button id="modeDraw" title="1 セルずつクリック（ドラッグ可）で置く・もう一度で外す">自由描画</button>
+        <button id="rot" title="90 度回す（キー r）">⟳ 回転</button>
+        <button id="flip" title="左右反転（キー f）">⇋ 反転</button>
+      </div>
+      <div class="shelf" id="shelf" style="margin-top:8px"></div>
+      <div class="row">
+        <button id="undo" title="積んだ最後のセルを戻す（まだ適用されていない分だけ。キー z）">1 つ戻す</button>
+        <button id="clear">全部消す</button>
+        <button class="primary" id="go">開始（最初の配置を置き終えた）</button>
+      </div>
+      <div class="msg" id="msg"></div>
+      <label><span class="k">速さ（ティック/秒）</span><input type="range" id="speed" min="1" max="240" value="10"><output class="num" id="speedOut" style="min-width:3ch">10</output></label>
+      <div class="row"><button id="pause">一時停止</button><button id="step" title="一時停止中に 1 ティックだけ進める">1 ティック進める</button>
+        <button id="again" title="設定欄の値で新しい対戦を始める">新しい対戦</button></div>
+      <div class="row"><label style="margin:0"><input type="checkbox" id="auto"> 自陣が bot のときは自動で開始する</label></div>
+    </div>
+
+    <div class="box">
+      <h2>状態</h2>
+      <table class="stat">
+        <tr><td>次の銀行の回復まで</td><td><span class="num" id="stRec" style="min-width:9ch">-</span></td></tr>
+        <tr><td>bot の次の判断まで</td><td><span class="num" id="stBot" style="min-width:9ch">-</span></td></tr>
+        <tr><td>初接触のティック</td><td><span class="num" id="stContact" style="min-width:7ch">-</span></td></tr>
+        <tr><td>最後に得点が動いたティック</td><td><span class="num" id="stTs" style="min-width:7ch">-</span></td></tr>
+        <tr><td>両者が設置できなくなったティック</td><td><span class="num" id="stTu" style="min-width:7ch">-</span></td></tr>
+      </table>
+      <p class="note" id="ruleNote"></p>
+    </div>
+
+    <div class="box">
+      <h2>対戦の設定（変えたら「新しい対戦」）</h2>
+      <label><span class="k">相手 bot</span><select id="bot1"></select></label>
+      <label><span class="k">bot のシード</span><input type="number" id="seed" value="720201" min="0" step="1"></label>
+      <label><span class="k">自陣の幅</span><input type="number" id="zw" min="8" max="100" step="1"></label>
+      <label><span class="k">中立地帯の幅</span><input type="number" id="nw" min="1" max="400" step="1"></label>
+      <label><span class="k">盤の高さ</span><input type="number" id="bh" min="24" max="300" step="1"></label>
+      <label><span class="k">D（bot の判断の間隔）</span><input type="number" id="pD" min="1" max="600" step="1"></label>
+      <label><span class="k">回復の間隔（ティック）</span><input type="number" id="pRec" min="1" max="600" step="1"></label>
+      <label><span class="k">銀行の上限</span><input type="number" id="pBM" min="1" max="500" step="1"></label>
+      <label><span class="k">初期の銀行</span><input type="number" id="pBI" min="1" max="500" step="1"></label>
+      <label><span class="k">L（総量の上限）</span><input type="number" id="pL" min="1" max="2000" step="1"></label>
+      <label><span class="k">n（静止の長さ）</span><input type="number" id="pN" min="1" max="100000" step="1"></label>
+      <label><span class="k">時間上限（ティック）</span><input type="number" id="pT" min="60" max="100000" step="60"></label>
+      <div class="row"><button class="primary" id="newgame">新しい対戦</button><button id="seedUp" title="シードを 1 増やす">シード +1</button>
+        <button id="narrow" title="中立地帯を狭める（腕 C2 の盤。自陣の幅は既定のまま）">狭い盤</button><button id="reset">規則を既定値へ戻す</button></div>
+      <div class="msg" id="cfgMsg"></div>
+      <p class="note" id="rulesNote"></p>
+    </div>
+  </aside>
+</div>
+
+<script src="../dashboard/harness.js"></script>
+<script src="patterns.js"></script>
+<script src="core.js"></script>
+<script src="game.js"></script>
+<script src="bots.js"></script>
+<script src="bots-extra.js"></script>
+<script src="realtime.js"></script>
+<script src="score.js"></script>
+<script src="bots-score.js"></script>
+<script src="scoresession.js"></script>
+<script src="viewer-score-ui.js"></script>
+</body>
+</html>
